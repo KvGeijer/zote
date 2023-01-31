@@ -1,17 +1,13 @@
 use clap::Parser;
-use std::{io, fs};
+use std::{fs, io};
 
-mod scanner;
 mod errors;
+mod scanner;
 
 #[derive(Parser)]
 struct Args {
     /// The script to run
-    file: Option<String>
-}
-
-pub struct MainState {
-    has_error: bool,
+    file: Option<String>,
 }
 
 fn main() {
@@ -24,45 +20,33 @@ fn main() {
     }
 }
 
-impl MainState {
-    fn new() -> Self {
-        Self { has_error: false }
-    }
-
-    fn reset(&mut self) {
-        self.has_error = false;
-    }
-}
-
 // Maybe move these out to separate file for running and keeping state
 fn run_file(file: &str) {
-    let script = fs::read_to_string(file)
-        .expect("Could not open file.");
+    let script = fs::read_to_string(file).expect("Could not open file.");
 
-    run(&script, &mut MainState::new());
+    run(&script, &mut errors::ErrorReporter::new());
 }
 
 fn run_repl() {
     let reader = io::stdin();
     let mut line = String::new();
-    let mut state = MainState::new();
+    let mut error_reporter = errors::ErrorReporter::new();
 
     println!("Running!!!");
 
     while {
-        println!("> ");
+        println!("> "); //
         reader.read_line(&mut line).unwrap_or(0) > 0
     } {
         println!("{:?}", line);
-        run(&line, &mut state);
-        state.reset();
+        run(&line, &mut error_reporter);
+        error_reporter.reset();
     }
 }
-fn run(code: &str, state: &mut MainState) {
-    let tokens = scanner::tokenize(code, state);
+fn run(code: &str, error_reporter: &mut errors::ErrorReporter) {
+    let tokens = scanner::tokenize(code, error_reporter);
 
     for token in tokens {
         println!("{:?}", token);
     }
 }
-

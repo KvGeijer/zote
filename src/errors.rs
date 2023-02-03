@@ -1,6 +1,8 @@
+use crate::scanner::CodeLoc;
+
 pub struct ErrorReporter {
     // Add struct for many errors
-    has_error: bool,
+    pub has_error: bool,
 }
 
 impl ErrorReporter {
@@ -13,12 +15,16 @@ impl ErrorReporter {
     }
 
     // Should be expanded and changed when more is clear
-    pub fn error(&mut self, line: usize, message: &str) {
-        self.report(line, "", message);
+    pub fn error(&mut self, loc: &CodeLoc, message: &str) {
+        self.report(loc, "", message);
     }
 
-    fn report(&mut self, line: usize, place: &str, message: &str) {
-        eprintln!("[line {line}] Error{place}: {message}");
+    fn report(&mut self, loc: &CodeLoc, place: &str, message: &str) {
+        eprintln!(
+            "[line: {}, col: {}] Error{place}: {message}",
+            loc.line, loc.col
+        );
+
         self.has_error = true;
     }
 }

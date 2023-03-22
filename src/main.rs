@@ -1,7 +1,9 @@
 use clap::Parser;
-use std::{fs, io};
+use std::fs;
+use std::io::{stdin, stdout, Write};
 
 mod errors;
+mod parser;
 mod scanner;
 
 #[derive(Parser)]
@@ -28,17 +30,20 @@ fn run_file(file: &str) {
 }
 
 fn run_repl() {
-    let reader = io::stdin();
+    let reader = stdin();
     let mut line = String::new();
     let mut error_reporter = errors::ErrorReporter::new();
 
     println!("Running!!!");
 
     while {
-        println!("> "); //
+        print!("> ");
+        stdout().flush().unwrap();
+        line.clear();
         reader.read_line(&mut line).unwrap_or(0) > 0
     } {
-        println!("{:?}", line);
+        println!(" REPL got {:?}", line);
+        // Does not preserve program state between calls
         run(&line, &mut error_reporter);
         error_reporter.reset();
     }

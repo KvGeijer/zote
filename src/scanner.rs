@@ -41,6 +41,7 @@ pub enum Token {
     Semicolon,
     Comma,
     Eq,
+    Bang,
 
     EOF,
 
@@ -55,6 +56,7 @@ pub enum Token {
     Mult,
     Div,
     DoubleEq,
+    BangEq,
     Lt,
     Gt,
     Leq,
@@ -100,6 +102,7 @@ lazy_static! {
         (r";", |_| Token::Semicolon),
         (r",", |_| Token::Comma),
         (r"=", |_| Token::Eq),
+        (r"!", |_| Token::Bang),
         (r"true", |_| Token::True),
         (r"false", |_| Token::False),
         (r"and", |_| Token::And),
@@ -109,6 +112,7 @@ lazy_static! {
         (r"\*", |_| Token::Mult),
         (r"/", |_| Token::Div),
         (r"==", |_| Token::DoubleEq),
+        (r"!=", |_| Token::BangEq),
         (r"<", |_| Token::Lt),
         (r">", |_| Token::Gt),
         (r"<=", |_| Token::Leq),

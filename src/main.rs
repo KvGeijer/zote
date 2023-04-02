@@ -51,7 +51,15 @@ fn run_repl() {
 fn run(code: &str, error_reporter: &mut errors::ErrorReporter) {
     let tokens = scanner::tokenize(code, error_reporter);
 
-    for token in tokens {
-        println!("{:?}", token);
+    // for token in tokens.iter() {
+    //     println!("{:?}", token);
+    // }
+
+    let expr = parser::parse(&tokens, error_reporter);
+
+    if error_reporter.has_error {
+        return;
     }
+
+    println!("Parsed expression: {:?}", expr);
 }

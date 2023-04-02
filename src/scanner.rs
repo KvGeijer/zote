@@ -23,6 +23,8 @@ pub enum Token {
     // Invalid(String),
 
     // Special constructs
+    Struct,
+    Fn,
     If,
     Else,
     Match,
@@ -65,8 +67,9 @@ pub enum Token {
 
 #[derive(Debug)]
 pub struct TokenInfo {
-    token: Token,
-    loc: CodeLoc,
+    pub token: Token,
+    pub loc: CodeLoc,
+    pub string: String, // Another slow thing. Could use a reference here...
 }
 
 #[derive(Debug, Clone, PartialEq, Eq)]
@@ -77,8 +80,9 @@ pub struct CodeLoc {
     pub index_end: usize,
 }
 
+type Constructor = Box<dyn Fn(&str) -> Token + Sync>;
 lazy_static! {
-    static ref PATTERNS: Vec<(Regex, Box<dyn Fn(&str) -> Token + Sync>)> = lex_rules![
+    static ref PATTERNS: Vec<(Regex, Constructor)> = lex_rules![
         (r"[\w--\d]\w*", |str| Token::Identifier(str.to_owned())),
         // Not optimal that 001 is scanned as 0 0 1
         (r"(([1-9]\d*\.\d+)|(0\.\d+))", |str| Token::Float(str.parse().unwrap())),
@@ -86,6 +90,8 @@ lazy_static! {
         (r#"".*?""#, |str| Token::String(str[1..str.len()-1].to_owned())),
         (r#"'.*?'"#, |str| Token::String(str[1..str.len()-1].to_owned())),
         (r"//[^\n]*", |str| Token::Comment(str[2..].to_owned())),
+        (r"struct", |_| Token::Struct),
+        (r"fn", |_| Token::Fn),
         (r"if", |_| Token::If),
         (r"else", |_| Token::Else),
         (r"match", |_| Token::Match),
@@ -150,6 +156,7 @@ pub fn tokenize(code: &str, error_reporter: &mut ErrorReporter) -> Vec<TokenInfo
     tokens.push(TokenInfo {
         token: Token::EOF,
         loc,
+        string: "EOF".to_string(),
     });
 
     tokens
@@ -173,18 +180,19 @@ fn parse_token(code: &str, loc: &mut CodeLoc) -> Option<TokenInfo> {
         .filter_map(|(re, transform)| {
             // Can replace with find for speed
             re.captures(&code[loc.index..])
-                .and_then(|caps| Some((caps[0].to_owned(), transform)))
+                .map(|caps| (caps[0].to_owned(), transform))
         })
         .max_by_key(|(cap, _transform)| cap.len())
-        .and_then(|(cap, transform)| {
+        .map(|(cap, transform)| {
             loc.index_end = loc.index + cap.len() - 1;
             let token_loc = loc.clone();
             loc.adv_col(cap.len()); // Not very nice looking to mutate in here
 
-            Some(TokenInfo {
+            TokenInfo {
                 token: transform(&cap),
                 loc: token_loc,
-            })
+                string: cap.to_string(),
+            }
         })
 }
 

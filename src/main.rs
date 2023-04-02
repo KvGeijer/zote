@@ -3,6 +3,7 @@ use std::fs;
 use std::io::{stdin, stdout, Write};
 
 mod errors;
+mod interpreter;
 mod parser;
 mod scanner;
 

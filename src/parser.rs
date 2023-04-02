@@ -13,7 +13,7 @@ use crate::scanner::{CodeLoc, Token, TokenInfo};
 // primary        → NUMBER | STRING | "true" | "false" | "nil"
 //                | "(" expression ")" ;
 
-#[derive(Debug)]
+#[derive(PartialEq, Debug)]
 pub enum Expr {
     Call(), // TODO
     Binary(Box<Expr>, BinOper, Box<Expr>),
@@ -22,6 +22,16 @@ pub enum Expr {
     Float(f64),
     Bool(bool),
     String(String),
+}
+
+impl Expr {
+    fn binary(left: Expr, op: BinOper, rigth: Expr) -> Expr {
+        Expr::Binary(Box::new(left), op, Box::new(rigth))
+    }
+
+    fn unary(op: UnOper, rigth: Expr) -> Expr {
+        Expr::Unary(op, Box::new(rigth))
+    }
 }
 
 #[derive(PartialEq, Eq, Debug)]
@@ -140,13 +150,16 @@ impl<'a> Parser<'a> {
         &self.peek_info().string
     }
 
-    fn accept(&mut self, expected: Token, error_str: &str) -> Result<(), ()> {
+    fn accept(&mut self, expected: Token, error_str: &str, take: bool) -> Option<()> {
         if self.peek() == &expected {
-            self.take();
-            Ok(())
+            if take {
+                // For edge case where we want to accept on peek (unconditional take after)
+                self.take();
+            }
+            Some(())
         } else {
             self.error(error_str);
-            Err(())
+            None
         }
     }
 
@@ -170,87 +183,88 @@ impl<'a> Parser<'a> {
         }
     }
 
-    fn expression(&mut self) -> Result<Expr, ()> {
+    fn expression(&mut self) -> Option<Expr> {
         self.equality()
     }
 
-    fn equality(&mut self) -> Result<Expr, ()> {
+    fn equality(&mut self) -> Option<Expr> {
         // equality       → comparison ( ( "!=" | "==" ) comparison )* ;
         let mut expr = self.comparison()?;
 
         while let Some(op) = self.match_op([BinOper::Eq, BinOper::Neq]) {
             let right = self.comparison()?;
-            expr = Expr::Binary(Box::new(expr), op, Box::new(right));
+            expr = Expr::binary(expr, op, right);
         }
 
-        Ok(expr)
+        Some(expr)
     }
 
-    fn comparison(&mut self) -> Result<Expr, ()> {
+    fn comparison(&mut self) -> Option<Expr> {
         // comparison     → term ( ( ">" | ">=" | "<" | "<=" ) term )* ;
         let mut term = self.term()?;
 
         while let Some(op) = self.match_op([BinOper::Gt, BinOper::Lt, BinOper::Geq, BinOper::Leq]) {
             let right = self.term()?;
-            term = Expr::Binary(Box::new(term), op, Box::new(right));
+            term = Expr::binary(term, op, right);
         }
 
-        Ok(term)
+        Some(term)
     }
 
-    fn term(&mut self) -> Result<Expr, ()> {
+    fn term(&mut self) -> Option<Expr> {
         // term           → factor ( ( "-" | "+" ) factor )* ;
         let mut factor = self.factor()?;
 
         while let Some(op) = self.match_op([BinOper::Add, BinOper::Sub]) {
             let right = self.factor()?;
-            factor = Expr::Binary(Box::new(factor), op, Box::new(right));
+            factor = Expr::binary(factor, op, right);
         }
 
-        Ok(factor)
+        Some(factor)
     }
 
-    fn factor(&mut self) -> Result<Expr, ()> {
+    fn factor(&mut self) -> Option<Expr> {
         // factor         → unary ( ( "/" | "*" ) unary )* ;
         let mut unary = self.unary()?;
 
         while let Some(op) = self.match_op([BinOper::Div, BinOper::Mult]) {
             let right = self.unary()?;
-            unary = Expr::Binary(Box::new(unary), op, Box::new(right));
+            unary = Expr::binary(unary, op, right);
         }
 
-        Ok(unary)
+        Some(unary)
     }
 
-    fn unary(&mut self) -> Result<Expr, ()> {
+    fn unary(&mut self) -> Option<Expr> {
         // unary          → ( "!" | "-" )? primary ;
         if let Some(op) = self.match_op([UnOper::Sub, UnOper::Not]) {
             let right = self.primary()?;
-            Ok(Expr::Unary(op, Box::new(right)))
+            Some(Expr::unary(op, right))
         } else {
             self.primary()
         }
     }
 
-    fn primary(&mut self) -> Result<Expr, ()> {
+    fn primary(&mut self) -> Option<Expr> {
         // primary        → INT | FLOAT | STRING | "true" | "false" | "nil" | "(" expression ")" ;
 
         match self.peek() {
-            Token::False => Ok(Expr::Bool(false)),
-            Token::True => Ok(Expr::Bool(true)),
-            Token::Integer(int) => Ok(Expr::Int(*int)),
-            Token::Float(float) => Ok(Expr::Float(*float)),
-            Token::String(str) => Ok(Expr::String(str.to_string())),
+            Token::False => Some(Expr::Bool(false)),
+            Token::True => Some(Expr::Bool(true)),
+            Token::Integer(int) => Some(Expr::Int(*int)),
+            Token::Float(float) => Some(Expr::Float(*float)),
+            Token::String(str) => Some(Expr::String(str.to_string())),
             // Token::Nil => Expr::Nil(),
             Token::LPar => {
+                self.accept(Token::LPar, "Internal error, should have peeked LPar", true);
                 let expr = self.expression()?;
-                self.accept(Token::RPar, "Expect ')' after expression.")?;
+                self.accept(Token::RPar, "Expect ')' after expression.", false)?;
                 // Why does the book create a grouping subclass?
-                Ok(expr)
+                Some(expr)
             }
             _ => {
                 self.error("Expect expression");
-                Err(())
+                None
             }
         }
         .map(|res| {
@@ -263,5 +277,129 @@ impl<'a> Parser<'a> {
 
 pub fn parse(tokens: &[TokenInfo], error_reporter: &mut ErrorReporter) -> Option<Expr> {
     let mut parser = Parser::new(tokens, error_reporter);
-    parser.expression().ok()
+    parser.expression()
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    fn fake_token(token: Token) -> TokenInfo {
+        TokenInfo {
+            token,
+            loc: CodeLoc {
+                line: 0,
+                col: 0,
+                index: 0,
+                index_end: 0,
+            },
+            string: "fake string".to_string(),
+        }
+    }
+
+    #[test]
+    fn basic_math() {
+        let mut error_reporter = ErrorReporter::new();
+
+        // Can't really test floats due to Rust not implementing Eq for them
+        // "9 + 3 - 4 * 9 / (2 + -1)"
+        let tokens = vec![
+            fake_token(Token::Integer(9)),
+            fake_token(Token::Plus),
+            fake_token(Token::Integer(3)),
+            fake_token(Token::Minus),
+            fake_token(Token::Integer(4)),
+            fake_token(Token::Mult),
+            fake_token(Token::Integer(9)),
+            fake_token(Token::Div),
+            fake_token(Token::LPar),
+            fake_token(Token::Integer(2)),
+            fake_token(Token::Plus),
+            fake_token(Token::Minus),
+            fake_token(Token::Integer(1)),
+            fake_token(Token::RPar),
+            fake_token(Token::EOF),
+        ];
+
+        let mut parser = Parser::new(&tokens, &mut error_reporter);
+
+        let expected = Expr::binary(
+            Expr::binary(Expr::Int(9), BinOper::Add, Expr::Int(3)),
+            BinOper::Sub,
+            Expr::binary(
+                Expr::binary(Expr::Int(4), BinOper::Mult, Expr::Int(9)),
+                BinOper::Div,
+                Expr::binary(
+                    Expr::Int(2),
+                    BinOper::Add,
+                    Expr::unary(UnOper::Sub, Expr::Int(1)),
+                ),
+            ),
+        );
+
+        assert_eq!(parser.expression().unwrap(), expected);
+    }
+
+    #[test]
+    fn int_comparisons() {
+        // Ok, probably overkill, and more needed to mix arithmetic and comparisons...
+
+        let mut error_reporter = ErrorReporter::new();
+
+        // Can't really test floats due to Rust not implementing Eq for them
+        // "1 < 3 1 <= 4 2 >= 9 3 > 3 2 == 3 5 != 6"
+        let tokens = vec![
+            fake_token(Token::Integer(1)),
+            fake_token(Token::Lt),
+            fake_token(Token::Integer(3)),
+            fake_token(Token::Integer(1)),
+            fake_token(Token::Leq),
+            fake_token(Token::Integer(4)),
+            fake_token(Token::Integer(2)),
+            fake_token(Token::Geq),
+            fake_token(Token::Integer(9)),
+            fake_token(Token::Integer(3)),
+            fake_token(Token::Gt),
+            fake_token(Token::Integer(3)),
+            fake_token(Token::Integer(2)),
+            fake_token(Token::DoubleEq),
+            fake_token(Token::Integer(3)),
+            fake_token(Token::Integer(5)),
+            fake_token(Token::BangEq),
+            fake_token(Token::Integer(6)),
+            fake_token(Token::EOF),
+        ];
+
+        let mut parser = Parser::new(&tokens, &mut error_reporter);
+
+        assert_eq!(
+            parser.expression().unwrap(),
+            Expr::binary(Expr::Int(1), BinOper::Lt, Expr::Int(3))
+        );
+
+        assert_eq!(
+            parser.expression().unwrap(),
+            Expr::binary(Expr::Int(1), BinOper::Leq, Expr::Int(4))
+        );
+
+        assert_eq!(
+            parser.expression().unwrap(),
+            Expr::binary(Expr::Int(2), BinOper::Geq, Expr::Int(9))
+        );
+
+        assert_eq!(
+            parser.expression().unwrap(),
+            Expr::binary(Expr::Int(3), BinOper::Gt, Expr::Int(3))
+        );
+
+        assert_eq!(
+            parser.expression().unwrap(),
+            Expr::binary(Expr::Int(2), BinOper::Eq, Expr::Int(3))
+        );
+
+        assert_eq!(
+            parser.expression().unwrap(),
+            Expr::binary(Expr::Int(5), BinOper::Neq, Expr::Int(6))
+        );
+    }
 }

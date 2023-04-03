@@ -18,10 +18,22 @@ impl Value {
             Value::String(string) => !string.is_empty(),
         }
     }
+
+    fn stringify(&self) -> String {
+        match self {
+            Value::Bool(bool) => format!("{bool}"),
+            Value::Int(int) => format!("{int}"),
+            Value::Float(float) => format!("{float}"),
+            Value::String(string) => string.to_string(),
+        }
+    }
 }
 
 pub fn interpret(program: &Expr) {
-    println!("Interpreted {:?}", eval(program));
+    match eval(program) {
+        Ok(val) => println!("Value: {:?}", val), // Should use stringify or implement display
+        Err(reason) => println!("Error: {reason}"),
+    };
 }
 
 // TODO Err handling. Want code location and maybe original string here as well...

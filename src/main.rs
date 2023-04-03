@@ -63,4 +63,5 @@ fn run(code: &str, error_reporter: &mut errors::ErrorReporter) {
     }
 
     println!("Parsed expression: {:?}", expr);
+    interpreter::interpret(&expr.expect("Should be able to parse expression if no error..."));
 }

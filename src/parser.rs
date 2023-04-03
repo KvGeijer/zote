@@ -15,7 +15,7 @@ use crate::scanner::{CodeLoc, Token, TokenInfo};
 
 #[derive(PartialEq, Debug)]
 pub enum Expr {
-    Call(), // TODO
+    Call, // TODO
     Binary(Box<Expr>, BinOper, Box<Expr>),
     Unary(UnOper, Box<Expr>),
     Int(i64),

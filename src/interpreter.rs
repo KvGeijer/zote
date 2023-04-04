@@ -31,7 +31,7 @@ impl Value {
 
 pub fn interpret(program: &Expr) {
     match eval(program) {
-        Ok(val) => println!("Value: {:?}", val), // Should use stringify or implement display
+        Ok(val) => println!("{}", val.stringify()),
         Err(reason) => println!("Error: {reason}"),
     };
 }

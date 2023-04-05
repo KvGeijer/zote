@@ -1,14 +1,16 @@
-use super::Parser;
-use crate::errors::ErrorReporter;
-use crate::scanner::{CodeLoc, Token, TokenInfo};
+use super::{AstLoc, AstNode, Parser};
+use crate::scanner::Token;
 
 // Exposes the data types and the expression method on parser
+pub type ExprNode = AstNode<Expr>;
+pub type BinOperNode = AstNode<BinOper>;
+pub type UnOperNode = AstNode<UnOper>;
 
-#[derive(PartialEq, Debug)]
+#[derive(Debug, PartialEq)]
 pub enum Expr {
     Call, // TODO
-    Binary(Box<Expr>, BinOper, Box<Expr>),
-    Unary(UnOper, Box<Expr>),
+    Binary(Box<ExprNode>, BinOperNode, Box<ExprNode>),
+    Unary(UnOperNode, Box<ExprNode>),
     Int(i64),
     Float(f64),
     Bool(bool),
@@ -38,77 +40,78 @@ pub enum UnOper {
 }
 
 impl<'a> Parser<'a> {
-    pub fn expression(&mut self) -> Option<Expr> {
+    pub fn expression(&mut self) -> Option<ExprNode> {
         self.equality()
     }
 
-    fn equality(&mut self) -> Option<Expr> {
+    fn equality(&mut self) -> Option<ExprNode> {
         // equality       → comparison ( ( "!=" | "==" ) comparison )* ;
         let mut expr = self.comparison()?;
 
         while let Some(op) = self.match_op([BinOper::Eq, BinOper::Neq]) {
             let right = self.comparison()?;
-            expr = Expr::binary(expr, op, right);
+            expr = ExprNode::binary(expr, op, right);
         }
 
         Some(expr)
     }
 
-    fn comparison(&mut self) -> Option<Expr> {
+    fn comparison(&mut self) -> Option<ExprNode> {
         // comparison     → term ( ( ">" | ">=" | "<" | "<=" ) term )* ;
         let mut term = self.term()?;
 
         while let Some(op) = self.match_op([BinOper::Gt, BinOper::Lt, BinOper::Geq, BinOper::Leq]) {
             let right = self.term()?;
-            term = Expr::binary(term, op, right);
+            term = ExprNode::binary(term, op, right);
         }
 
         Some(term)
     }
 
-    fn term(&mut self) -> Option<Expr> {
+    fn term(&mut self) -> Option<ExprNode> {
         // term           → factor ( ( "-" | "+" ) factor )* ;
         let mut factor = self.factor()?;
 
         while let Some(op) = self.match_op([BinOper::Add, BinOper::Sub]) {
             let right = self.factor()?;
-            factor = Expr::binary(factor, op, right);
+            factor = ExprNode::binary(factor, op, right);
         }
 
         Some(factor)
     }
 
-    fn factor(&mut self) -> Option<Expr> {
+    fn factor(&mut self) -> Option<ExprNode> {
         // factor         → unary ( ( "/" | "*" ) unary )* ;
         let mut unary = self.unary()?;
 
         while let Some(op) = self.match_op([BinOper::Div, BinOper::Mult]) {
             let right = self.unary()?;
-            unary = Expr::binary(unary, op, right);
+            unary = ExprNode::binary(unary, op, right);
         }
 
         Some(unary)
     }
 
-    fn unary(&mut self) -> Option<Expr> {
+    fn unary(&mut self) -> Option<ExprNode> {
         // unary          → ( "!" | "-" )? primary ;
         if let Some(op) = self.match_op([UnOper::Sub, UnOper::Not]) {
             let right = self.primary()?;
-            Some(Expr::unary(op, right))
+            Some(ExprNode::unary(op, right))
         } else {
             self.primary()
         }
     }
 
-    fn primary(&mut self) -> Option<Expr> {
+    fn primary(&mut self) -> Option<ExprNode> {
         // primary        → INT | FLOAT | STRING | "true" | "false" | "nil" | "(" expression ")" ;
 
+        let start = self.peek_loc().clone();
         match self.peek() {
-            Token::False => Some(Expr::Bool(false)),
-            Token::True => Some(Expr::Bool(true)),
-            Token::Integer(int) => Some(Expr::Int(*int)),
-            Token::Float(float) => Some(Expr::Float(*float)),
-            Token::String(str) => Some(Expr::String(str.to_string())),
+            Token::False => some_node(Expr::Bool(false), start, start),
+            Token::True => some_node(Expr::Bool(true), start, start),
+            Token::Integer(int) => some_node(Expr::Int(*int), start, start),
+            Token::Float(float) => some_node(Expr::Float(*float), start, start),
+            Token::String(str) => some_node(Expr::String(str.to_string()), start, start),
             // Token::Nil => Expr::Nil(),
             Token::LPar => {
                 self.accept(Token::LPar, "Internal error, should have peeked LPar", true);
@@ -129,27 +132,37 @@ impl<'a> Parser<'a> {
         })
     }
 
-    fn match_op<F: FromToken + Eq, T: IntoIterator<Item = F>>(&mut self, expected: T) -> Option<F> {
+    fn match_op<F: FromToken + Eq, T: IntoIterator<Item = F>>(
+        &mut self,
+        expected: T,
+    ) -> Option<AstNode<F>> {
         match F::try_from(self.peek())
             .filter(|peeked| expected.into_iter().any(|wanted| &wanted == peeked))
         {
             None => None,
-            matched => {
+            Some(matched) => {
+                let loc = self.peek_loc().clone();
                 self.take();
-                matched
+                Some(AstNode::new(matched, loc, loc))
             }
         }
     }
 }
 
 // Some helper functions
-impl Expr {
-    fn binary(left: Expr, op: BinOper, rigth: Expr) -> Expr {
-        Expr::Binary(Box::new(left), op, Box::new(rigth))
+impl ExprNode {
+    fn binary(left: ExprNode, op: BinOperNode, right: ExprNode) -> ExprNode {
+        let lloc = left.loc.clone();
+        let rloc = right.loc.clone();
+        let expr = Expr::Binary(Box::new(left), op, Box::new(right));
+        AstNode::new(expr, lloc, rloc)
     }
 
-    fn unary(op: UnOper, rigth: Expr) -> Expr {
-        Expr::Unary(op, Box::new(rigth))
+    fn unary(op: UnOperNode, right: ExprNode) -> ExprNode {
+        let rloc = right.loc.clone();
+        let oloc = op.loc.clone();
+        let expr = Expr::Unary(op, Box::new(right));
+        AstNode::new(expr, oloc, rloc)
     }
 }
 
@@ -185,9 +198,18 @@ impl FromToken for UnOper {
     }
 }
 
+// Ugly without references, but could not get it to work :(
+fn some_node<T, F: Into<AstLoc>>(grammar: T, start: F, end: F) -> Option<AstNode<T>> {
+    Some(AstNode::new(grammar, start, end))
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;
+    use crate::{
+        errors::ErrorReporter,
+        scanner::{CodeLoc, TokenInfo},
+    };
 
     fn fake_token(token: Token) -> TokenInfo {
         TokenInfo {
@@ -196,10 +218,15 @@ mod tests {
                 line: 0,
                 col: 0,
                 index: 0,
-                index_end: 0,
+                len: 1,
             },
             string: "fake string".to_string(),
         }
+    }
+
+    fn fake_node<T>(data: T) -> AstNode<T> {
+        let loc = AstLoc::new(0, 0, 0, 0);
+        AstNode { loc, node: data }
     }
 
     #[test]
@@ -228,16 +255,24 @@ mod tests {
 
         let mut parser = Parser::new(&tokens, &mut error_reporter);
 
-        let expected = Expr::binary(
-            Expr::binary(Expr::Int(9), BinOper::Add, Expr::Int(3)),
-            BinOper::Sub,
-            Expr::binary(
-                Expr::binary(Expr::Int(4), BinOper::Mult, Expr::Int(9)),
-                BinOper::Div,
-                Expr::binary(
-                    Expr::Int(2),
-                    BinOper::Add,
-                    Expr::unary(UnOper::Sub, Expr::Int(1)),
+        let expected = ExprNode::binary(
+            ExprNode::binary(
+                fake_node(Expr::Int(9)),
+                fake_node(BinOper::Add),
+                fake_node(Expr::Int(3)),
+            ),
+            fake_node(BinOper::Sub),
+            ExprNode::binary(
+                ExprNode::binary(
+                    fake_node(Expr::Int(4)),
+                    fake_node(BinOper::Mult),
+                    fake_node(Expr::Int(9)),
+                ),
+                fake_node(BinOper::Div),
+                ExprNode::binary(
+                    fake_node(Expr::Int(2)),
+                    fake_node(BinOper::Add),
+                    ExprNode::unary(fake_node(UnOper::Sub), fake_node(Expr::Int(1))),
                 ),
             ),
         );
@@ -279,32 +314,56 @@ mod tests {
 
         assert_eq!(
             parser.expression().unwrap(),
-            Expr::binary(Expr::Int(1), BinOper::Lt, Expr::Int(3))
+            ExprNode::binary(
+                fake_node(Expr::Int(1)),
+                fake_node(BinOper::Lt),
+                fake_node(Expr::Int(3))
+            )
         );
 
         assert_eq!(
             parser.expression().unwrap(),
-            Expr::binary(Expr::Int(1), BinOper::Leq, Expr::Int(4))
+            ExprNode::binary(
+                fake_node(Expr::Int(1)),
+                fake_node(BinOper::Leq),
+                fake_node(Expr::Int(4))
+            )
         );
 
         assert_eq!(
             parser.expression().unwrap(),
-            Expr::binary(Expr::Int(2), BinOper::Geq, Expr::Int(9))
+            ExprNode::binary(
+                fake_node(Expr::Int(2)),
+                fake_node(BinOper::Geq),
+                fake_node(Expr::Int(9))
+            )
         );
 
         assert_eq!(
             parser.expression().unwrap(),
-            Expr::binary(Expr::Int(3), BinOper::Gt, Expr::Int(3))
+            ExprNode::binary(
+                fake_node(Expr::Int(3)),
+                fake_node(BinOper::Gt),
+                fake_node(Expr::Int(3))
+            )
         );
 
         assert_eq!(
             parser.expression().unwrap(),
-            Expr::binary(Expr::Int(2), BinOper::Eq, Expr::Int(3))
+            ExprNode::binary(
+                fake_node(Expr::Int(2)),
+                fake_node(BinOper::Eq),
+                fake_node(Expr::Int(3))
+            )
         );
 
         assert_eq!(
             parser.expression().unwrap(),
-            Expr::binary(Expr::Int(5), BinOper::Neq, Expr::Int(6))
+            ExprNode::binary(
+                fake_node(Expr::Int(5)),
+                fake_node(BinOper::Neq),
+                fake_node(Expr::Int(6))
+            )
         );
     }
 }

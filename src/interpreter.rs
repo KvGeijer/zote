@@ -1,4 +1,4 @@
-use crate::parser::{BinOper, Expr, UnOper};
+use crate::parser::{AstNode, BinOper, BinOperNode, Expr, ExprNode, UnOper, UnOperNode};
 
 // An interface between Zote and Rust values
 #[derive(PartialEq, Debug, PartialOrd)]
@@ -29,7 +29,7 @@ impl Value {
     }
 }
 
-pub fn interpret(program: &Expr) {
+pub fn interpret(program: &ExprNode) {
     match eval(program) {
         Ok(val) => println!("{}", val.stringify()),
         Err(reason) => println!("Error: {reason}"),
@@ -37,8 +37,8 @@ pub fn interpret(program: &Expr) {
 }
 
 // TODO Err handling. Want code location and maybe original string here as well...
-fn eval(expr: &Expr) -> Result<Value, String> {
-    match expr {
+fn eval(expr: &ExprNode) -> Result<Value, String> {
+    match &expr.node {
         Expr::Call => Err("Function calls not implemented".to_string()),
         Expr::Binary(left, op, right) => eval_binary(eval(left)?, op, eval(right)?),
         Expr::Unary(op, right) => eval_unary(op, eval(right)?),
@@ -49,8 +49,8 @@ fn eval(expr: &Expr) -> Result<Value, String> {
     }
 }
 
-fn eval_binary(left: Value, op: &BinOper, right: Value) -> Result<Value, String> {
-    match op {
+fn eval_binary(left: Value, op: &BinOperNode, right: Value) -> Result<Value, String> {
+    match &op.node {
         BinOper::Add => bin_add(left, right),
         BinOper::Sub => bin_sub(left, right),
         BinOper::Mult => bin_mult(left, right),
@@ -99,12 +99,12 @@ fn bin_div(left: Value, right: Value) -> Result<Value, String> {
     }
 }
 
-fn eval_unary(op: &UnOper, right: Value) -> Result<Value, String> {
-    match op {
+fn eval_unary(op: &UnOperNode, right: Value) -> Result<Value, String> {
+    match op.node {
         UnOper::Sub => match right {
             Value::Int(int) => Ok(Value::Int(-int)),
             Value::Float(float) => Ok(Value::Float(-float)),
-            _other => Err("Unary subtraction only works for a number".to_string()),
+            _other => Err("Unary subtraction only works for a number".to_string()), // TODO use the ast loc to get a good error message!
         },
         UnOper::Not => Ok(Value::Bool(!right.truthy())),
     }

@@ -72,12 +72,12 @@ pub struct TokenInfo {
     pub string: String, // Another slow thing. Could use a reference here...
 }
 
-#[derive(Debug, Clone, PartialEq, Eq)]
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub struct CodeLoc {
     pub line: usize,
     pub col: usize,
     pub index: usize,
-    pub index_end: usize,
+    pub len: usize,
 }
 
 type Constructor = Box<dyn Fn(&str) -> Token + Sync>;
@@ -132,7 +132,7 @@ pub fn tokenize(code: &str, error_reporter: &mut ErrorReporter) -> Vec<TokenInfo
         line: 1,
         col: 1,
         index: 0,
-        index_end: 0,
+        len: 0,
     };
 
     // Change to char indexes?
@@ -184,7 +184,7 @@ fn parse_token(code: &str, loc: &mut CodeLoc) -> Option<TokenInfo> {
         })
         .max_by_key(|(cap, _transform)| cap.len())
         .map(|(cap, transform)| {
-            loc.index_end = loc.index + cap.len() - 1;
+            loc.len = cap.chars().count();
             let token_loc = loc.clone();
             loc.adv_col(cap.len()); // Not very nice looking to mutate in here
 
@@ -235,7 +235,7 @@ mod tests {
             line: 1,
             col: 1,
             index: 0,
-            index_end: 5,
+            len: 6,
         };
         assert_eq!(&tokens[0].loc, &first_loc);
 
@@ -243,7 +243,7 @@ mod tests {
             line: 2,
             col: 2,
             index: 24,
-            index_end: 24 + 13 + 3 * 2,
+            len: 17,
         };
         assert_eq!(&tokens[2].loc, &third_loc);
     }
@@ -267,7 +267,7 @@ mod tests {
             line: 1,
             col: 12,
             index: 11,
-            index_end: 13,
+            len: 3,
         };
         assert_eq!(&tokens[2].loc, &third_loc);
     }
@@ -293,7 +293,7 @@ mod tests {
             line: 2,
             col: 15,
             index: 15 + 9 - 1,
-            index_end: 23 + 8,
+            len: 9,
         };
         assert_eq!(&tokens[2].loc, &third_loc);
     }

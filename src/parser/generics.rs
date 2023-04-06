@@ -1,10 +1,12 @@
+use std::fmt::Debug;
+
 use super::{AstLoc, AstNode, Parser};
 use crate::errors::ErrorReporter;
 use crate::scanner::{CodeLoc, Token, TokenInfo};
 
 // Module with different helper functions for the parsing.
 
-impl<T> AstNode<T> {
+impl<T: Debug> AstNode<T> {
     // This should not be visible outside the parser right, as this module is not pub.
     pub fn new<F: Into<AstLoc>>(node: T, start: F, end: F) -> AstNode<T> {
         let start_astloc: AstLoc = start.into();

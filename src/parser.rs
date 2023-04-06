@@ -8,6 +8,13 @@ mod generics;
 pub use ast_loc::AstLoc;
 pub use expressions::{BinOper, BinOperNode, Expr, ExprNode, UnOper, UnOperNode};
 
+// Each node in the AST is some branch/leaf wrapped in this extra info
+#[derive(Debug)]
+pub struct AstNode<T> {
+    pub node: T,
+    pub loc: AstLoc,
+}
+
 pub fn parse(tokens: &[TokenInfo], error_reporter: &mut ErrorReporter) -> Option<AstNode<Expr>> {
     let mut parser = Parser::new(tokens, error_reporter);
     parser.expression()
@@ -18,11 +25,4 @@ struct Parser<'a> {
     tokens: Vec<&'a TokenInfo>,
     current: usize,
     error_reporter: &'a mut ErrorReporter,
-}
-
-// All nodes on the AST should also have some extra info, like the location in code
-#[derive(Debug)]
-pub struct AstNode<T> {
-    pub node: T,
-    pub loc: AstLoc,
 }

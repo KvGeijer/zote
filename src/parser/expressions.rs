@@ -1,3 +1,5 @@
+use std::fmt::Debug;
+
 use super::{AstLoc, AstNode, Parser};
 use crate::scanner::Token;
 
@@ -132,7 +134,7 @@ impl<'a> Parser<'a> {
         })
     }
 
-    fn match_op<F: FromToken + Eq, T: IntoIterator<Item = F>>(
+    fn match_op<F: FromToken + Eq + Debug, T: IntoIterator<Item = F>>(
         &mut self,
         expected: T,
     ) -> Option<AstNode<F>> {
@@ -198,8 +200,7 @@ impl FromToken for UnOper {
     }
 }
 
-// Ugly without references, but could not get it to work :(
-fn some_node<T, F: Into<AstLoc>>(grammar: T, start: F, end: F) -> Option<AstNode<T>> {
+fn some_node<T: Debug, F: Into<AstLoc>>(grammar: T, start: F, end: F) -> Option<AstNode<T>> {
     Some(AstNode::new(grammar, start, end))
 }
 

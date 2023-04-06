@@ -35,8 +35,6 @@ fn run_file(file: &str) {
         exit(65);
     } else if error_reporter.had_runtime_error {
         exit(70);
-    } else {
-        exit(0);
     }
 }
 

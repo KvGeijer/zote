@@ -105,7 +105,7 @@ impl<'a> Parser<'a> {
     fn primary(&mut self) -> Option<ExprNode> {
         // primary        → INT | FLOAT | STRING | "true" | "false" | "nil" | "(" expression ")" ;
 
-        let start = self.peek_loc().clone();
+        let start = self.peek_loc();
         match self.peek() {
             Token::False => some_node(Expr::Bool(false), start, start),
             Token::True => some_node(Expr::Bool(true), start, start),
@@ -141,7 +141,7 @@ impl<'a> Parser<'a> {
         {
             None => None,
             Some(matched) => {
-                let loc = self.peek_loc().clone();
+                let loc: AstLoc = self.peek_loc().into();
                 self.take();
                 Some(AstNode::new(matched, loc, loc))
             }
@@ -152,15 +152,15 @@ impl<'a> Parser<'a> {
 // Some helper functions
 impl ExprNode {
     fn binary(left: ExprNode, op: BinOperNode, right: ExprNode) -> ExprNode {
-        let lloc = left.loc.clone();
-        let rloc = right.loc.clone();
+        let lloc: AstLoc = left.loc.into();
+        let rloc: AstLoc = right.loc.into();
         let expr = Expr::Binary(Box::new(left), op, Box::new(right));
         AstNode::new(expr, lloc, rloc)
     }
 
     fn unary(op: UnOperNode, right: ExprNode) -> ExprNode {
-        let rloc = right.loc.clone();
-        let oloc = op.loc.clone();
+        let rloc: AstLoc = right.loc.into();
+        let oloc: AstLoc = op.loc.into();
         let expr = Expr::Unary(op, Box::new(right));
         AstNode::new(expr, oloc, rloc)
     }

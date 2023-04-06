@@ -1,6 +1,29 @@
-use super::Parser;
+use super::{AstLoc, AstNode, Parser};
 use crate::errors::ErrorReporter;
 use crate::scanner::{CodeLoc, Token, TokenInfo};
+
+// Module with different helper functions for the parsing.
+
+impl<T> AstNode<T> {
+    // This should not be visible outside the parser right, as this module is not pub.
+    pub fn new<F: Into<AstLoc>>(node: T, start: F, end: F) -> AstNode<T> {
+        let start_astloc: AstLoc = start.into();
+        let end_astloc: AstLoc = end.into();
+        let loc = AstLoc::new(
+            start_astloc.row_start(),
+            end_astloc.row_end(),
+            start_astloc.col_start(),
+            end_astloc.col_end(),
+        );
+        AstNode { node, loc }
+    }
+}
+
+impl<T: PartialEq> PartialEq for AstNode<T> {
+    fn eq(&self, other: &Self) -> bool {
+        &self.node == &other.node
+    }
+}
 
 impl<'a> Parser<'a> {
     pub fn new(tokens: &'a [TokenInfo], error_reporter: &'a mut ErrorReporter) -> Self {

@@ -9,7 +9,7 @@ const COL_START_SHIFT: usize = NBR_COL_BITS + NBR_ROW_BITS;
 const COL_END_SHIFT: usize = 0;
 
 // To keep track of the location of nodes in the AST
-#[derive(Debug, Clone)]
+#[derive(Debug, Clone, Copy)]
 pub struct AstLoc {
     // (start_row, start_col, end_row, end_col)
     // Inspired by the Beaver parser generator
@@ -51,13 +51,18 @@ impl AstLoc {
     }
 }
 
-impl From<CodeLoc> for AstLoc {
-    fn from(loc: CodeLoc) -> Self {
+impl From<&CodeLoc> for AstLoc {
+    fn from(loc: &CodeLoc) -> Self {
         Self::new(
             loc.line,
             loc.line,
             loc.col + loc.len - 1,
             loc.col + loc.len - 1,
         )
+    }
+}
+impl From<&AstLoc> for AstLoc {
+    fn from(loc: &AstLoc) -> Self {
+        loc.clone()
     }
 }

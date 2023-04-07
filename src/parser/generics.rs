@@ -64,7 +64,7 @@ impl<'a> Parser<'a> {
     }
 
     pub fn at_end(&self) -> bool {
-        self.current == self.tokens.len()
+        self.current == self.tokens.len() - 1
     }
 
     pub fn peek_info(&self) -> &TokenInfo {
@@ -83,12 +83,18 @@ impl<'a> Parser<'a> {
         &self.peek_info().string
     }
 
-    pub fn accept(&mut self, expected: Token, error_str: &str, take: bool) -> Option<()> {
+    pub fn accept(&mut self, expected: Token, error_str: &str) -> Option<()> {
         if self.peek() == &expected {
-            if take {
-                // For edge case where we want to accept on peek (unconditional take after)
-                self.take();
-            }
+            self.take();
+            Some(())
+        } else {
+            self.error(error_str);
+            None
+        }
+    }
+
+    pub fn accept_peek(&mut self, expected: Token, error_str: &str) -> Option<()> {
+        if self.peek() == &expected {
             Some(())
         } else {
             self.error(error_str);

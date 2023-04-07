@@ -1,10 +1,13 @@
-use crate::{errors::ErrorReporter, parser::ExprNode};
+use crate::{errors::ErrorReporter, parser::StmtNode};
 
 mod expressions;
+mod statements;
 
-pub fn interpret(program: &ExprNode, error_reporter: &mut ErrorReporter) {
-    match expressions::eval(program) {
-        Ok(value) => println!("{}", value.stringify()),
-        Err((loc, reason)) => error_reporter.runtime_error(&loc, &reason),
+pub fn interpret(program: &Vec<StmtNode>, error_reporter: &mut ErrorReporter) {
+    for stmt in program {
+        match statements::eval(stmt) {
+            Ok(_) => continue,
+            Err((loc, reason)) => return error_reporter.runtime_error(&loc, &reason),
+        }
     }
 }

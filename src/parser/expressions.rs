@@ -116,9 +116,9 @@ impl<'a> Parser<'a> {
             Token::String(str) => some_node(Expr::String(str.to_string()), start, start),
             // Token::Nil => Expr::Nil(),
             Token::LPar => {
-                self.accept(Token::LPar, "Internal error, should have peeked LPar", true);
+                self.accept(Token::LPar, "Internal error, should have peeked LPar");
                 let expr = self.expression()?;
-                self.accept(Token::RPar, "Expect ')' after expression.", false)?;
+                self.accept_peek(Token::RPar, "Expect ')' after expression.")?;
                 // Why does the book create a grouping subclass?
                 Some(expr)
             }

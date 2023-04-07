@@ -62,7 +62,7 @@ fn run(code: &str, error_reporter: &mut errors::ErrorReporter) {
     //     println!("{:?}", token);
     // }
 
-    if let Some(expr) = parser::parse(&tokens, error_reporter) {
-        interpreter::interpret(&expr, error_reporter);
+    if let Some(stmts) = parser::parse(&tokens, error_reporter) {
+        interpreter::interpret(&stmts, error_reporter);
     }
 }

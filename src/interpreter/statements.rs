@@ -1,14 +1,29 @@
-use crate::parser::{AstLoc, Stmt, StmtNode};
+use crate::parser::{ExprNode, Stmt, StmtNode};
 
-use super::expressions;
+use super::{
+    environment::Environment,
+    expressions::{self, Value},
+    RuntimeError,
+};
 
-pub fn eval(stmt: &StmtNode) -> Result<(), (AstLoc, String)> {
+pub fn eval(stmt: &StmtNode, env: &mut Environment) -> Result<(), RuntimeError> {
     match &stmt.node {
-        Stmt::Expr(expr) => expressions::eval(expr).map(|_| ()),
+        Stmt::Decl(id, expr) => decl(id, expr, env),
+        Stmt::Expr(expr) => expressions::eval(expr, env).map(|_| ()),
         Stmt::Print(expr) => {
-            println!("{}", expressions::eval(expr)?.stringify());
+            println!("{}", expressions::eval(expr, env)?.stringify());
             Ok(())
         }
         Stmt::Invalid => panic!("Tried to interpret an invalid statement!"),
     }
+}
+
+fn decl(id: &str, expr: &Option<ExprNode>, env: &mut Environment) -> Result<(), RuntimeError> {
+    let value = if let Some(expr) = expr {
+        expressions::eval(expr, env)?
+    } else {
+        Value::Uninitialized
+    };
+    env.define(id.to_owned(), value);
+    Ok(())
 }

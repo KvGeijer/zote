@@ -1,11 +1,12 @@
 use crate::scanner::Token;
 
-use super::{AstNode, ExprNode, Parser};
+use super::{AstLoc, AstNode, ExprNode, Parser};
 
 pub type StmtNode = AstNode<Stmt>;
 
 #[derive(Debug, PartialEq)]
 pub enum Stmt {
+    Decl(String, Option<ExprNode>),
     Expr(ExprNode),
     Print(ExprNode), // TODO Integrate into standard lib func
     Invalid,
@@ -13,15 +14,49 @@ pub enum Stmt {
 
 impl<'a> Parser<'a> {
     pub fn statement(&mut self) -> StmtNode {
-        if let Some(stmt) = self.try_statement() {
+        if let Some(stmt) = self.top_statement() {
             stmt
         } else {
             // Should we propagate a result to here instead?
+            self.synchronize_error();
             StmtNode::new(Stmt::Invalid, self.peek_loc(), self.peek_loc())
         }
     }
 
-    fn try_statement(&mut self) -> Option<StmtNode> {
+    fn top_statement(&mut self) -> Option<StmtNode> {
+        // Statements and decl statements
+        match self.peek() {
+            Token::Var => self.decl_stmt(),
+            _ => self.non_decl_stmt(),
+        }
+    }
+
+    fn decl_stmt(&mut self) -> Option<StmtNode> {
+        // TODO Add declaring multiple in a row and/or tuple based init
+        // varDecl        → "var" IDENTIFIER ( "=" expression )? ";" ;
+        self.accept(Token::Var, "Expect 'var' at start of declaration");
+        if let Token::Identifier(id) = self.peek().clone() {
+            let start: AstLoc = self.peek_loc().into();
+            self.take();
+            let expr = if self.peek() == &Token::Eq {
+                // Also assign it a value
+                self.take();
+                let expr = self.expression()?;
+                Some(expr)
+            } else {
+                None
+            };
+            let end: AstLoc = self.peek_loc().into();
+            self.accept(Token::Semicolon, "Decl statement must end with ';'")?;
+            Some(StmtNode::new(Stmt::Decl(id.to_string(), expr), start, end))
+        } else {
+            self.error("A declaration statement must start with an id");
+            None
+        }
+    }
+
+    // To not allow declarations in for example single arm of if stmt
+    fn non_decl_stmt(&mut self) -> Option<StmtNode> {
         match self.peek() {
             Token::Identifier(id) if id.as_str() == "print" => self.print_stmt(),
             _ => self.expr_stmt(),

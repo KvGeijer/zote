@@ -2,13 +2,16 @@ use std::fmt;
 
 use crate::parser::{AstLoc, BinOper, BinOperNode, Expr, ExprNode, UnOper, UnOperNode};
 
+use super::{environment::Environment, RuntimeError};
+
 // An interface between Zote and Rust values
-#[derive(PartialEq, Debug, PartialOrd)]
+#[derive(PartialEq, Debug, PartialOrd, Clone)]
 pub enum Value {
     Int(i64),
     Float(f64),
     Bool(bool),
     String(String),
+    Uninitialized,
 }
 
 impl Value {
@@ -18,6 +21,7 @@ impl Value {
             Value::Int(int) => *int != 0,
             Value::Float(float) => *float != 0.0,
             Value::String(string) => !string.is_empty(),
+            Value::Uninitialized => panic!("Use of uninit value!"),
         }
     }
 
@@ -27,19 +31,39 @@ impl Value {
             Value::Int(int) => format!("{int}"),
             Value::Float(float) => format!("{float}"),
             Value::String(string) => string.to_string(),
+            Value::Uninitialized => panic!("Use of uninit value!"),
         }
     }
 }
 
-pub fn eval(expr: &ExprNode) -> Result<Value, (AstLoc, String)> {
+pub fn eval(expr: &ExprNode, env: &mut Environment) -> Result<Value, (AstLoc, String)> {
     match &expr.node {
         Expr::Call => Err((expr.loc, "Function calls not implemented".to_string())),
-        Expr::Binary(left, op, right) => eval_binary(eval(left)?, op, eval(right)?, expr.loc),
-        Expr::Unary(op, right) => eval_unary(op, eval(right)?, expr.loc),
+        Expr::Binary(left, op, right) => {
+            eval_binary(eval(left, env)?, op, eval(right, env)?, expr.loc)
+        }
+        Expr::Unary(op, right) => eval_unary(op, eval(right, env)?, expr.loc),
+        Expr::Assign(lvalue, expr) => eval_assign(lvalue, eval(expr, env)?, env, expr.loc),
+        Expr::Var(id) => env
+            .get(id)
+            .ok_or_else(|| (expr.loc, format!("Variable '{id}' not declared"))),
         Expr::Int(int) => Ok(Value::Int(*int)),
         Expr::Float(float) => Ok(Value::Float(*float)),
         Expr::Bool(bool) => Ok(Value::Bool(*bool)),
         Expr::String(string) => Ok(Value::String(string.clone())),
+    }
+}
+
+fn eval_assign(
+    lvalue: &str,
+    rvalue: Value,
+    env: &mut Environment,
+    start: AstLoc,
+) -> Result<Value, RuntimeError> {
+    if env.assign(lvalue, rvalue.clone()).is_some() {
+        Ok(rvalue)
+    } else {
+        Err((start, format!("Variable '{lvalue}' not declared")))
     }
 }
 
@@ -186,6 +210,7 @@ impl fmt::Display for Value {
             Value::Int(int) => write!(f, "Int({int})"),
             Value::Float(float) => write!(f, "Float({float})"),
             Value::String(string) => write!(f, "String({string})"),
+            Value::Uninitialized => panic!("Use of uninit value!"),
         }
     }
 }

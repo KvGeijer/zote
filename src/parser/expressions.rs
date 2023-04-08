@@ -13,6 +13,8 @@ pub enum Expr {
     Call, // TODO
     Binary(Box<ExprNode>, BinOperNode, Box<ExprNode>),
     Unary(UnOperNode, Box<ExprNode>),
+    Assign(String, Box<ExprNode>),
+    Var(String),
     Int(i64),
     Float(f64),
     Bool(bool),
@@ -43,7 +45,31 @@ pub enum UnOper {
 
 impl<'a> Parser<'a> {
     pub fn expression(&mut self) -> Option<ExprNode> {
-        self.equality()
+        self.assignment()
+    }
+
+    fn assignment(&mut self) -> Option<ExprNode> {
+        // assignment     → IDENTIFIER "=" assignment | equality ;
+        // TODO At least assign to tuples
+        let expr = self.equality()?;
+        if self.peek() == &Token::Eq {
+            self.accept(Token::Eq, "Internal error, expected eq");
+            if let AstNode {
+                loc,
+                node: Expr::Var(id),
+            } = expr
+            {
+                let rvalue = self.assignment()?;
+                let end = rvalue.loc;
+                let assign = Expr::Assign(id, Box::new(rvalue));
+                Some(ExprNode::new(assign, loc, end))
+            } else {
+                self.error("Invalid lvalue");
+                None
+            }
+        } else {
+            Some(expr)
+        }
     }
 
     fn equality(&mut self) -> Option<ExprNode> {
@@ -105,7 +131,8 @@ impl<'a> Parser<'a> {
     }
 
     fn primary(&mut self) -> Option<ExprNode> {
-        // primary        → INT | FLOAT | STRING | "true" | "false" | "nil" | "(" expression ")" ;
+        // // primary        → INT | FLOAT | STRING | "true" | "false" | "nil"
+        //                   | Identifier | "(" expression ")" ;
 
         let start = self.peek_loc();
         match self.peek() {
@@ -114,6 +141,7 @@ impl<'a> Parser<'a> {
             Token::Integer(int) => some_node(Expr::Int(*int), start, start),
             Token::Float(float) => some_node(Expr::Float(*float), start, start),
             Token::String(str) => some_node(Expr::String(str.to_string()), start, start),
+            Token::Identifier(str) => some_node(Expr::Var(str.to_owned()), start, start),
             // Token::Nil => Expr::Nil(),
             Token::LPar => {
                 self.accept(Token::LPar, "Internal error, should have peeked LPar");

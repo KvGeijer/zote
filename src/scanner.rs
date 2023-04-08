@@ -31,6 +31,7 @@ pub enum Token {
     Return,
     For,
     While,
+    Var, // Might want to change?
 
     // Single chars
     LPar,
@@ -98,6 +99,7 @@ lazy_static! {
         (r"return", |_| Token::Return),
         (r"for", |_| Token::For),
         (r"while", |_| Token::While),
+        (r"var", |_| Token::Var),
         (r"\(", |_| Token::LPar),
         (r"\)", |_| Token::RPar),
         (r"\{", |_| Token::LBrace),

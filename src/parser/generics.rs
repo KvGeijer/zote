@@ -53,11 +53,12 @@ impl<'a> Parser<'a> {
 
             // If the next token is the start of a new statement we can also return
             match self.peek() {
-                Token::Struct => return,
-                Token::Fn => return,
-                Token::For => return,
-                Token::While => return,
-                Token::Return => return,
+                Token::Var
+                | Token::Struct
+                | Token::Fn
+                | Token::For
+                | Token::While
+                | Token::Return => return,
                 _ => continue,
             }
         }

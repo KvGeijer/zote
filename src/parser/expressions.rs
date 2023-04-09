@@ -1,7 +1,7 @@
 use std::fmt::Debug;
 
-use super::{AstLoc, AstNode, Parser};
-use crate::scanner::Token;
+use super::{AstLoc, AstNode, Parser, StmtNode};
+use crate::{parser::Stmt, scanner::Token};
 
 // Exposes the data types and the expression method on parser
 pub type ExprNode = AstNode<Expr>;
@@ -19,6 +19,7 @@ pub enum Expr {
     Float(f64),
     Bool(bool),
     String(String),
+    Block(Vec<StmtNode>),
 }
 
 #[derive(PartialEq, Eq, Debug)]
@@ -45,7 +46,31 @@ pub enum UnOper {
 
 impl<'a> Parser<'a> {
     pub fn expression(&mut self) -> Option<ExprNode> {
-        self.assignment()
+        self.block()
+    }
+
+    fn block(&mut self) -> Option<ExprNode> {
+        // Maybe this should be in another file, to not clutter this one too much?
+        if self.peek() == &Token::LBrace {
+            let start: AstLoc = self.peek_loc().into();
+            self.accept(Token::LBrace, "Internal error at block");
+
+            // This circular dependence is not great.
+            let mut block = vec![];
+            while self.peek() != &Token::RBrace {
+                match self.statement() {
+                    // So far just throw away the failed ast
+                    stmt if stmt.node == Stmt::Invalid => return None,
+                    stmt => block.push(stmt),
+                }
+            }
+
+            let end = self.peek_loc().into();
+            self.accept(Token::RBrace, "Need to close block with '}'");
+            Some(ExprNode::new(Expr::Block(block), start, end))
+        } else {
+            self.assignment()
+        }
     }
 
     fn assignment(&mut self) -> Option<ExprNode> {

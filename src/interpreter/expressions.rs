@@ -1,8 +1,10 @@
 use std::fmt;
 
-use crate::parser::{AstLoc, BinOper, BinOperNode, Expr, ExprNode, UnOper, UnOperNode};
+use crate::parser::{
+    AstLoc, AstNode, BinOper, BinOperNode, Expr, ExprNode, Stmt, StmtNode, UnOper, UnOperNode,
+};
 
-use super::{environment::Environment, RuntimeError};
+use super::{environment::Environment, statements, RuntimeError};
 
 // An interface between Zote and Rust values
 #[derive(PartialEq, Debug, PartialOrd, Clone)]
@@ -36,14 +38,18 @@ impl Value {
     }
 }
 
-pub fn eval(expr: &ExprNode, env: &mut Environment) -> Result<Value, (AstLoc, String)> {
+pub fn eval(expr: &ExprNode, env: &Environment) -> Result<Value, RuntimeError> {
     match &expr.node {
         Expr::Call => Err((expr.loc, "Function calls not implemented".to_string())),
         Expr::Binary(left, op, right) => {
-            eval_binary(eval(left, env)?, op, eval(right, env)?, expr.loc)
+            let val = eval(right, env)?;
+            eval_binary(eval(left, env)?, op, val, expr.loc)
         }
         Expr::Unary(op, right) => eval_unary(op, eval(right, env)?, expr.loc),
-        Expr::Assign(lvalue, expr) => eval_assign(lvalue, eval(expr, env)?, env, expr.loc),
+        Expr::Assign(lvalue, expr) => {
+            let val = eval(expr, env)?;
+            eval_assign(lvalue, val, env, expr.loc)
+        }
         Expr::Var(id) => env
             .get(id)
             .ok_or_else(|| (expr.loc, format!("Variable '{id}' not declared"))),
@@ -51,13 +57,38 @@ pub fn eval(expr: &ExprNode, env: &mut Environment) -> Result<Value, (AstLoc, St
         Expr::Float(float) => Ok(Value::Float(*float)),
         Expr::Bool(bool) => Ok(Value::Bool(*bool)),
         Expr::String(string) => Ok(Value::String(string.clone())),
+        Expr::Block(stmts) => eval_block(stmts, env, expr.loc),
+    }
+}
+
+fn eval_block(
+    stmts: &Vec<StmtNode>,
+    env: &Environment,
+    _loc: AstLoc,
+) -> Result<Value, RuntimeError> {
+    // Not super pretty, would maybe be better with rusts use of no colon if we return
+    let nested_env = env.nest();
+    for stmt in stmts[0..(stmts.len() - 1)].iter() {
+        statements::eval(stmt, &nested_env)?;
+    }
+
+    match stmts.last() {
+        Some(AstNode {
+            node: Stmt::Expr(expr),
+            loc: _loc,
+        }) => eval(expr, &nested_env),
+        Some(stmt) => {
+            statements::eval(stmt, &nested_env)?;
+            Ok(Value::Uninitialized)
+        }
+        None => Ok(Value::Uninitialized),
     }
 }
 
 fn eval_assign(
     lvalue: &str,
     rvalue: Value,
-    env: &mut Environment,
+    env: &Environment,
     start: AstLoc,
 ) -> Result<Value, RuntimeError> {
     if env.assign(lvalue, rvalue.clone()).is_some() {
@@ -72,7 +103,7 @@ fn eval_binary(
     op: &BinOperNode,
     right: Value,
     loc: AstLoc,
-) -> Result<Value, (AstLoc, String)> {
+) -> Result<Value, RuntimeError> {
     match &op.node {
         // TODO: implicit conversion from int to float. Now they only work together on comparisions
         BinOper::Add => bin_add(left, right, loc),
@@ -90,7 +121,7 @@ fn eval_binary(
     }
 }
 
-fn bin_add(left: Value, right: Value, loc: AstLoc) -> Result<Value, (AstLoc, String)> {
+fn bin_add(left: Value, right: Value, loc: AstLoc) -> Result<Value, RuntimeError> {
     match (left, right) {
         (Value::Float(x), Value::Float(y)) => Ok(Value::Float(x + y)),
         (Value::Int(x), Value::Int(y)) => Ok(Value::Int(x + y)),
@@ -102,7 +133,7 @@ fn bin_add(left: Value, right: Value, loc: AstLoc) -> Result<Value, (AstLoc, Str
     }
 }
 
-fn bin_sub(left: Value, right: Value, loc: AstLoc) -> Result<Value, (AstLoc, String)> {
+fn bin_sub(left: Value, right: Value, loc: AstLoc) -> Result<Value, RuntimeError> {
     match (left, right) {
         (Value::Float(x), Value::Float(y)) => Ok(Value::Float(x - y)),
         (Value::Int(x), Value::Int(y)) => Ok(Value::Int(x - y)),
@@ -110,7 +141,7 @@ fn bin_sub(left: Value, right: Value, loc: AstLoc) -> Result<Value, (AstLoc, Str
     }
 }
 
-fn bin_mult(left: Value, right: Value, loc: AstLoc) -> Result<Value, (AstLoc, String)> {
+fn bin_mult(left: Value, right: Value, loc: AstLoc) -> Result<Value, RuntimeError> {
     match (left, right) {
         (Value::Float(x), Value::Float(y)) => Ok(Value::Float(x * y)),
         (Value::Int(x), Value::Int(y)) => Ok(Value::Int(x * y)),
@@ -121,7 +152,7 @@ fn bin_mult(left: Value, right: Value, loc: AstLoc) -> Result<Value, (AstLoc, St
     }
 }
 
-fn bin_div(left: Value, right: Value, loc: AstLoc) -> Result<Value, (AstLoc, String)> {
+fn bin_div(left: Value, right: Value, loc: AstLoc) -> Result<Value, RuntimeError> {
     match (left, right) {
         (Value::Float(x), Value::Float(y)) => Ok(Value::Float(x / y)),
         (Value::Int(x), Value::Int(y)) => Ok(Value::Int(x / y)),
@@ -129,7 +160,7 @@ fn bin_div(left: Value, right: Value, loc: AstLoc) -> Result<Value, (AstLoc, Str
     }
 }
 
-fn bin_eq(left: Value, right: Value, _loc: AstLoc) -> Result<Value, (AstLoc, String)> {
+fn bin_eq(left: Value, right: Value, _loc: AstLoc) -> Result<Value, RuntimeError> {
     match (left, right) {
         (Value::Float(x), Value::Int(y)) => Ok(Value::Bool(x == y as f64)),
         (Value::Int(x), Value::Float(y)) => Ok(Value::Bool(x as f64 == y)),
@@ -137,7 +168,7 @@ fn bin_eq(left: Value, right: Value, _loc: AstLoc) -> Result<Value, (AstLoc, Str
     }
 }
 
-fn bin_neq(left: Value, right: Value, _loc: AstLoc) -> Result<Value, (AstLoc, String)> {
+fn bin_neq(left: Value, right: Value, _loc: AstLoc) -> Result<Value, RuntimeError> {
     match (left, right) {
         (Value::Float(x), Value::Int(y)) => Ok(Value::Bool(x != y as f64)),
         (Value::Int(x), Value::Float(y)) => Ok(Value::Bool(x as f64 != y)),
@@ -145,7 +176,7 @@ fn bin_neq(left: Value, right: Value, _loc: AstLoc) -> Result<Value, (AstLoc, St
     }
 }
 
-fn bin_lt(left: Value, right: Value, loc: AstLoc) -> Result<Value, (AstLoc, String)> {
+fn bin_lt(left: Value, right: Value, loc: AstLoc) -> Result<Value, RuntimeError> {
     match (left, right) {
         (Value::Float(x), Value::Int(y)) => Ok(Value::Bool(x < y as f64)),
         (Value::Int(x), Value::Float(y)) => Ok(Value::Bool((x as f64) < y)),
@@ -154,7 +185,7 @@ fn bin_lt(left: Value, right: Value, loc: AstLoc) -> Result<Value, (AstLoc, Stri
     }
 }
 
-fn bin_leq(left: Value, right: Value, loc: AstLoc) -> Result<Value, (AstLoc, String)> {
+fn bin_leq(left: Value, right: Value, loc: AstLoc) -> Result<Value, RuntimeError> {
     match (left, right) {
         (Value::Float(x), Value::Int(y)) => Ok(Value::Bool(x <= y as f64)),
         (Value::Int(x), Value::Float(y)) => Ok(Value::Bool((x as f64) <= y)),
@@ -163,7 +194,7 @@ fn bin_leq(left: Value, right: Value, loc: AstLoc) -> Result<Value, (AstLoc, Str
     }
 }
 
-fn bin_gt(left: Value, right: Value, loc: AstLoc) -> Result<Value, (AstLoc, String)> {
+fn bin_gt(left: Value, right: Value, loc: AstLoc) -> Result<Value, RuntimeError> {
     match (left, right) {
         (Value::Float(x), Value::Int(y)) => Ok(Value::Bool(x > y as f64)),
         (Value::Int(x), Value::Float(y)) => Ok(Value::Bool((x as f64) > y)),
@@ -172,7 +203,7 @@ fn bin_gt(left: Value, right: Value, loc: AstLoc) -> Result<Value, (AstLoc, Stri
     }
 }
 
-fn bin_geq(left: Value, right: Value, loc: AstLoc) -> Result<Value, (AstLoc, String)> {
+fn bin_geq(left: Value, right: Value, loc: AstLoc) -> Result<Value, RuntimeError> {
     match (left, right) {
         (Value::Float(x), Value::Int(y)) => Ok(Value::Bool(x >= y as f64)),
         (Value::Int(x), Value::Float(y)) => Ok(Value::Bool((x as f64) >= y)),
@@ -181,7 +212,7 @@ fn bin_geq(left: Value, right: Value, loc: AstLoc) -> Result<Value, (AstLoc, Str
     }
 }
 
-fn eval_unary(op: &UnOperNode, right: Value, loc: AstLoc) -> Result<Value, (AstLoc, String)> {
+fn eval_unary(op: &UnOperNode, right: Value, loc: AstLoc) -> Result<Value, RuntimeError> {
     match op.node {
         UnOper::Sub => match right {
             Value::Int(int) => Ok(Value::Int(-int)),

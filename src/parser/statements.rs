@@ -13,6 +13,20 @@ pub enum Stmt {
 }
 
 impl<'a> Parser<'a> {
+    pub fn statements(&mut self) -> Result<Vec<StmtNode>, Vec<StmtNode>> {
+        let mut stmts = Vec::new();
+        while !self.at_end() {
+            stmts.push(self.statement());
+        }
+
+        if stmts.iter().any(|stmt| stmt.node == Stmt::Invalid) {
+            Err(stmts) // In case we still want to be able so see the ast
+        } else {
+            Ok(stmts)
+        }
+    }
+
+    // Maybe not ideal to have pub, but statements can be inside blocks...
     pub fn statement(&mut self) -> StmtNode {
         if let Some(stmt) = self.top_statement() {
             stmt
@@ -44,11 +58,12 @@ impl<'a> Parser<'a> {
                 let expr = self.expression()?;
                 Some(expr)
             } else {
+                // Really None?
                 None
             };
             let end: AstLoc = self.peek_loc().into();
             self.accept(Token::Semicolon, "Decl statement must end with ';'")?;
-            Some(StmtNode::new(Stmt::Decl(id.to_string(), expr), start, end))
+            Some(StmtNode::new(Stmt::Decl(id, expr), start, end))
         } else {
             self.error("A declaration statement must start with an id");
             None

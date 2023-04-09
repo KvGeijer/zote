@@ -19,16 +19,7 @@ pub struct AstNode<T> {
 
 pub fn parse(tokens: &[TokenInfo], error_reporter: &mut ErrorReporter) -> Option<Vec<StmtNode>> {
     let mut parser = Parser::new(tokens, error_reporter);
-    let mut stmts = Vec::new();
-    while !parser.at_end() {
-        stmts.push(parser.statement());
-    }
-
-    if stmts.iter().any(|stmt| stmt.node == Stmt::Invalid) {
-        None
-    } else {
-        Some(stmts)
-    }
+    parser.statements().ok()
 }
 
 // All submodules will add some functionality to this, like parsing expressions

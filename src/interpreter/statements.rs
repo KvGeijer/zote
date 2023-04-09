@@ -6,7 +6,7 @@ use super::{
     RuntimeError,
 };
 
-pub fn eval(stmt: &StmtNode, env: &mut Environment) -> Result<(), RuntimeError> {
+pub fn eval(stmt: &StmtNode, env: &Environment) -> Result<(), RuntimeError> {
     match &stmt.node {
         Stmt::Decl(id, expr) => decl(id, expr, env),
         Stmt::Expr(expr) => expressions::eval(expr, env).map(|_| ()),
@@ -18,7 +18,7 @@ pub fn eval(stmt: &StmtNode, env: &mut Environment) -> Result<(), RuntimeError> 
     }
 }
 
-fn decl(id: &str, expr: &Option<ExprNode>, env: &mut Environment) -> Result<(), RuntimeError> {
+fn decl(id: &str, expr: &Option<ExprNode>, env: &Environment) -> Result<(), RuntimeError> {
     let value = if let Some(expr) = expr {
         expressions::eval(expr, env)?
     } else {

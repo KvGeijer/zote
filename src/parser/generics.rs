@@ -1,29 +1,26 @@
 use std::fmt::Debug;
 
-use super::{AstLoc, AstNode, Parser};
+use super::{AstNode, Parser};
+use crate::code_loc::CodeLoc;
 use crate::errors::ErrorReporter;
-use crate::scanner::{CodeLoc, Token, TokenInfo};
+use crate::scanner::{Token, TokenInfo};
 
 // Module with different helper functions for the parsing.
 
 impl<T: Debug> AstNode<T> {
     // This should not be visible outside the parser right, as this module is not pub.
-    pub fn new<F: Into<AstLoc>>(node: T, start: F, end: F) -> AstNode<T> {
-        let start_astloc: AstLoc = start.into();
-        let end_astloc: AstLoc = end.into();
-        let loc = AstLoc::new(
-            start_astloc.row_start(),
-            end_astloc.row_end(),
-            start_astloc.col_start(),
-            end_astloc.col_end(),
-        );
-        AstNode { node, loc }
+    pub fn new(node: T, start_loc: CodeLoc, end_loc: CodeLoc) -> AstNode<T> {
+        Self {
+            node,
+            start_loc,
+            end_loc,
+        }
     }
 }
 
 impl<T: PartialEq> PartialEq for AstNode<T> {
     fn eq(&self, other: &Self) -> bool {
-        &self.node == &other.node
+        self.node == other.node
     }
 }
 
@@ -39,8 +36,8 @@ impl<'a> Parser<'a> {
     pub fn error(&mut self, str: &str) {
         // Ugly, makes sense why borrow checker argues unless copy, but still...
         // Should probably have the error reporter outside of the parser...
-        let loc = self.peek_loc().clone();
-        let error_string = format!("{} at '{}' {}", loc.line, &self.peek_string(), str);
+        let loc = self.peek_start_loc().clone();
+        let error_string = format!("{} at '{}' {}", loc.line(), &self.peek_string(), str);
         self.error_reporter.error(&loc, &error_string);
     }
 
@@ -76,8 +73,12 @@ impl<'a> Parser<'a> {
         &self.peek_info().token
     }
 
-    pub fn peek_loc(&self) -> &CodeLoc {
-        &self.peek_info().loc
+    pub fn peek_start_loc(&self) -> &CodeLoc {
+        &self.peek_info().start_loc
+    }
+
+    pub fn peek_end_loc(&self) -> &CodeLoc {
+        &self.peek_info().end_loc
     }
 
     pub fn peek_string(&self) -> &str {

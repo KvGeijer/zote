@@ -3,6 +3,7 @@ use std::fs;
 use std::io::{stdin, stdout, Write};
 use std::process::exit;
 
+mod code_loc;
 mod errors;
 mod interpreter;
 mod parser;
@@ -31,7 +32,7 @@ fn run_file(file: &str) {
 
     run(&script, error_reporter);
 
-    if error_reporter.has_error {
+    if error_reporter.had_compilation_error {
         exit(65);
     } else if error_reporter.had_runtime_error {
         exit(70);

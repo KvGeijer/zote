@@ -1,12 +1,10 @@
-use crate::errors::ErrorReporter;
 use crate::scanner::TokenInfo;
+use crate::{code_loc::CodeLoc, errors::ErrorReporter};
 
-mod ast_loc;
 mod expressions;
 mod generics;
 mod statements;
 
-pub use ast_loc::AstLoc;
 pub use expressions::{BinOper, BinOperNode, Expr, ExprNode, UnOper, UnOperNode};
 pub use statements::{Stmt, StmtNode};
 
@@ -14,7 +12,8 @@ pub use statements::{Stmt, StmtNode};
 #[derive(Debug)]
 pub struct AstNode<T> {
     pub node: T,
-    pub loc: AstLoc,
+    pub start_loc: CodeLoc,
+    pub end_loc: CodeLoc, // Not including last char. Should we change?
 }
 
 pub fn parse(tokens: &[TokenInfo], error_reporter: &mut ErrorReporter) -> Option<Vec<StmtNode>> {

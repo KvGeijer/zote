@@ -1,3 +1,4 @@
+use crate::code_loc::CodeLoc;
 use lazy_static::lazy_static;
 use regex::Regex;
 
@@ -69,16 +70,9 @@ pub enum Token {
 #[derive(Debug)]
 pub struct TokenInfo {
     pub token: Token,
-    pub loc: CodeLoc,
+    pub start_loc: CodeLoc,
+    pub end_loc: CodeLoc,
     pub string: String, // Another slow thing. Could use a reference here...
-}
-
-#[derive(Debug, Clone, Copy, PartialEq, Eq)]
-pub struct CodeLoc {
-    pub line: usize,
-    pub col: usize,
-    pub index: usize,
-    pub len: usize,
 }
 
 type Constructor = Box<dyn Fn(&str) -> Token + Sync>;
@@ -130,34 +124,30 @@ lazy_static! {
 
 pub fn tokenize(code: &str, error_reporter: &mut ErrorReporter) -> Vec<TokenInfo> {
     let mut tokens = vec![];
-    let mut loc = CodeLoc {
-        line: 1,
-        col: 1,
-        index: 0,
-        len: 0,
-    };
+    let mut loc = CodeLoc::new(0, 1, 1);
 
     // Change to char indexes?
-    while loc.index < code.len() {
+    while loc.index() < code.len() {
         remove_separators(&mut loc, code);
 
-        if loc.index == code.len() {
+        if loc.index() == code.len() {
             break;
         }
 
         match parse_token(code, &mut loc) {
             Some(token_info) => tokens.push(token_info),
             None => {
-                let scanned = &code[loc.index..].chars().next().unwrap();
+                let scanned = &code[loc.index()..].chars().next().unwrap();
                 error_reporter.error(&loc, &format!("Unexpected character: {}", scanned));
-                error_reporter.has_error = true;
-                loc.adv_col(scanned.len_utf8());
+                error_reporter.had_compilation_error = true;
+                loc.adv_col(1, scanned.len_utf8());
             }
         }
     }
     tokens.push(TokenInfo {
         token: Token::EOF,
-        loc,
+        start_loc: loc.clone(),
+        end_loc: loc,
         string: "EOF".to_string(),
     });
 
@@ -165,9 +155,9 @@ pub fn tokenize(code: &str, error_reporter: &mut ErrorReporter) -> Vec<TokenInfo
 }
 
 fn remove_separators(loc: &mut CodeLoc, code: &str) {
-    while loc.index < code.len() {
-        match &code[loc.index..].chars().next() {
-            Some(' ') | Some('\t') | Some('\r') => loc.adv_col(1),
+    while loc.index() < code.len() {
+        match &code[loc.index()..].chars().next() {
+            Some(' ') | Some('\t') | Some('\r') => loc.adv_col(1, 1),
             Some('\n') => loc.adv_line(),
             _ => return,
         }
@@ -181,34 +171,22 @@ fn parse_token(code: &str, loc: &mut CodeLoc) -> Option<TokenInfo> {
         .iter()
         .filter_map(|(re, transform)| {
             // Can replace with find for speed
-            re.captures(&code[loc.index..])
+            re.captures(&code[loc.index()..])
                 .map(|caps| (caps[0].to_owned(), transform))
         })
         .max_by_key(|(cap, _transform)| cap.len())
         .map(|(cap, transform)| {
-            loc.len = cap.chars().count();
-            let token_loc = loc.clone();
-            loc.adv_col(cap.len()); // Not very nice looking to mutate in here
+            let start_loc = loc.clone();
+            loc.adv_col(cap.chars().count(), cap.len()); // Not very nice looking to mutate in here
+            let end_loc = loc.clone();
 
             TokenInfo {
                 token: transform(&cap),
-                loc: token_loc,
+                start_loc,
+                end_loc,
                 string: cap.to_string(),
             }
         })
-}
-
-impl CodeLoc {
-    fn adv_col(&mut self, nbr_chars: usize) {
-        self.index += nbr_chars;
-        self.col += nbr_chars;
-    }
-
-    fn adv_line(&mut self) {
-        self.index += 1;
-        self.line += 1;
-        self.col = 1;
-    }
 }
 
 #[cfg(test)]
@@ -233,21 +211,13 @@ mod tests {
         let scanned_tokens: Vec<_> = tokens.iter().map(|info| info.token.clone()).collect();
         assert_eq!(scanned_tokens, expected_tokens);
 
-        let first_loc = CodeLoc {
-            line: 1,
-            col: 1,
-            index: 0,
-            len: 6,
-        };
-        assert_eq!(&tokens[0].loc, &first_loc);
+        let first_start = CodeLoc::new(0, 1, 1);
+        assert_eq!(&tokens[0].start_loc, &first_start);
 
-        let third_loc = CodeLoc {
-            line: 2,
-            col: 2,
-            index: 24,
-            len: 17,
-        };
-        assert_eq!(&tokens[2].loc, &third_loc);
+        let third_start = CodeLoc::new(24, 2, 2);
+        let third_end = CodeLoc::new(44, 2, 19);
+        assert_eq!(&tokens[2].start_loc, &third_start);
+        assert_eq!(&tokens[2].end_loc, &third_end);
     }
 
     #[test]
@@ -265,13 +235,10 @@ mod tests {
         let scanned_tokens: Vec<_> = tokens[1..5].iter().map(|info| info.token.clone()).collect();
         assert_eq!(scanned_tokens, expected_tokens);
 
-        let third_loc = CodeLoc {
-            line: 1,
-            col: 12,
-            index: 11,
-            len: 3,
-        };
-        assert_eq!(&tokens[2].loc, &third_loc);
+        let third_start = CodeLoc::new(11, 1, 12);
+        let third_end = CodeLoc::new(14, 1, 15);
+        assert_eq!(&tokens[2].start_loc, &third_start);
+        assert_eq!(&tokens[2].end_loc, &third_end);
     }
 
     #[test]
@@ -291,13 +258,10 @@ mod tests {
         let scanned_tokens: Vec<_> = tokens.iter().map(|info| info.token.clone()).collect();
         assert_eq!(scanned_tokens, expected_tokens);
 
-        let third_loc = CodeLoc {
-            line: 2,
-            col: 15,
-            index: 15 + 9 - 1,
-            len: 9,
-        };
-        assert_eq!(&tokens[2].loc, &third_loc);
+        let third_start = CodeLoc::new(23, 2, 15);
+        let third_end = CodeLoc::new(32, 2, 24);
+        assert_eq!(&tokens[2].start_loc, &third_start);
+        assert_eq!(&tokens[2].end_loc, &third_end);
     }
 
     #[test]

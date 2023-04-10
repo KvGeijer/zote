@@ -1,7 +1,7 @@
 use std::fmt::Debug;
 
-use super::{AstLoc, AstNode, Parser, StmtNode};
-use crate::{parser::Stmt, scanner::Token};
+use super::{AstNode, Parser, StmtNode};
+use crate::{code_loc::CodeLoc, parser::Stmt, scanner::Token};
 
 // Exposes the data types and the expression method on parser
 pub type ExprNode = AstNode<Expr>;
@@ -52,7 +52,7 @@ impl<'a> Parser<'a> {
     fn block(&mut self) -> Option<ExprNode> {
         // Maybe this should be in another file, to not clutter this one too much?
         if self.peek() == &Token::LBrace {
-            let start: AstLoc = self.peek_loc().into();
+            let start = self.peek_start_loc().clone();
             self.accept(Token::LBrace, "Internal error at block");
 
             // This circular dependence is not great.
@@ -65,7 +65,7 @@ impl<'a> Parser<'a> {
                 }
             }
 
-            let end = self.peek_loc().into();
+            let end = self.peek_end_loc().clone();
             self.accept(Token::RBrace, "Need to close block with '}'");
             Some(ExprNode::new(Expr::Block(block), start, end))
         } else {
@@ -80,14 +80,15 @@ impl<'a> Parser<'a> {
         if self.peek() == &Token::Eq {
             self.accept(Token::Eq, "Internal error, expected eq");
             if let AstNode {
-                loc,
+                start_loc,
+                end_loc: _,
                 node: Expr::Var(id),
             } = expr
             {
                 let rvalue = self.assignment()?;
-                let end = rvalue.loc;
+                let end = rvalue.end_loc.clone();
                 let assign = Expr::Assign(id, Box::new(rvalue));
-                Some(ExprNode::new(assign, loc, end))
+                Some(ExprNode::new(assign, start_loc, end))
             } else {
                 self.error("Invalid lvalue");
                 None
@@ -159,16 +160,18 @@ impl<'a> Parser<'a> {
         // // primary        → INT | FLOAT | STRING | "true" | "false" | "nil"
         //                   | Identifier | "(" expression ")" ;
 
-        let start = self.peek_loc();
+        let start = self.peek_start_loc().clone();
+        let end = self.peek_end_loc().clone();
         match self.peek() {
-            Token::False => some_node(Expr::Bool(false), start, start),
-            Token::True => some_node(Expr::Bool(true), start, start),
-            Token::Integer(int) => some_node(Expr::Int(*int), start, start),
-            Token::Float(float) => some_node(Expr::Float(*float), start, start),
-            Token::String(str) => some_node(Expr::String(str.to_string()), start, start),
-            Token::Identifier(str) => some_node(Expr::Var(str.to_owned()), start, start),
+            Token::False => some_node(Expr::Bool(false), start, end),
+            Token::True => some_node(Expr::Bool(true), start, end),
+            Token::Integer(int) => some_node(Expr::Int(*int), start, end),
+            Token::Float(float) => some_node(Expr::Float(*float), start, end),
+            Token::String(str) => some_node(Expr::String(str.to_string()), start, end),
+            Token::Identifier(str) => some_node(Expr::Var(str.to_owned()), start, end),
             // Token::Nil => Expr::Nil(),
             Token::LPar => {
+                // Dont have the correct location really for this
                 self.accept(Token::LPar, "Internal error, should have peeked LPar");
                 let expr = self.expression()?;
                 self.accept_peek(Token::RPar, "Expect ')' after expression.")?;
@@ -196,9 +199,10 @@ impl<'a> Parser<'a> {
         {
             None => None,
             Some(matched) => {
-                let loc: AstLoc = self.peek_loc().into();
+                let start_loc = self.peek_start_loc().clone();
+                let end_loc = self.peek_end_loc().clone();
                 self.take();
-                Some(AstNode::new(matched, loc, loc))
+                Some(AstNode::new(matched, start_loc, end_loc))
             }
         }
     }
@@ -207,17 +211,17 @@ impl<'a> Parser<'a> {
 // Some helper functions
 impl ExprNode {
     fn binary(left: ExprNode, op: BinOperNode, right: ExprNode) -> ExprNode {
-        let lloc: AstLoc = left.loc.into();
-        let rloc: AstLoc = right.loc.into();
+        let start_loc = left.start_loc.clone();
+        let end_loc = right.end_loc.clone();
         let expr = Expr::Binary(Box::new(left), op, Box::new(right));
-        AstNode::new(expr, lloc, rloc)
+        AstNode::new(expr, start_loc, end_loc)
     }
 
     fn unary(op: UnOperNode, right: ExprNode) -> ExprNode {
-        let rloc: AstLoc = right.loc.into();
-        let oloc: AstLoc = op.loc.into();
+        let start_loc = op.start_loc.clone();
+        let end_loc = right.end_loc.clone();
         let expr = Expr::Unary(op, Box::new(right));
-        AstNode::new(expr, oloc, rloc)
+        AstNode::new(expr, start_loc, end_loc)
     }
 }
 
@@ -253,34 +257,27 @@ impl FromToken for UnOper {
     }
 }
 
-fn some_node<T: Debug, F: Into<AstLoc>>(grammar: T, start: F, end: F) -> Option<AstNode<T>> {
+fn some_node<T: Debug>(grammar: T, start: CodeLoc, end: CodeLoc) -> Option<AstNode<T>> {
     Some(AstNode::new(grammar, start, end))
 }
 
 #[cfg(test)]
 mod tests {
     use super::*;
-    use crate::{
-        errors::ErrorReporter,
-        scanner::{CodeLoc, TokenInfo},
-    };
+    use crate::{code_loc::CodeLoc, errors::ErrorReporter, scanner::TokenInfo};
 
     fn fake_token(token: Token) -> TokenInfo {
         TokenInfo {
             token,
-            loc: CodeLoc {
-                line: 0,
-                col: 0,
-                index: 0,
-                len: 1,
-            },
+            start_loc: CodeLoc::new(0, 0, 0),
+            end_loc: CodeLoc::new(0, 0, 0),
             string: "fake string".to_string(),
         }
     }
 
-    fn fake_node<T>(data: T) -> AstNode<T> {
-        let loc = AstLoc::new(0, 0, 0, 0);
-        AstNode { loc, node: data }
+    fn fake_node<T: Debug>(data: T) -> AstNode<T> {
+        let loc = CodeLoc::new(0, 0, 0);
+        AstNode::new(data, loc.clone(), loc)
     }
 
     #[test]

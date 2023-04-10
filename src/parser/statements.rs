@@ -1,6 +1,6 @@
 use crate::scanner::Token;
 
-use super::{AstLoc, AstNode, ExprNode, Parser};
+use super::{AstNode, ExprNode, Parser};
 
 pub type StmtNode = AstNode<Stmt>;
 
@@ -33,7 +33,11 @@ impl<'a> Parser<'a> {
         } else {
             // Should we propagate a result to here instead?
             self.synchronize_error();
-            StmtNode::new(Stmt::Invalid, self.peek_loc(), self.peek_loc())
+            StmtNode::new(
+                Stmt::Invalid,
+                self.peek_start_loc().clone(),
+                self.peek_start_loc().clone(),
+            )
         }
     }
 
@@ -50,7 +54,7 @@ impl<'a> Parser<'a> {
         // varDecl        → "var" IDENTIFIER ( "=" expression )? ";" ;
         self.accept(Token::Var, "Expect 'var' at start of declaration");
         if let Token::Identifier(id) = self.peek().clone() {
-            let start: AstLoc = self.peek_loc().into();
+            let start = self.peek_start_loc().clone();
             self.take();
             let expr = if self.peek() == &Token::Eq {
                 // Also assign it a value
@@ -61,7 +65,7 @@ impl<'a> Parser<'a> {
                 // Really None?
                 None
             };
-            let end: AstLoc = self.peek_loc().into();
+            let end = self.peek_end_loc().clone();
             self.accept(Token::Semicolon, "Decl statement must end with ';'")?;
             Some(StmtNode::new(Stmt::Decl(id, expr), start, end))
         } else {
@@ -83,17 +87,17 @@ impl<'a> Parser<'a> {
         self.take();
         self.accept(Token::LPar, "Expect parentheses around print expression")?;
         let expr = self.expression()?;
-        let start = expr.loc;
+        let start = expr.start_loc.clone();
         self.accept(Token::RPar, "Expect closing parentheses after print")?;
-        let end = self.peek_loc().into();
+        let end = self.peek_end_loc().clone();
         self.accept(Token::Semicolon, "Expect ';' after print call")?;
         Some(StmtNode::new(Stmt::Print(expr), start, end))
     }
 
     fn expr_stmt(&mut self) -> Option<StmtNode> {
         let expr = self.expression()?;
-        let start = expr.loc;
-        let end = self.peek_loc().into();
+        let start = expr.start_loc.clone();
+        let end = self.peek_end_loc().clone();
         self.accept(Token::Semicolon, "Expect ';' after expression statement")?;
         Some(StmtNode::new(Stmt::Expr(expr), start, end))
     }

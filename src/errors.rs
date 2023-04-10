@@ -1,26 +1,32 @@
-use crate::{parser::AstLoc, scanner::CodeLoc};
+use crate::code_loc::CodeLoc;
 
 pub struct ErrorReporter {
     // Add struct for many errors
-    pub has_error: bool,
+    pub had_compilation_error: bool,
     pub had_runtime_error: bool,
 }
 
 impl ErrorReporter {
     pub fn new() -> Self {
         Self {
-            has_error: false,
+            had_compilation_error: false,
             had_runtime_error: false,
         }
     }
 
     pub fn reset(&mut self) {
-        self.has_error = false;
+        self.had_compilation_error = false;
         self.had_runtime_error = false;
     }
 
-    pub fn runtime_error(&mut self, loc: &AstLoc, message: &str) {
-        eprintln!("ERROR [{loc}] {message}")
+    pub fn runtime_error(&mut self, start: &CodeLoc, end: &CodeLoc, message: &str) {
+        eprintln!(
+            "ERROR [{}:{} - {}-{}] {message}",
+            start.line(),
+            start.col(),
+            end.line(),
+            end.col()
+        )
     }
 
     // Should be expanded and changed when more is clear
@@ -31,9 +37,10 @@ impl ErrorReporter {
     fn report(&mut self, loc: &CodeLoc, place: &str, message: &str) {
         eprintln!(
             "[line: {}, col: {}] Error{place}: {message}",
-            loc.line, loc.col
+            loc.line(),
+            loc.col()
         );
 
-        self.has_error = true;
+        self.had_compilation_error = true;
     }
 }

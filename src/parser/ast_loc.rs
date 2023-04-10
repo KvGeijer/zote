@@ -1,6 +1,6 @@
 use core::fmt;
 
-use crate::scanner::CodeLoc;
+use crate::code_loc::CodeLoc;
 
 const NBR_COL_BITS: usize = 12;
 const NBR_ROW_BITS: usize = 32 - NBR_COL_BITS;
@@ -64,22 +64,5 @@ impl fmt::Display for AstLoc {
             self.row_end(),
             self.col_end()
         )
-    }
-}
-
-impl From<&CodeLoc> for AstLoc {
-    fn from(loc: &CodeLoc) -> Self {
-        Self::new(
-            loc.line,
-            loc.line,
-            loc.col + loc.len - 1,
-            loc.col + loc.len - 1,
-        )
-    }
-}
-
-impl From<&AstLoc> for AstLoc {
-    fn from(loc: &AstLoc) -> Self {
-        loc.clone()
     }
 }

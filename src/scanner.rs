@@ -167,7 +167,7 @@ pub fn tokenize(code: &str, error_reporter: &mut ErrorReporter) -> Vec<TokenInfo
 fn remove_separators(loc: &mut CodeLoc, code: &str) {
     while loc.index < code.len() {
         match &code[loc.index..].chars().next() {
-            Some(' ') => loc.adv_col(1),
+            Some(' ') | Some('\t') | Some('\r') => loc.adv_col(1),
             Some('\n') => loc.adv_line(),
             _ => return,
         }

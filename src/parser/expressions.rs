@@ -19,7 +19,7 @@ pub enum Expr {
     Float(f64),
     Bool(bool),
     String(String),
-    Block(Vec<StmtNode>),
+    Block(Vec<StmtNode>), // TODO: Add a field for output, like rust not using semicolon for last.
 }
 
 #[derive(PartialEq, Eq, Debug)]

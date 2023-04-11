@@ -58,7 +58,11 @@ impl<'a> Parser<'a> {
             // This circular dependence is not great.
             let mut block = vec![];
             while self.peek() != &Token::RBrace {
-                match self.statement() {
+                match self
+                    // TODO: now can more easily allow last statement to be an expression!
+                    .statement(false)
+                    .expect_left("Internal error: allow_expr is false, so should get a statement")
+                {
                     // So far just throw away the failed ast
                     stmt if stmt.node == Stmt::Invalid => return None,
                     stmt => block.push(stmt),

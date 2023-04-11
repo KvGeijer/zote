@@ -18,6 +18,7 @@ pub struct AstNode<T> {
 
 pub fn parse(tokens: &[TokenInfo], error_reporter: &mut ErrorReporter) -> Option<Vec<StmtNode>> {
     let mut parser = Parser::new(tokens, error_reporter);
+    // A bit of a cheat, but if there is only a single experssion, we treat it as a print statement
     parser.statements().ok()
 }
 

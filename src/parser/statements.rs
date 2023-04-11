@@ -1,6 +1,7 @@
-use crate::scanner::Token;
+use either::Either;
 
 use super::{AstNode, ExprNode, Parser};
+use crate::scanner::Token;
 
 pub type StmtNode = AstNode<Stmt>;
 
@@ -13,10 +14,27 @@ pub enum Stmt {
 }
 
 impl<'a> Parser<'a> {
+    /// Only for top level parsing of global statements
     pub fn statements(&mut self) -> Result<Vec<StmtNode>, Vec<StmtNode>> {
+        // If a single expression it is wrapped in a print statement
         let mut stmts = Vec::new();
+        match self.statement(true) {
+            Either::Left(stmt) => stmts.push(stmt),
+            Either::Right(expr) => {
+                self.accept(Token::EOF, "Expect singleton expression")
+                    .ok_or(stmts)?;
+                let start = expr.start_loc.clone();
+                let end = expr.end_loc.clone();
+                let print_stmt = StmtNode::new(Stmt::Print(expr), start, end);
+                return Ok(vec![print_stmt]);
+            }
+        }
+
         while !self.at_end() {
-            stmts.push(self.statement());
+            let stmt = self
+                .statement(false)
+                .expect_left("Internal error: allow_expr is false, so should get a statement");
+            stmts.push(stmt);
         }
 
         if stmts.iter().any(|stmt| stmt.node == Stmt::Invalid) {
@@ -27,25 +45,26 @@ impl<'a> Parser<'a> {
     }
 
     // Maybe not ideal to have pub, but statements can be inside blocks...
-    pub fn statement(&mut self) -> StmtNode {
-        if let Some(stmt) = self.top_statement() {
-            stmt
+    // If allow_expr is on, it will match an expression instead of causing error if there is no closing ;
+    pub fn statement(&mut self, allow_expr: bool) -> Either<StmtNode, ExprNode> {
+        if let Some(node) = self.top_statement(allow_expr) {
+            node
         } else {
             // Should we propagate a result to here instead?
             self.synchronize_error();
-            StmtNode::new(
+            Either::Left(StmtNode::new(
                 Stmt::Invalid,
                 self.peek_start_loc().clone(),
                 self.peek_start_loc().clone(),
-            )
+            ))
         }
     }
 
-    fn top_statement(&mut self) -> Option<StmtNode> {
+    fn top_statement(&mut self, allow_expr: bool) -> Option<Either<StmtNode, ExprNode>> {
         // Statements and decl statements
         match self.peek() {
-            Token::Var => self.decl_stmt(),
-            _ => self.non_decl_stmt(),
+            Token::Var => Some(Either::Left(self.decl_stmt()?)),
+            _ => self.non_decl_stmt(allow_expr),
         }
     }
 
@@ -75,10 +94,12 @@ impl<'a> Parser<'a> {
     }
 
     // To not allow declarations in for example single arm of if stmt
-    fn non_decl_stmt(&mut self) -> Option<StmtNode> {
+    fn non_decl_stmt(&mut self, allow_expr: bool) -> Option<Either<StmtNode, ExprNode>> {
         match self.peek() {
-            Token::Identifier(id) if id.as_str() == "print" => self.print_stmt(),
-            _ => self.expr_stmt(),
+            Token::Identifier(id) if id.as_str() == "print" => {
+                Some(Either::Left(self.print_stmt()?))
+            }
+            _ => self.expr_stmt(allow_expr),
         }
     }
 
@@ -94,11 +115,15 @@ impl<'a> Parser<'a> {
         Some(StmtNode::new(Stmt::Print(expr), start, end))
     }
 
-    fn expr_stmt(&mut self) -> Option<StmtNode> {
+    fn expr_stmt(&mut self, allow_expr: bool) -> Option<Either<StmtNode, ExprNode>> {
         let expr = self.expression()?;
-        let start = expr.start_loc.clone();
-        let end = self.peek_end_loc().clone();
-        self.accept(Token::Semicolon, "Expect ';' after expression statement")?;
-        Some(StmtNode::new(Stmt::Expr(expr), start, end))
+        if !allow_expr || self.peek() == &Token::Semicolon {
+            let start = expr.start_loc.clone();
+            let end = self.peek_end_loc().clone();
+            self.accept(Token::Semicolon, "Expect ';' after expression statement")?;
+            Some(Either::Left(StmtNode::new(Stmt::Expr(expr), start, end)))
+        } else {
+            Some(Either::Right(expr))
+        }
     }
 }

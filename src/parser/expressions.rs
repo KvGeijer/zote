@@ -20,6 +20,7 @@ pub enum Expr {
     Bool(bool),
     String(String),
     Block(Vec<StmtNode>), // TODO: Add a field for output, like rust not using semicolon for last.
+    If(Box<ExprNode>, Box<ExprNode>, Option<Box<ExprNode>>),
 }
 
 #[derive(PartialEq, Eq, Debug)]
@@ -46,35 +47,60 @@ pub enum UnOper {
 
 impl<'a> Parser<'a> {
     pub fn expression(&mut self) -> Option<ExprNode> {
-        self.block()
+        self.top_expr()
     }
 
-    fn block(&mut self) -> Option<ExprNode> {
-        // Maybe this should be in another file, to not clutter this one too much?
-        if self.peek() == &Token::LBrace {
-            let start = self.peek_start_loc().clone();
-            self.accept(Token::LBrace, "Internal error at block");
-
-            // This circular dependence is not great.
-            let mut block = vec![];
-            while self.peek() != &Token::RBrace {
-                match self
-                    // TODO: now can more easily allow last statement to be an expression!
-                    .statement(false)
-                    .expect_left("Internal error: allow_expr is false, so should get a statement")
-                {
-                    // So far just throw away the failed ast
-                    stmt if stmt.node == Stmt::Invalid => return None,
-                    stmt => block.push(stmt),
-                }
-            }
-
-            let end = self.peek_end_loc().clone();
-            self.accept(Token::RBrace, "Need to close block with '}'");
-            Some(ExprNode::new(Expr::Block(block), start, end))
-        } else {
-            self.assignment()
+    fn top_expr(&mut self) -> Option<ExprNode> {
+        match self.peek() {
+            Token::LBrace => self.accept_block(),
+            Token::If => self.accept_if(),
+            _ => self.assignment(),
         }
+    }
+
+    fn accept_if(&mut self) -> Option<ExprNode> {
+        let start = self.peek_start_loc().clone();
+        self.accept(Token::If, "Internal error at if")?;
+
+        let cond = self.expression()?;
+        let then = self.expression()?;
+        let otherwise = if self.peek() == &Token::Else {
+            self.accept(Token::Else, "Internal error at if")?;
+            Some(Box::new(self.expression()?))
+        } else {
+            None
+        };
+
+        let end = self.peek_end_loc().clone();
+        Some(ExprNode::new(
+            Expr::If(Box::new(cond), Box::new(then), otherwise),
+            start,
+            end,
+        ))
+    }
+
+    fn accept_block(&mut self) -> Option<ExprNode> {
+        // Maybe this should be in another file, to not clutter this one too much?
+        let start = self.peek_start_loc().clone();
+        self.accept(Token::LBrace, "Internal error at block")?;
+
+        // This circular dependence is not great.
+        let mut block = vec![];
+        while self.peek() != &Token::RBrace {
+            match self
+                // TODO: now can more easily allow last statement to be an expression!
+                .statement(false)
+                .expect_left("Internal error: allow_expr is false, so should get a statement")
+            {
+                // So far just throw away the failed ast
+                stmt if stmt.node == Stmt::Invalid => return None,
+                stmt => block.push(stmt),
+            }
+        }
+
+        let end = self.peek_end_loc().clone();
+        self.accept(Token::RBrace, "Need to close block with '}'")?;
+        Some(ExprNode::new(Expr::Block(block), start, end))
     }
 
     fn assignment(&mut self) -> Option<ExprNode> {

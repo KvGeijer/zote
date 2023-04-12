@@ -61,6 +61,26 @@ pub fn eval(expr: &ExprNode, env: &Environment) -> Result<Value, RuntimeError> {
         Expr::Bool(bool) => Ok(Value::Bool(*bool)),
         Expr::String(string) => Ok(Value::String(string.clone())),
         Expr::Block(stmts) => eval_block(stmts, env, start, end),
+        Expr::If(cond, then, other) => eval_if(eval(cond, env)?, then, other.as_deref(), env),
+    }
+}
+
+fn def_block_return() -> Value {
+    Value::Uninitialized
+}
+
+fn eval_if(
+    cond: Value,
+    then: &ExprNode,
+    otherwise: Option<&ExprNode>,
+    env: &Environment,
+) -> Result<Value, RuntimeError> {
+    if cond.truthy() {
+        eval(then, env)
+    } else if let Some(expr) = otherwise {
+        eval(expr, env)
+    } else {
+        Ok(def_block_return())
     }
 }
 
@@ -84,9 +104,9 @@ fn eval_block(
         }) => eval(expr, &nested_env),
         Some(stmt) => {
             statements::eval(stmt, &nested_env)?;
-            Ok(Value::Uninitialized)
+            Ok(def_block_return())
         }
-        None => Ok(Value::Uninitialized),
+        None => Ok(def_block_return()),
     }
 }
 
@@ -316,13 +336,13 @@ fn eval_unary(
 }
 
 fn same_type(left: &Value, right: &Value) -> bool {
-    match (left, right) {
+    matches!(
+        (left, right),
         (Value::Float(_), Value::Float(_))
-        | (Value::Int(_), Value::Int(_))
-        | (Value::String(_), Value::String(_))
-        | (Value::Bool(_), Value::Bool(_)) => true,
-        _ => false,
-    }
+            | (Value::Int(_), Value::Int(_))
+            | (Value::String(_), Value::String(_))
+            | (Value::Bool(_), Value::Bool(_))
+    )
 }
 
 // Simple print with the value wrapped in its type, for informative prints

@@ -2,7 +2,10 @@ use std::fmt;
 
 use crate::{
     code_loc::CodeLoc,
-    parser::{AstNode, BinOper, BinOperNode, Expr, ExprNode, Stmt, StmtNode, UnOper, UnOperNode},
+    parser::{
+        AstNode, BinOper, BinOperNode, Expr, ExprNode, LogicalOper, LogicalOperNode, Stmt,
+        StmtNode, UnOper, UnOperNode,
+    },
 };
 
 use super::{environment::Environment, statements, RuntimeError};
@@ -45,9 +48,12 @@ pub fn eval(expr: &ExprNode, env: &Environment) -> Result<Value, RuntimeError> {
     match &expr.node {
         Expr::Call => Err((start, end, "Function calls not implemented".to_string())),
         Expr::Binary(left, op, right) => {
-            let val = eval(right, env)?;
-            eval_binary(eval(left, env)?, op, val, start, end)
+            eval_binary(eval(left, env)?, op, eval(right, env)?, start, end)
         }
+        Expr::Logical(left, op, right) => {
+            eval_logical(eval(left, env)?, op, right, env, start, end)
+        }
+
         Expr::Unary(op, right) => eval_unary(op, eval(right, env)?, start, end),
         Expr::Assign(lvalue, expr) => {
             let val = eval(expr, env)?;
@@ -137,8 +143,6 @@ fn eval_binary(
         BinOper::Sub => bin_sub(left, right, start_loc, end_loc),
         BinOper::Mult => bin_mult(left, right, start_loc, end_loc),
         BinOper::Div => bin_div(left, right, start_loc, end_loc),
-        BinOper::And => Ok(Value::Bool(left.truthy() && right.truthy())),
-        BinOper::Or => Ok(Value::Bool(left.truthy() || right.truthy())),
         BinOper::Eq => bin_eq(left, right, start_loc, end_loc),
         BinOper::Neq => bin_neq(left, right, start_loc, end_loc),
         BinOper::Lt => bin_lt(left, right, start_loc, end_loc),
@@ -343,6 +347,21 @@ fn same_type(left: &Value, right: &Value) -> bool {
             | (Value::String(_), Value::String(_))
             | (Value::Bool(_), Value::Bool(_))
     )
+}
+
+fn eval_logical(
+    left: Value,
+    op: &LogicalOperNode,
+    right: &ExprNode,
+    env: &Environment,
+    _start_loc: CodeLoc,
+    _end_loc: CodeLoc,
+) -> Result<Value, RuntimeError> {
+    let res = match op.node {
+        LogicalOper::And => left.truthy() && eval(right, env)?.truthy(),
+        LogicalOper::Or => left.truthy() || eval(right, env)?.truthy(),
+    };
+    Ok(Value::Bool(res))
 }
 
 // Simple print with the value wrapped in its type, for informative prints

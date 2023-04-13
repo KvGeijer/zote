@@ -7,12 +7,14 @@ use crate::{code_loc::CodeLoc, parser::Stmt, scanner::Token};
 pub type ExprNode = AstNode<Expr>;
 pub type BinOperNode = AstNode<BinOper>;
 pub type UnOperNode = AstNode<UnOper>;
+pub type LogicalOperNode = AstNode<LogicalOper>;
 
 #[derive(Debug, PartialEq)]
 pub enum Expr {
     Call, // TODO
     Binary(Box<ExprNode>, BinOperNode, Box<ExprNode>),
     Unary(UnOperNode, Box<ExprNode>),
+    Logical(Box<ExprNode>, LogicalOperNode, Box<ExprNode>),
     Assign(String, Box<ExprNode>),
     Var(String),
     Int(i64),
@@ -29,8 +31,6 @@ pub enum BinOper {
     Sub,
     Div,
     Mult,
-    And,
-    Or,
     Eq,
     Neq,
     Lt,
@@ -43,6 +43,12 @@ pub enum BinOper {
 pub enum UnOper {
     Not,
     Sub,
+}
+
+#[derive(PartialEq, Eq, Debug)]
+pub enum LogicalOper {
+    And,
+    Or,
 }
 
 impl<'a> Parser<'a> {
@@ -106,7 +112,7 @@ impl<'a> Parser<'a> {
     fn assignment(&mut self) -> Option<ExprNode> {
         // assignment     → IDENTIFIER "=" assignment | equality ;
         // TODO At least assign to tuples
-        let expr = self.equality()?;
+        let expr = self.or()?;
         if self.peek() == &Token::Eq {
             self.accept(Token::Eq, "Internal error, expected eq");
             if let AstNode {
@@ -126,6 +132,30 @@ impl<'a> Parser<'a> {
         } else {
             Some(expr)
         }
+    }
+
+    fn or(&mut self) -> Option<ExprNode> {
+        // or       → and ( "or" and )* ;
+        let mut expr = self.and()?;
+
+        while let Some(op) = self.match_op([LogicalOper::Or]) {
+            let right = self.and()?;
+            expr = ExprNode::logical(expr, op, right);
+        }
+
+        Some(expr)
+    }
+
+    fn and(&mut self) -> Option<ExprNode> {
+        // and       → equality ( "and" equality )* ;
+        let mut expr = self.equality()?;
+
+        while let Some(op) = self.match_op([LogicalOper::And]) {
+            let right = self.equality()?;
+            expr = ExprNode::logical(expr, op, right);
+        }
+
+        Some(expr)
     }
 
     fn equality(&mut self) -> Option<ExprNode> {
@@ -253,6 +283,13 @@ impl ExprNode {
         let expr = Expr::Unary(op, Box::new(right));
         AstNode::new(expr, start_loc, end_loc)
     }
+
+    fn logical(left: ExprNode, op: LogicalOperNode, right: ExprNode) -> ExprNode {
+        let start_loc = left.start_loc.clone();
+        let end_loc = right.end_loc.clone();
+        let expr = Expr::Logical(Box::new(left), op, Box::new(right));
+        AstNode::new(expr, start_loc, end_loc)
+    }
 }
 
 trait FromToken: Sized {
@@ -282,6 +319,16 @@ impl FromToken for UnOper {
         match token {
             Token::Minus => Some(UnOper::Sub),
             Token::Bang => Some(UnOper::Not),
+            _ => None,
+        }
+    }
+}
+
+impl FromToken for LogicalOper {
+    fn try_from(token: &Token) -> Option<Self> {
+        match token {
+            Token::And => Some(LogicalOper::And),
+            Token::Or => Some(LogicalOper::Or),
             _ => None,
         }
     }

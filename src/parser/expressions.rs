@@ -53,60 +53,7 @@ pub enum LogicalOper {
 
 impl<'a> Parser<'a> {
     pub fn expression(&mut self) -> Option<ExprNode> {
-        self.top_expr()
-    }
-
-    fn top_expr(&mut self) -> Option<ExprNode> {
-        match self.peek() {
-            Token::LBrace => self.accept_block(),
-            Token::If => self.accept_if(),
-            _ => self.assignment(),
-        }
-    }
-
-    fn accept_if(&mut self) -> Option<ExprNode> {
-        let start = self.peek_start_loc().clone();
-        self.accept(Token::If, "Internal error at if")?;
-
-        let cond = self.expression()?;
-        let then = self.expression()?;
-        let otherwise = if self.peek() == &Token::Else {
-            self.accept(Token::Else, "Internal error at if")?;
-            Some(Box::new(self.expression()?))
-        } else {
-            None
-        };
-
-        let end = self.peek_end_loc().clone();
-        Some(ExprNode::new(
-            Expr::If(Box::new(cond), Box::new(then), otherwise),
-            start,
-            end,
-        ))
-    }
-
-    fn accept_block(&mut self) -> Option<ExprNode> {
-        // Maybe this should be in another file, to not clutter this one too much?
-        let start = self.peek_start_loc().clone();
-        self.accept(Token::LBrace, "Internal error at block")?;
-
-        // This circular dependence is not great.
-        let mut block = vec![];
-        while self.peek() != &Token::RBrace {
-            match self
-                // TODO: now can more easily allow last statement to be an expression!
-                .statement(false)
-                .expect_left("Internal error: allow_expr is false, so should get a statement")
-            {
-                // So far just throw away the failed ast
-                stmt if stmt.node == Stmt::Invalid => return None,
-                stmt => block.push(stmt),
-            }
-        }
-
-        let end = self.peek_end_loc().clone();
-        self.accept(Token::RBrace, "Need to close block with '}'")?;
-        Some(ExprNode::new(Expr::Block(block), start, end))
+        self.assignment()
     }
 
     fn assignment(&mut self) -> Option<ExprNode> {
@@ -217,9 +164,26 @@ impl<'a> Parser<'a> {
     }
 
     fn primary(&mut self) -> Option<ExprNode> {
-        // // primary        → INT | FLOAT | STRING | "true" | "false" | "nil"
-        //                   | Identifier | "(" expression ")" ;
+        // primary        → "(" expression ")" | block | if ;
 
+        match self.peek() {
+            Token::If => self.accept_if(),
+            Token::LBrace => self.accept_block(),
+            Token::LPar => {
+                // Dont have the correct location really for this
+                self.accept(Token::LPar, "Internal error, should have peeked LPar");
+                let expr = self.expression()?;
+                self.accept(Token::RPar, "Expect ')' after expression.")?;
+                // Why does the book create a grouping subclass?
+                Some(expr)
+            }
+            _ => self.simple_primary(),
+        }
+    }
+
+    fn simple_primary(&mut self) -> Option<ExprNode> {
+        // simple_primary        → INT | FLOAT | STRING | "true" | "false" | "nil"
+        //                       | Identifier ;
         let start = self.peek_start_loc().clone();
         let end = self.peek_end_loc().clone();
         match self.peek() {
@@ -230,14 +194,6 @@ impl<'a> Parser<'a> {
             Token::String(str) => some_node(Expr::String(str.to_string()), start, end),
             Token::Identifier(str) => some_node(Expr::Var(str.to_owned()), start, end),
             // Token::Nil => Expr::Nil(),
-            Token::LPar => {
-                // Dont have the correct location really for this
-                self.accept(Token::LPar, "Internal error, should have peeked LPar");
-                let expr = self.expression()?;
-                self.accept_peek(Token::RPar, "Expect ')' after expression.")?;
-                // Why does the book create a grouping subclass?
-                Some(expr)
-            }
             _ => {
                 self.error("Expect expression");
                 None
@@ -248,6 +204,50 @@ impl<'a> Parser<'a> {
             self.take();
             res
         })
+    }
+
+    fn accept_if(&mut self) -> Option<ExprNode> {
+        let start = self.peek_start_loc().clone();
+        self.accept(Token::If, "Internal error at if")?;
+
+        let cond = self.expression()?;
+        let then = self.expression()?;
+        let otherwise = if self.peek() == &Token::Else {
+            self.accept(Token::Else, "Internal error at if")?;
+            Some(Box::new(self.expression()?))
+        } else {
+            None
+        };
+
+        let end = self.peek_end_loc().clone();
+        Some(ExprNode::new(
+            Expr::If(Box::new(cond), Box::new(then), otherwise),
+            start,
+            end,
+        ))
+    }
+
+    fn accept_block(&mut self) -> Option<ExprNode> {
+        let start = self.peek_start_loc().clone();
+        self.accept(Token::LBrace, "Internal error at block")?;
+
+        // This circular dependence is not great.
+        let mut block = vec![];
+        while self.peek() != &Token::RBrace {
+            match self
+                // TODO: now can more easily allow last statement to be an expression!
+                .statement(false)
+                .expect_left("Internal error: allow_expr is false, so should get a statement")
+            {
+                // So far just throw away the failed ast
+                stmt if stmt.node == Stmt::Invalid => return None,
+                stmt => block.push(stmt),
+            }
+        }
+
+        let end = self.peek_end_loc().clone();
+        self.accept(Token::RBrace, "Need to close block with '}'")?;
+        Some(ExprNode::new(Expr::Block(block), start, end))
     }
 
     fn match_op<F: FromToken + Eq + Debug, T: IntoIterator<Item = F>>(

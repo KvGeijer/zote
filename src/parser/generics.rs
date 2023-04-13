@@ -95,15 +95,6 @@ impl<'a> Parser<'a> {
         }
     }
 
-    pub fn accept_peek(&mut self, expected: Token, error_str: &str) -> Option<()> {
-        if self.peek() == &expected {
-            Some(())
-        } else {
-            self.error(error_str);
-            None
-        }
-    }
-
     pub fn take(&mut self) -> &Token {
         let ind = self.current;
         if !self.at_end() {

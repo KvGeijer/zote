@@ -68,11 +68,24 @@ pub fn eval(expr: &ExprNode, env: &Environment) -> Result<Value, RuntimeError> {
         Expr::String(string) => Ok(Value::String(string.clone())),
         Expr::Block(stmts) => eval_block(stmts, env, start, end),
         Expr::If(cond, then, other) => eval_if(eval(cond, env)?, then, other.as_deref(), env),
+        Expr::While(cond, repeat) => eval_while(cond, repeat, env),
     }
 }
 
 fn def_block_return() -> Value {
     Value::Uninitialized
+}
+
+fn eval_while(
+    cond: &ExprNode,
+    repeat: &ExprNode,
+    env: &Environment,
+) -> Result<Value, RuntimeError> {
+    while eval(cond, env)?.truthy() {
+        eval(repeat, env)?;
+    }
+
+    Ok(def_block_return())
 }
 
 fn eval_if(

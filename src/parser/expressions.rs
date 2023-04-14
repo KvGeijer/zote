@@ -23,6 +23,7 @@ pub enum Expr {
     String(String),
     Block(Vec<StmtNode>), // TODO: Add a field for output, like rust not using semicolon for last.
     If(Box<ExprNode>, Box<ExprNode>, Option<Box<ExprNode>>),
+    While(Box<ExprNode>, Box<ExprNode>),
 }
 
 #[derive(PartialEq, Eq, Debug)]
@@ -169,6 +170,7 @@ impl<'a> Parser<'a> {
         match self.peek() {
             Token::If => self.accept_if(),
             Token::LBrace => self.accept_block(),
+            Token::While => self.accept_while(),
             Token::LPar => {
                 // Dont have the correct location really for this
                 self.accept(Token::LPar, "Internal error, should have peeked LPar");
@@ -248,6 +250,21 @@ impl<'a> Parser<'a> {
         let end = self.peek_end_loc().clone();
         self.accept(Token::RBrace, "Need to close block with '}'")?;
         Some(ExprNode::new(Expr::Block(block), start, end))
+    }
+
+    fn accept_while(&mut self) -> Option<ExprNode> {
+        let start = self.peek_start_loc().clone();
+        self.accept(Token::While, "Internal error at while")?;
+
+        let cond = self.expression()?;
+        let repeat = self.expression()?;
+
+        let end = self.peek_end_loc().clone();
+        Some(ExprNode::new(
+            Expr::While(Box::new(cond), Box::new(repeat)),
+            start,
+            end,
+        ))
     }
 
     fn match_op<F: FromToken + Eq + Debug, T: IntoIterator<Item = F>>(

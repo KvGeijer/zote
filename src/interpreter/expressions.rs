@@ -42,11 +42,11 @@ impl Value {
     }
 }
 
-pub fn eval(expr: &ExprNode, env: &Environment) -> Result<Value, RuntimeError> {
+pub(super) fn eval(expr: &ExprNode, env: &Environment) -> Result<Value, RuntimeError> {
     let start = expr.start_loc.clone();
     let end = expr.end_loc.clone();
     match &expr.node {
-        Expr::Call => Err((start, end, "Function calls not implemented".to_string())),
+        Expr::Call => error(start, end, "Function calls not implemented".to_string()),
         Expr::Binary(left, op, right) => {
             eval_binary(eval(left, env)?, op, eval(right, env)?, start, end)
         }
@@ -59,9 +59,9 @@ pub fn eval(expr: &ExprNode, env: &Environment) -> Result<Value, RuntimeError> {
             let val = eval(expr, env)?;
             eval_assign(lvalue, val, env, start, end)
         }
-        Expr::Var(id) => env
-            .get(id)
-            .ok_or_else(|| (start, end, format!("Variable '{id}' not declared"))),
+        Expr::Var(id) => env.get(id).ok_or_else(|| {
+            RuntimeError::Error(start, end, format!("Variable '{id}' not declared"))
+        }),
         Expr::Int(int) => Ok(Value::Int(*int)),
         Expr::Float(float) => Ok(Value::Float(*float)),
         Expr::Bool(bool) => Ok(Value::Bool(*bool)),
@@ -69,7 +69,12 @@ pub fn eval(expr: &ExprNode, env: &Environment) -> Result<Value, RuntimeError> {
         Expr::Block(stmts) => eval_block(stmts, env, start, end),
         Expr::If(cond, then, other) => eval_if(eval(cond, env)?, then, other.as_deref(), env),
         Expr::While(cond, repeat) => eval_while(cond, repeat, env),
+        Expr::Break => Err(RuntimeError::Break),
     }
+}
+
+fn error(start: CodeLoc, end: CodeLoc, message: String) -> Result<Value, RuntimeError> {
+    Err(RuntimeError::Error(start, end, message))
 }
 
 fn def_block_return() -> Value {
@@ -82,7 +87,10 @@ fn eval_while(
     env: &Environment,
 ) -> Result<Value, RuntimeError> {
     while eval(cond, env)?.truthy() {
-        eval(repeat, env)?;
+        match eval(repeat, env) {
+            Err(RuntimeError::Break) => break,
+            otherwise => otherwise?,
+        };
     }
 
     Ok(def_block_return())
@@ -139,7 +147,7 @@ fn eval_assign(
     if env.assign(lvalue, rvalue.clone()).is_some() {
         Ok(rvalue)
     } else {
-        Err((start, end, format!("Variable '{lvalue}' not declared")))
+        error(start, end, format!("Variable '{lvalue}' not declared"))
     }
 }
 
@@ -175,11 +183,11 @@ fn bin_add(
         (Value::Float(x), Value::Float(y)) => Ok(Value::Float(x + y)),
         (Value::Int(x), Value::Int(y)) => Ok(Value::Int(x + y)),
         (Value::String(x), Value::String(y)) => Ok(Value::String(x + &y)),
-        _other => Err((
+        _other => error(
             start_loc,
             end_loc,
             "Addition operands must be two numbers or two strings".to_string(),
-        )),
+        ),
     }
 }
 
@@ -192,11 +200,11 @@ fn bin_sub(
     match (left, right) {
         (Value::Float(x), Value::Float(y)) => Ok(Value::Float(x - y)),
         (Value::Int(x), Value::Int(y)) => Ok(Value::Int(x - y)),
-        _other => Err((
+        _other => error(
             start_loc,
             end_loc,
             "Subtraction operands must be two numbers".to_string(),
-        )),
+        ),
     }
 }
 
@@ -209,11 +217,11 @@ fn bin_mult(
     match (left, right) {
         (Value::Float(x), Value::Float(y)) => Ok(Value::Float(x * y)),
         (Value::Int(x), Value::Int(y)) => Ok(Value::Int(x * y)),
-        _other => Err((
+        _other => error(
             start_loc,
             end_loc,
             "Multiplication operands must be two numbers".to_string(),
-        )),
+        ),
     }
 }
 
@@ -226,11 +234,11 @@ fn bin_div(
     match (left, right) {
         (Value::Float(x), Value::Float(y)) => Ok(Value::Float(x / y)),
         (Value::Int(x), Value::Int(y)) => Ok(Value::Int(x / y)),
-        _other => Err((
+        _other => error(
             start_loc,
             end_loc,
             "Division operands must be two numbers".to_string(),
-        )),
+        ),
     }
 }
 
@@ -270,11 +278,11 @@ fn bin_lt(
         (Value::Float(x), Value::Int(y)) => Ok(Value::Bool(x < y as f64)),
         (Value::Int(x), Value::Float(y)) => Ok(Value::Bool((x as f64) < y)),
         (x, y) if same_type(&x, &y) => Ok(Value::Bool(x < y)),
-        (x, y) => Err((
+        (x, y) => error(
             start_loc,
             end_loc,
             format!("Cannot compare {} and {}", x, y),
-        )),
+        ),
     }
 }
 
@@ -288,11 +296,11 @@ fn bin_leq(
         (Value::Float(x), Value::Int(y)) => Ok(Value::Bool(x <= y as f64)),
         (Value::Int(x), Value::Float(y)) => Ok(Value::Bool((x as f64) <= y)),
         (x, y) if same_type(&x, &y) => Ok(Value::Bool(x <= y)),
-        (x, y) => Err((
+        (x, y) => error(
             start_loc,
             end_loc,
             format!("Cannot compare {} and {}", x, y),
-        )),
+        ),
     }
 }
 
@@ -306,11 +314,11 @@ fn bin_gt(
         (Value::Float(x), Value::Int(y)) => Ok(Value::Bool(x > y as f64)),
         (Value::Int(x), Value::Float(y)) => Ok(Value::Bool((x as f64) > y)),
         (x, y) if same_type(&x, &y) => Ok(Value::Bool(x > y)),
-        (x, y) => Err((
+        (x, y) => error(
             start_loc,
             end_loc,
             format!("Cannot compare {} and {}", x, y),
-        )),
+        ),
     }
 }
 
@@ -324,11 +332,11 @@ fn bin_geq(
         (Value::Float(x), Value::Int(y)) => Ok(Value::Bool(x >= y as f64)),
         (Value::Int(x), Value::Float(y)) => Ok(Value::Bool((x as f64) >= y)),
         (x, y) if same_type(&x, &y) => Ok(Value::Bool(x >= y)),
-        (x, y) => Err((
+        (x, y) => error(
             start_loc,
             end_loc,
             format!("Cannot compare {} and {}", x, y),
-        )),
+        ),
     }
 }
 
@@ -342,11 +350,11 @@ fn eval_unary(
         UnOper::Sub => match right {
             Value::Int(int) => Ok(Value::Int(-int)),
             Value::Float(float) => Ok(Value::Float(-float)),
-            _other => Err((
+            _other => error(
                 start_loc,
                 end_loc,
                 "Unary subtraction only works for a number".to_string(),
-            )),
+            ),
         },
         UnOper::Not => Ok(Value::Bool(!right.truthy())),
     }

@@ -20,6 +20,7 @@ impl ErrorReporter {
     }
 
     pub fn runtime_error(&mut self, start: &CodeLoc, end: &CodeLoc, message: &str) {
+        self.had_runtime_error = true;
         eprintln!(
             "ERROR [{}:{} - {}-{}] {message}",
             start.line(),
@@ -42,5 +43,10 @@ impl ErrorReporter {
         );
 
         self.had_compilation_error = true;
+    }
+
+    pub fn runtime_panic(&mut self, message: &str) {
+        self.had_runtime_error = true;
+        eprintln!("Panic! {message}")
     }
 }

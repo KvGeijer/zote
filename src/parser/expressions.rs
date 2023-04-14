@@ -24,6 +24,7 @@ pub enum Expr {
     Block(Vec<StmtNode>), // TODO: Add a field for output, like rust not using semicolon for last.
     If(Box<ExprNode>, Box<ExprNode>, Option<Box<ExprNode>>),
     While(Box<ExprNode>, Box<ExprNode>),
+    Break, // TODO Do we want to return an optional value from this?
 }
 
 #[derive(PartialEq, Eq, Debug)]
@@ -165,7 +166,7 @@ impl<'a> Parser<'a> {
     }
 
     fn primary(&mut self) -> Option<ExprNode> {
-        // primary        → "(" expression ")" | block | if ;
+        // primary        → "(" expression ")" | block | if | "break" expr? ;
 
         match self.peek() {
             Token::If => self.accept_if(),
@@ -184,7 +185,7 @@ impl<'a> Parser<'a> {
     }
 
     fn simple_primary(&mut self) -> Option<ExprNode> {
-        // simple_primary        → INT | FLOAT | STRING | "true" | "false" | "nil"
+        // simple_primary        → INT | FLOAT | STRING | "true" | "false" | "nil" | "break"
         //                       | Identifier ;
         let start = self.peek_start_loc().clone();
         let end = self.peek_end_loc().clone();
@@ -195,6 +196,7 @@ impl<'a> Parser<'a> {
             Token::Float(float) => some_node(Expr::Float(*float), start, end),
             Token::String(str) => some_node(Expr::String(str.to_string()), start, end),
             Token::Identifier(str) => some_node(Expr::Var(str.to_owned()), start, end),
+            Token::Break => some_node(Expr::Break, start, end),
             // Token::Nil => Expr::Nil(),
             _ => {
                 self.error("Expect expression");

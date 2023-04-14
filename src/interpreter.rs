@@ -6,8 +6,6 @@ mod environment;
 mod expressions;
 mod statements;
 
-type RuntimeError = (CodeLoc, CodeLoc, String);
-
 pub struct InterpreterState {
     env: Environment<'static>,
 }
@@ -28,9 +26,17 @@ pub fn interpret(
     for stmt in program {
         match statements::eval(stmt, &mut env.env) {
             Ok(_) => continue,
-            Err((start, end, reason)) => {
+            Err(RuntimeError::Error(start, end, reason)) => {
                 return error_reporter.runtime_error(&start, &end, &reason)
+            }
+            Err(RuntimeError::Break) => {
+                error_reporter.runtime_panic("Break propagated to top-level scope")
             }
         }
     }
+}
+
+enum RuntimeError {
+    Error(CodeLoc, CodeLoc, String),
+    Break,
 }

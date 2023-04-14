@@ -6,7 +6,7 @@ use super::{
     RuntimeError,
 };
 
-pub fn eval(stmt: &StmtNode, env: &Environment) -> Result<(), RuntimeError> {
+pub(super) fn eval(stmt: &StmtNode, env: &Environment) -> Result<(), RuntimeError> {
     match &stmt.node {
         Stmt::Decl(id, expr) => decl(id, expr, env),
         Stmt::Expr(expr) => expressions::eval(expr, env).map(|_| ()),

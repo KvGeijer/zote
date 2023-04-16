@@ -12,7 +12,7 @@ pub type BinOperNode = AstNode<BinOper>;
 pub type UnOperNode = AstNode<UnOper>;
 pub type LogicalOperNode = AstNode<LogicalOper>;
 
-#[derive(Debug, PartialEq)]
+#[derive(Debug, PartialEq, Clone)]
 pub enum Expr {
     Call(Box<ExprNode>, Vec<ExprNode>), // TODO
     Binary(Box<ExprNode>, BinOperNode, Box<ExprNode>),
@@ -30,7 +30,7 @@ pub enum Expr {
     Break, // TODO Do we want to return an optional value from this?
 }
 
-#[derive(PartialEq, Eq, Debug)]
+#[derive(PartialEq, Eq, Debug, Clone)]
 pub enum BinOper {
     Add,
     Sub,
@@ -44,13 +44,13 @@ pub enum BinOper {
     Geq,
 }
 
-#[derive(PartialEq, Eq, Debug)]
+#[derive(PartialEq, Eq, Debug, Clone)]
 pub enum UnOper {
     Not,
     Sub,
 }
 
-#[derive(PartialEq, Eq, Debug)]
+#[derive(PartialEq, Eq, Debug, Clone)]
 pub enum LogicalOper {
     And,
     Or,

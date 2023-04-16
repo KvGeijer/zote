@@ -11,7 +11,7 @@ pub use expressions::{
 pub use statements::{Stmt, StmtNode};
 
 // Each node in the AST is some branch/leaf wrapped in this extra info
-#[derive(Debug)]
+#[derive(Debug, Clone)]
 pub struct AstNode<T> {
     pub node: T,
     pub start_loc: CodeLoc,

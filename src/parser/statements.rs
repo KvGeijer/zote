@@ -1,13 +1,14 @@
 use either::Either;
 
-use super::{AstNode, ExprNode, Parser};
+use super::{expressions::MAX_ARGS, AstNode, ExprNode, Parser};
 use crate::{code_loc::CodeLoc, scanner::Token};
 
 pub type StmtNode = AstNode<Stmt>;
 
-#[derive(Debug, PartialEq)]
+#[derive(Debug, PartialEq, Clone)]
 pub enum Stmt {
     Decl(String, Option<ExprNode>),
+    FuncDecl(String, Vec<String>, ExprNode),
     Expr(ExprNode),
     Invalid,
 }
@@ -76,7 +77,65 @@ impl<'a> Parser<'a> {
         // Statements and decl statements
         match self.peek() {
             Token::Var => Some(Either::Left(self.decl_stmt()?)),
+            Token::Fn => Some(Either::Left(self.fn_decl_stmt()?)),
             _ => self.expr_stmt(allow_expr),
+        }
+    }
+
+    fn fn_decl_stmt(&mut self) -> Option<StmtNode> {
+        // "fn" var "(" parameters? ")" expression ;
+        let start = self.peek_start_loc().clone();
+        self.accept(Token::Fn, "Internal fn_decl_stmt error")?;
+        if let Token::Identifier(name) = self.peek() {
+            let name = name.to_string();
+            self.take();
+            self.accept(Token::LPar, "Expect '(' before function parameters")?;
+            let params = self.parameter_list()?;
+            self.accept(Token::RPar, "Expect ')' after function parameters")?;
+            let body = self.expression()?;
+            let end = body.end_loc.clone();
+
+            // TODO Do we want to change this?
+            self.accept(
+                Token::Semicolon,
+                "Function decl statement must end with ';'",
+            )?;
+            Some(StmtNode::new(
+                Stmt::FuncDecl(name, params, body),
+                start,
+                end,
+            ))
+        } else {
+            self.error("Expect function name after fn");
+            None
+        }
+    }
+
+    fn parameter_list(&mut self) -> Option<Vec<String>> {
+        if self.peek() != &Token::RPar {
+            let mut params = vec![];
+            let mut first = true;
+            while first || self.peek() == &Token::Comma {
+                if !first {
+                    self.accept(Token::Comma, "Internal error in paramater_list");
+                } else {
+                    first = false
+                }
+                if let Token::Identifier(param) = self.peek() {
+                    let param = param.to_string();
+                    self.take();
+                    params.push(param); // OPT Should take string and not copy.
+                } else {
+                    self.error("Expected parameter after ',' in parameter list");
+                    return None;
+                }
+            }
+            if params.len() >= MAX_ARGS {
+                self.error("Cannot have more than {MAX_ARGS} parameters");
+            }
+            Some(params)
+        } else {
+            Some(vec![])
         }
     }
 

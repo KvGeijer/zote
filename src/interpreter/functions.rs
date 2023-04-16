@@ -4,33 +4,35 @@ use std::{
     rc::Rc,
 };
 
-use super::{environment::Environment, RunRes, Value};
+use crate::parser::ExprNode;
+
+use super::{environment::Environment, expressions, RunRes, Value};
 
 #[derive(Clone)]
 pub(super) enum Function {
-    // Closure(Box<ExprNode>, Vec<String>, Rc<Environment>),
-    // Closure(closure),
+    // Closure(),
+    Closure(Closure),
     Builtin(Rc<dyn Builtin>),
 }
 
 impl Function {
     pub(super) fn call(&self, args: Vec<Value>) -> RunRes<Value> {
         match self {
-            // Function::Closure(closure) => params.len(),
+            Function::Closure(closure) => closure.call(args),
             Function::Builtin(builtin) => builtin.run(args),
         }
     }
 
     pub(super) fn arity(&self) -> usize {
         match self {
-            // Function::Closure(closure) => params.len(),
+            Function::Closure(closure) => closure.arity(),
             Function::Builtin(builtin) => builtin.arity(),
         }
     }
 
     pub(super) fn name(&self) -> &str {
         match self {
-            // Function::Closure(_, params, _) => params.len(),
+            Function::Closure(closure) => closure.name(),
             Function::Builtin(builtin) => builtin.name(),
         }
     }
@@ -39,8 +41,12 @@ impl Function {
 impl Debug for Function {
     fn fmt(&self, f: &mut Formatter) -> fmt::Result {
         match self {
-            // Function::Closure(_, _, _) => f.write_str("Closure"),
-            Function::Builtin(builtin) => f.write_str(builtin.name()),
+            Function::Closure(closure) => {
+                f.write_str(&format!("Closure({}/{})", closure.name(), closure.arity()))
+            }
+            Function::Builtin(builtin) => {
+                f.write_str(&format!("Builtin({}/{})", builtin.name(), builtin.arity()))
+            }
         }
     }
 }
@@ -62,6 +68,46 @@ impl PartialOrd for Function {
         // Arbitraty ordering
         println!("WARNING: Comparing function handles");
         Some(self.name().cmp(&other.name()))
+    }
+}
+
+#[derive(Clone)]
+pub(super) struct Closure {
+    id: String, // Maybe not ideal to have
+    params: Vec<String>,
+    body: ExprNode, // Should we have this as a borrow instead maybe? Probably just a hassle
+    env: Rc<Environment>,
+}
+
+impl Closure {
+    pub(super) fn new(
+        id: String,
+        params: Vec<String>,
+        body: ExprNode,
+        env: &Rc<Environment>,
+    ) -> Self {
+        Self {
+            id,
+            params,
+            body,
+            env: env.clone(),
+        }
+    }
+
+    fn call(&self, args: Vec<Value>) -> RunRes<Value> {
+        let env = Environment::nest(&self.env);
+        for (param, arg) in self.params.iter().zip(args.into_iter()) {
+            env.define(param.to_string(), arg);
+        }
+        expressions::eval(&self.body, &env)
+    }
+
+    fn arity(&self) -> usize {
+        self.params.len()
+    }
+
+    fn name(&self) -> &str {
+        &self.id
     }
 }
 

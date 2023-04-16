@@ -1,7 +1,7 @@
 use either::Either;
 
 use super::{AstNode, ExprNode, Parser};
-use crate::scanner::Token;
+use crate::{code_loc::CodeLoc, scanner::Token};
 
 pub type StmtNode = AstNode<Stmt>;
 
@@ -9,7 +9,6 @@ pub type StmtNode = AstNode<Stmt>;
 pub enum Stmt {
     Decl(String, Option<ExprNode>),
     Expr(ExprNode),
-    Print(ExprNode), // TODO Integrate into standard lib func
     Invalid,
 }
 
@@ -25,7 +24,20 @@ impl<'a> Parser<'a> {
                     .ok_or(stmts)?;
                 let start = expr.start_loc.clone();
                 let end = expr.end_loc.clone();
-                let print_stmt = StmtNode::new(Stmt::Print(expr), start, end);
+                // Very hacky and ugly...
+                let print_expr = ExprNode::new(
+                    super::Expr::Call(
+                        Box::new(ExprNode::new(
+                            super::Expr::Var("print".to_string()),
+                            CodeLoc::new(0, 0, 0),
+                            CodeLoc::new(0, 0, 0),
+                        )),
+                        vec![expr],
+                    ),
+                    start.clone(),
+                    end.clone(),
+                );
+                let print_stmt = StmtNode::new(Stmt::Expr(print_expr), start, end);
                 return Ok(vec![print_stmt]);
             }
         }
@@ -64,7 +76,7 @@ impl<'a> Parser<'a> {
         // Statements and decl statements
         match self.peek() {
             Token::Var => Some(Either::Left(self.decl_stmt()?)),
-            _ => self.non_decl_stmt(allow_expr),
+            _ => self.expr_stmt(allow_expr),
         }
     }
 
@@ -91,28 +103,6 @@ impl<'a> Parser<'a> {
             self.error("A declaration statement must start with an id");
             None
         }
-    }
-
-    // To not allow declarations in for example single arm of if stmt
-    fn non_decl_stmt(&mut self, allow_expr: bool) -> Option<Either<StmtNode, ExprNode>> {
-        match self.peek() {
-            Token::Identifier(id) if id.as_str() == "print" => {
-                Some(Either::Left(self.print_stmt()?))
-            }
-            _ => self.expr_stmt(allow_expr),
-        }
-    }
-
-    fn print_stmt(&mut self) -> Option<StmtNode> {
-        // Special case for print functions/statments
-        self.take();
-        self.accept(Token::LPar, "Expect parentheses around print expression")?;
-        let expr = self.expression()?;
-        let start = expr.start_loc.clone();
-        self.accept(Token::RPar, "Expect closing parentheses after print")?;
-        let end = self.peek_end_loc().clone();
-        self.accept(Token::Semicolon, "Expect ';' after print call")?;
-        Some(StmtNode::new(Stmt::Print(expr), start, end))
     }
 
     fn expr_stmt(&mut self, allow_expr: bool) -> Option<Either<StmtNode, ExprNode>> {

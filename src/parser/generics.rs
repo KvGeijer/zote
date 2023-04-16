@@ -81,6 +81,10 @@ impl<'a> Parser<'a> {
         &self.peek_info().end_loc
     }
 
+    pub fn peek_last_end_loc(&self) -> Option<&CodeLoc> {
+        Some(&self.tokens.get(self.current - 1)?.end_loc)
+    }
+
     pub fn peek_string(&self) -> &str {
         &self.peek_info().string
     }

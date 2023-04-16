@@ -3,6 +3,9 @@ use std::fmt::Debug;
 use super::{AstNode, Parser, StmtNode};
 use crate::{code_loc::CodeLoc, parser::Stmt, scanner::Token};
 
+// Cannot have more than this many arguments to a function
+pub const MAX_ARGS: usize = 255;
+
 // Exposes the data types and the expression method on parser
 pub type ExprNode = AstNode<Expr>;
 pub type BinOperNode = AstNode<BinOper>;
@@ -11,7 +14,7 @@ pub type LogicalOperNode = AstNode<LogicalOper>;
 
 #[derive(Debug, PartialEq)]
 pub enum Expr {
-    Call, // TODO
+    Call(Box<ExprNode>, Vec<ExprNode>), // TODO
     Binary(Box<ExprNode>, BinOperNode, Box<ExprNode>),
     Unary(UnOperNode, Box<ExprNode>),
     Logical(Box<ExprNode>, LogicalOperNode, Box<ExprNode>),
@@ -156,13 +159,44 @@ impl<'a> Parser<'a> {
     }
 
     fn unary(&mut self) -> Option<ExprNode> {
-        // unary          → ( "!" | "-" )? primary ;
+        // unary          → ( "!" | "-" )? call ;
         if let Some(op) = self.match_op([UnOper::Sub, UnOper::Not]) {
             let right = self.primary()?;
             Some(ExprNode::unary(op, right))
         } else {
-            self.primary()
+            self.call()
         }
+    }
+
+    fn call(&mut self) -> Option<ExprNode> {
+        // call           → primary ( "(" arguments? ")" )* ;
+        let mut expr = self.primary()?;
+        let start = expr.start_loc.clone();
+        while self.peek() == &Token::LPar {
+            let args = self.accept_arguments()?;
+            if args.len() >= MAX_ARGS {
+                self.error("Can't have more than {MAX_ARGS} arguments");
+            }
+            let end = self.peek_last_end_loc()?.clone();
+            expr = ExprNode::new(Expr::Call(Box::new(expr), args), start.clone(), end);
+        }
+        Some(expr)
+    }
+
+    fn accept_arguments(&mut self) -> Option<Vec<ExprNode>> {
+        // arguments      → expression ( "," expression )* ;
+        self.accept(Token::LPar, "Internal error at accept arguments");
+        let mut args = if &Token::RPar == self.peek() {
+            vec![]
+        } else {
+            vec![self.expression()?]
+        };
+        while self.peek() == &Token::Comma {
+            self.accept(Token::Comma, "Internal error in accept_arguments");
+            args.push(self.expression()?);
+        }
+        self.accept(Token::RPar, "Expect ')' to close arguments");
+        Some(args)
     }
 
     fn primary(&mut self) -> Option<ExprNode> {

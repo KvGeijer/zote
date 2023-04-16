@@ -22,7 +22,7 @@ impl ErrorReporter {
     pub fn runtime_error(&mut self, start: &CodeLoc, end: &CodeLoc, message: &str) {
         self.had_runtime_error = true;
         eprintln!(
-            "ERROR [{}:{} - {}-{}] {message}",
+            "ERROR [{}:{} - {}:{}] {message}",
             start.line(),
             start.col(),
             end.line(),

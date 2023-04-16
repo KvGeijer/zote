@@ -1,4 +1,4 @@
-use std::fmt;
+use std::{fmt, rc::Rc};
 
 use crate::{
     code_loc::CodeLoc,
@@ -8,15 +8,16 @@ use crate::{
     },
 };
 
-use super::{environment::Environment, statements, RuntimeError};
+use super::{environment::Environment, functions::Function, statements, RunRes, RuntimeError};
 
 // An interface between Zote and Rust values
 #[derive(PartialEq, Debug, PartialOrd, Clone)]
-pub enum Value {
+pub(super) enum Value {
     Int(i64),
     Float(f64),
     Bool(bool),
     String(String),
+    Callable(Function),
     Uninitialized,
 }
 
@@ -27,6 +28,7 @@ impl Value {
             Value::Int(int) => *int != 0,
             Value::Float(float) => *float != 0.0,
             Value::String(string) => !string.is_empty(),
+            Value::Callable(_) => panic!("Can't compare functions"),
             Value::Uninitialized => panic!("Use of uninit value!"),
         }
     }
@@ -37,16 +39,16 @@ impl Value {
             Value::Int(int) => format!("{int}"),
             Value::Float(float) => format!("{float}"),
             Value::String(string) => string.to_string(),
+            Value::Callable(callable) => callable.name().to_string(),
             Value::Uninitialized => panic!("Use of uninit value!"),
         }
     }
 }
 
-pub(super) fn eval(expr: &ExprNode, env: &Environment) -> Result<Value, RuntimeError> {
+pub(super) fn eval(expr: &ExprNode, env: &Rc<Environment>) -> RunRes<Value> {
     let start = expr.start_loc.clone();
     let end = expr.end_loc.clone();
     match &expr.node {
-        Expr::Call => error(start, end, "Function calls not implemented".to_string()),
         Expr::Binary(left, op, right) => {
             eval_binary(eval(left, env)?, op, eval(right, env)?, start, end)
         }
@@ -70,10 +72,38 @@ pub(super) fn eval(expr: &ExprNode, env: &Environment) -> Result<Value, RuntimeE
         Expr::If(cond, then, other) => eval_if(eval(cond, env)?, then, other.as_deref(), env),
         Expr::While(cond, repeat) => eval_while(cond, repeat, env),
         Expr::Break => Err(RuntimeError::Break),
+        Expr::Call(callee, args) => eval_call(
+            eval(callee, env)?,
+            args.iter()
+                .map(|arg| eval(arg, env))
+                .collect::<Result<Vec<_>, _>>()?,
+            start,
+            end,
+        ),
     }
 }
 
-fn error(start: CodeLoc, end: CodeLoc, message: String) -> Result<Value, RuntimeError> {
+fn eval_call(callee: Value, args: Vec<Value>, start: CodeLoc, end: CodeLoc) -> RunRes<Value> {
+    if let Value::Callable(callable) = callee {
+        if args.len() == callable.arity() {
+            callable.call(args)
+        } else {
+            error(
+                start,
+                end,
+                format!(
+                    "Expected {} arguments but got {}.",
+                    callable.arity(),
+                    args.len()
+                ),
+            )
+        }
+    } else {
+        error(start, end, "Can only call functions".to_string())
+    }
+}
+
+fn error(start: CodeLoc, end: CodeLoc, message: String) -> RunRes<Value> {
     Err(RuntimeError::Error(start, end, message))
 }
 
@@ -81,11 +111,7 @@ fn def_block_return() -> Value {
     Value::Uninitialized
 }
 
-fn eval_while(
-    cond: &ExprNode,
-    repeat: &ExprNode,
-    env: &Environment,
-) -> Result<Value, RuntimeError> {
+fn eval_while(cond: &ExprNode, repeat: &ExprNode, env: &Rc<Environment>) -> RunRes<Value> {
     while eval(cond, env)?.truthy() {
         match eval(repeat, env) {
             Err(RuntimeError::Break) => break,
@@ -100,8 +126,8 @@ fn eval_if(
     cond: Value,
     then: &ExprNode,
     otherwise: Option<&ExprNode>,
-    env: &Environment,
-) -> Result<Value, RuntimeError> {
+    env: &Rc<Environment>,
+) -> RunRes<Value> {
     if cond.truthy() {
         eval(then, env)
     } else if let Some(expr) = otherwise {
@@ -113,12 +139,12 @@ fn eval_if(
 
 fn eval_block(
     stmts: &Vec<StmtNode>,
-    env: &Environment,
+    env: &Rc<Environment>,
     _start_loc: CodeLoc,
     _end_loc: CodeLoc,
-) -> Result<Value, RuntimeError> {
+) -> RunRes<Value> {
     // Not super pretty, would maybe be better with rusts use of no colon if we return
-    let nested_env = env.nest();
+    let nested_env = Environment::nest(env);
     for stmt in stmts[0..(stmts.len() - 1)].iter() {
         statements::eval(stmt, &nested_env)?;
     }
@@ -140,10 +166,10 @@ fn eval_block(
 fn eval_assign(
     lvalue: &str,
     rvalue: Value,
-    env: &Environment,
+    env: &Rc<Environment>,
     start: CodeLoc,
     end: CodeLoc,
-) -> Result<Value, RuntimeError> {
+) -> RunRes<Value> {
     if env.assign(lvalue, rvalue.clone()).is_some() {
         Ok(rvalue)
     } else {
@@ -157,7 +183,7 @@ fn eval_binary(
     right: Value,
     start_loc: CodeLoc,
     end_loc: CodeLoc,
-) -> Result<Value, RuntimeError> {
+) -> RunRes<Value> {
     match &op.node {
         // TODO: implicit conversion from int to float. Now they only work together on comparisions
         BinOper::Add => bin_add(left, right, start_loc, end_loc),
@@ -173,12 +199,7 @@ fn eval_binary(
     }
 }
 
-fn bin_add(
-    left: Value,
-    right: Value,
-    start_loc: CodeLoc,
-    end_loc: CodeLoc,
-) -> Result<Value, RuntimeError> {
+fn bin_add(left: Value, right: Value, start_loc: CodeLoc, end_loc: CodeLoc) -> RunRes<Value> {
     match (left, right) {
         (Value::Float(x), Value::Float(y)) => Ok(Value::Float(x + y)),
         (Value::Int(x), Value::Int(y)) => Ok(Value::Int(x + y)),
@@ -191,12 +212,7 @@ fn bin_add(
     }
 }
 
-fn bin_sub(
-    left: Value,
-    right: Value,
-    start_loc: CodeLoc,
-    end_loc: CodeLoc,
-) -> Result<Value, RuntimeError> {
+fn bin_sub(left: Value, right: Value, start_loc: CodeLoc, end_loc: CodeLoc) -> RunRes<Value> {
     match (left, right) {
         (Value::Float(x), Value::Float(y)) => Ok(Value::Float(x - y)),
         (Value::Int(x), Value::Int(y)) => Ok(Value::Int(x - y)),
@@ -208,12 +224,7 @@ fn bin_sub(
     }
 }
 
-fn bin_mult(
-    left: Value,
-    right: Value,
-    start_loc: CodeLoc,
-    end_loc: CodeLoc,
-) -> Result<Value, RuntimeError> {
+fn bin_mult(left: Value, right: Value, start_loc: CodeLoc, end_loc: CodeLoc) -> RunRes<Value> {
     match (left, right) {
         (Value::Float(x), Value::Float(y)) => Ok(Value::Float(x * y)),
         (Value::Int(x), Value::Int(y)) => Ok(Value::Int(x * y)),
@@ -225,12 +236,7 @@ fn bin_mult(
     }
 }
 
-fn bin_div(
-    left: Value,
-    right: Value,
-    start_loc: CodeLoc,
-    end_loc: CodeLoc,
-) -> Result<Value, RuntimeError> {
+fn bin_div(left: Value, right: Value, start_loc: CodeLoc, end_loc: CodeLoc) -> RunRes<Value> {
     match (left, right) {
         (Value::Float(x), Value::Float(y)) => Ok(Value::Float(x / y)),
         (Value::Int(x), Value::Int(y)) => Ok(Value::Int(x / y)),
@@ -242,12 +248,7 @@ fn bin_div(
     }
 }
 
-fn bin_eq(
-    left: Value,
-    right: Value,
-    _start_loc: CodeLoc,
-    _end_loc: CodeLoc,
-) -> Result<Value, RuntimeError> {
+fn bin_eq(left: Value, right: Value, _start_loc: CodeLoc, _end_loc: CodeLoc) -> RunRes<Value> {
     match (left, right) {
         (Value::Float(x), Value::Int(y)) => Ok(Value::Bool(x == y as f64)),
         (Value::Int(x), Value::Float(y)) => Ok(Value::Bool(x as f64 == y)),
@@ -255,12 +256,7 @@ fn bin_eq(
     }
 }
 
-fn bin_neq(
-    left: Value,
-    right: Value,
-    _start_loc: CodeLoc,
-    _end_loc: CodeLoc,
-) -> Result<Value, RuntimeError> {
+fn bin_neq(left: Value, right: Value, _start_loc: CodeLoc, _end_loc: CodeLoc) -> RunRes<Value> {
     match (left, right) {
         (Value::Float(x), Value::Int(y)) => Ok(Value::Bool(x != y as f64)),
         (Value::Int(x), Value::Float(y)) => Ok(Value::Bool(x as f64 != y)),
@@ -268,12 +264,7 @@ fn bin_neq(
     }
 }
 
-fn bin_lt(
-    left: Value,
-    right: Value,
-    start_loc: CodeLoc,
-    end_loc: CodeLoc,
-) -> Result<Value, RuntimeError> {
+fn bin_lt(left: Value, right: Value, start_loc: CodeLoc, end_loc: CodeLoc) -> RunRes<Value> {
     match (left, right) {
         (Value::Float(x), Value::Int(y)) => Ok(Value::Bool(x < y as f64)),
         (Value::Int(x), Value::Float(y)) => Ok(Value::Bool((x as f64) < y)),
@@ -286,12 +277,7 @@ fn bin_lt(
     }
 }
 
-fn bin_leq(
-    left: Value,
-    right: Value,
-    start_loc: CodeLoc,
-    end_loc: CodeLoc,
-) -> Result<Value, RuntimeError> {
+fn bin_leq(left: Value, right: Value, start_loc: CodeLoc, end_loc: CodeLoc) -> RunRes<Value> {
     match (left, right) {
         (Value::Float(x), Value::Int(y)) => Ok(Value::Bool(x <= y as f64)),
         (Value::Int(x), Value::Float(y)) => Ok(Value::Bool((x as f64) <= y)),
@@ -304,12 +290,7 @@ fn bin_leq(
     }
 }
 
-fn bin_gt(
-    left: Value,
-    right: Value,
-    start_loc: CodeLoc,
-    end_loc: CodeLoc,
-) -> Result<Value, RuntimeError> {
+fn bin_gt(left: Value, right: Value, start_loc: CodeLoc, end_loc: CodeLoc) -> RunRes<Value> {
     match (left, right) {
         (Value::Float(x), Value::Int(y)) => Ok(Value::Bool(x > y as f64)),
         (Value::Int(x), Value::Float(y)) => Ok(Value::Bool((x as f64) > y)),
@@ -322,12 +303,7 @@ fn bin_gt(
     }
 }
 
-fn bin_geq(
-    left: Value,
-    right: Value,
-    start_loc: CodeLoc,
-    end_loc: CodeLoc,
-) -> Result<Value, RuntimeError> {
+fn bin_geq(left: Value, right: Value, start_loc: CodeLoc, end_loc: CodeLoc) -> RunRes<Value> {
     match (left, right) {
         (Value::Float(x), Value::Int(y)) => Ok(Value::Bool(x >= y as f64)),
         (Value::Int(x), Value::Float(y)) => Ok(Value::Bool((x as f64) >= y)),
@@ -345,7 +321,7 @@ fn eval_unary(
     right: Value,
     start_loc: CodeLoc,
     end_loc: CodeLoc,
-) -> Result<Value, RuntimeError> {
+) -> RunRes<Value> {
     match op.node {
         UnOper::Sub => match right {
             Value::Int(int) => Ok(Value::Int(-int)),
@@ -374,10 +350,10 @@ fn eval_logical(
     left: Value,
     op: &LogicalOperNode,
     right: &ExprNode,
-    env: &Environment,
+    env: &Rc<Environment>,
     _start_loc: CodeLoc,
     _end_loc: CodeLoc,
-) -> Result<Value, RuntimeError> {
+) -> RunRes<Value> {
     let res = match op.node {
         LogicalOper::And => left.truthy() && eval(right, env)?.truthy(),
         LogicalOper::Or => left.truthy() || eval(right, env)?.truthy(),
@@ -393,6 +369,7 @@ impl fmt::Display for Value {
             Value::Int(int) => write!(f, "Int({int})"),
             Value::Float(float) => write!(f, "Float({float})"),
             Value::String(string) => write!(f, "String({string})"),
+            Value::Callable(callable) => write!(f, "fn {}/{}", callable.name(), callable.arity()),
             Value::Uninitialized => panic!("Use of uninit value!"),
         }
     }

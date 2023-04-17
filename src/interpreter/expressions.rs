@@ -28,7 +28,7 @@ impl Value {
             Value::Int(int) => *int != 0,
             Value::Float(float) => *float != 0.0,
             Value::String(string) => !string.is_empty(),
-            Value::Callable(_) => panic!("Can't compare functions"),
+            Value::Callable(_) => panic!("Can't convert function to bool"), // TODO: real error, or just warning
             Value::Uninitialized => panic!("Use of uninit value!"),
         }
     }
@@ -86,7 +86,7 @@ pub(super) fn eval(expr: &ExprNode, env: &Rc<Environment>) -> RunRes<Value> {
 fn eval_call(callee: Value, args: Vec<Value>, start: CodeLoc, end: CodeLoc) -> RunRes<Value> {
     if let Value::Callable(callable) = callee {
         if args.len() == callable.arity() {
-            callable.call(args)
+            callable.call(args, start, end)
         } else {
             error(
                 start,

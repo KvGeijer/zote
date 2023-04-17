@@ -4,9 +4,9 @@ use std::{
     rc::Rc,
 };
 
-use crate::parser::ExprNode;
+use crate::{code_loc::CodeLoc, parser::ExprNode};
 
-use super::{environment::Environment, expressions, RunRes, Value};
+use super::{environment::Environment, expressions, RunRes, RuntimeError, Value};
 
 #[derive(Clone)]
 pub(super) enum Function {
@@ -16,10 +16,19 @@ pub(super) enum Function {
 }
 
 impl Function {
-    pub(super) fn call(&self, args: Vec<Value>) -> RunRes<Value> {
-        match self {
+    pub(super) fn call(&self, args: Vec<Value>, start: CodeLoc, end: CodeLoc) -> RunRes<Value> {
+        let result = match self {
             Function::Closure(closure) => closure.call(args),
             Function::Builtin(builtin) => builtin.run(args),
+        };
+
+        match result {
+            Err(RuntimeError::Break) => Err(RuntimeError::Error(
+                start,
+                end,
+                "Break encountered outside loop".to_string(),
+            )),
+            otherwise => otherwise,
         }
     }
 

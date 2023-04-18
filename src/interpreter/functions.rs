@@ -139,7 +139,7 @@ macro_rules! define_builtins {
 }
 
 pub(super) fn define_builtins(env: &Environment) {
-    define_builtins!(env, Time, Print);
+    define_builtins!(env, Time, Print, Str);
 }
 
 struct Time;
@@ -176,5 +176,21 @@ impl Builtin for Print {
 
     fn name(&self) -> &str {
         "print"
+    }
+}
+
+struct Str;
+
+impl Builtin for Str {
+    fn run(&self, args: Vec<Value>) -> RunRes<Value> {
+        Ok(Value::String(args[0].stringify()))
+    }
+
+    fn arity(&self) -> usize {
+        1
+    }
+
+    fn name(&self) -> &str {
+        "str"
     }
 }

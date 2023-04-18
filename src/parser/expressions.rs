@@ -27,7 +27,8 @@ pub enum Expr {
     Block(Vec<StmtNode>), // TODO: Add a field for output, like rust not using semicolon for last.
     If(Box<ExprNode>, Box<ExprNode>, Option<Box<ExprNode>>),
     While(Box<ExprNode>, Box<ExprNode>),
-    Break, // TODO Do we want to return an optional value from this?
+    Break,                 // TODO Do we want to return an optional value from this?
+    Return(Box<ExprNode>), // TODO Implicit nil returns? Optional here maybe?
 }
 
 #[derive(PartialEq, Eq, Debug, Clone)]
@@ -206,6 +207,7 @@ impl<'a> Parser<'a> {
             Token::If => self.accept_if(),
             Token::LBrace => self.accept_block(),
             Token::While => self.accept_while(),
+            Token::Return => self.accept_return(),
             Token::LPar => {
                 // Dont have the correct location really for this
                 self.accept(Token::LPar, "Internal error, should have peeked LPar");
@@ -242,6 +244,15 @@ impl<'a> Parser<'a> {
             self.take();
             res
         })
+    }
+
+    fn accept_return(&mut self) -> Option<ExprNode> {
+        let start = self.peek_start_loc().clone();
+        self.accept(Token::Return, "Internal error at return")?;
+        // TODO implicit nil returns?
+        let expr = self.expression()?;
+        let end = self.peek_end_loc().clone();
+        Some(ExprNode::new(Expr::Return(Box::new(expr)), start, end))
     }
 
     fn accept_if(&mut self) -> Option<ExprNode> {

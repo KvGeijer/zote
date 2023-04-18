@@ -39,6 +39,10 @@ pub fn interpret(
             Err(RuntimeError::Break) => {
                 error_reporter.runtime_panic("Break propagated to top-level scope")
             }
+            Err(RuntimeError::Return(v)) => error_reporter.runtime_panic(&format!(
+                "Return {} propagated to top-level scope",
+                v.stringify()
+            )),
         }
     }
 }
@@ -46,5 +50,6 @@ pub fn interpret(
 type RunRes<T> = Result<T, RuntimeError>;
 enum RuntimeError {
     Error(CodeLoc, CodeLoc, String),
-    Break,
+    Break, // Maybe include code loc for error messages? Or just handle that with static analysis?
+    Return(Value),
 }

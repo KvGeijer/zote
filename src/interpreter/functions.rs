@@ -28,6 +28,7 @@ impl Function {
                 end,
                 "Break encountered outside loop".to_string(),
             )),
+            Err(RuntimeError::Return(value)) => Ok(value),
             otherwise => otherwise,
         }
     }

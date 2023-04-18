@@ -80,6 +80,7 @@ pub(super) fn eval(expr: &ExprNode, env: &Rc<Environment>) -> RunRes<Value> {
             start,
             end,
         ),
+        Expr::Return(expr) => Err(RuntimeError::Return(eval(expr, env)?)),
     }
 }
 

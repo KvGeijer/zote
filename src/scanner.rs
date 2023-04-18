@@ -137,6 +137,8 @@ pub fn tokenize(code: &str, error_reporter: &mut ErrorReporter) -> Vec<TokenInfo
         }
 
         match parse_token(code, &mut loc) {
+            // For now just ignore all comments
+            Some(token_info) if matches!(token_info.token, Token::Comment(_)) => continue,
             Some(token_info) => tokens.push(token_info),
             None => {
                 let scanned = &code[loc.index()..].chars().next().unwrap();

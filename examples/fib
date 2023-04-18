@@ -1,4 +1,5 @@
 fn fib(n) {
+	// Just testing out returns, and comments
 	if n < 0 {
 		return 0;
 	};

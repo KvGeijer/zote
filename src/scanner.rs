@@ -275,7 +275,7 @@ mod tests {
         let tokens = tokenize(code, &mut reporter);
 
         let expected_tokens = vec![
-            Token::Comment(" Test []!".to_string()),
+            // Token::Comment(" Test []!".to_string()), // No longer emitted as tokens
             Token::If,
             Token::LBrace,
             Token::Plus,

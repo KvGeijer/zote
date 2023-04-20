@@ -48,6 +48,7 @@ pub fn interpret(
 }
 
 type RunRes<T> = Result<T, RuntimeError>;
+#[derive(Debug)]
 enum RuntimeError {
     Error(CodeLoc, CodeLoc, String),
     Break, // Maybe include code loc for error messages? Or just handle that with static analysis?

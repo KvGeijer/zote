@@ -375,3 +375,50 @@ impl fmt::Display for Value {
         }
     }
 }
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+    use crate::errors::ErrorReporter;
+    use crate::parser::parse;
+    use crate::scanner::tokenize;
+
+    /// Helper to interpret an expression from a string
+    fn interpret_expression_string(program: &str) -> RunRes<Value> {
+        let mut error_reporter = ErrorReporter::new();
+        let tokens = tokenize(program, &mut error_reporter);
+        let ast = parse(&tokens, &mut error_reporter).unwrap();
+        assert!(ast.len() == 1);
+        if let Stmt::Expr(expr) = &ast.first().unwrap().node {
+            eval(expr, &Environment::new())
+        } else {
+            panic!("Could not parse an expression!")
+        }
+    }
+
+    #[test]
+    fn basic_int_math() {
+        let program = "1 + 6 / 4 + 20 * -2 / 1;";
+        let val = interpret_expression_string(program).unwrap();
+        assert!(matches!(val, Value::Int(-38)));
+    }
+
+    #[test]
+    fn float_comparisons() {
+        let program = "2.5*3125.0 > 2.499*3125.0 and \
+                       0.0 == 0.0 and \
+                       2.2/5.1 - 3.5*5.0 < -17.0 and \
+                       !(1.1>=1.100001 or (2.2 != 2.2)) and \
+                       1.1 <= 1.01*1.11; ";
+        let val = interpret_expression_string(program).unwrap();
+        assert!(matches!(val, Value::Bool(true)));
+    }
+
+    #[test]
+    fn short_circuits() {
+        let program = "true or time('invalid argument count') and \
+                       !(false and time('again the same...'));";
+        let val = interpret_expression_string(program).unwrap();
+        assert!(matches!(val, Value::Bool(true)));
+    }
+}

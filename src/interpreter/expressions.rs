@@ -261,7 +261,7 @@ fn bin_neq(left: Value, right: Value, _start_loc: CodeLoc, _end_loc: CodeLoc) ->
     match (left, right) {
         (Value::Float(x), Value::Int(y)) => Ok(Value::Bool(x != y as f64)),
         (Value::Int(x), Value::Float(y)) => Ok(Value::Bool(x as f64 != y)),
-        (x, y) => Ok(Value::Bool(x == y)),
+        (x, y) => Ok(Value::Bool(x != y)),
     }
 }
 

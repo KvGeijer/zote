@@ -47,6 +47,8 @@ pub enum Token {
     Comma,
     Eq,
     Bang,
+    UpArr,
+    Percent,
 
     EOF,
 
@@ -107,6 +109,8 @@ lazy_static! {
         (r",", |_| Token::Comma),
         (r"=", |_| Token::Eq),
         (r"!", |_| Token::Bang),
+        (r"\^", |_| Token::UpArr),
+        (r"%", |_| Token::Percent),
         (r"true", |_| Token::True),
         (r"false", |_| Token::False),
         (r"and", |_| Token::And),

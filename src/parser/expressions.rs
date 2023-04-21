@@ -37,6 +37,8 @@ pub enum BinOper {
     Sub,
     Div,
     Mult,
+    Mod,
+    Pow,
     Eq,
     Neq,
     Lt,
@@ -148,10 +150,22 @@ impl<'a> Parser<'a> {
     }
 
     fn factor(&mut self) -> Option<ExprNode> {
-        // factor         → unary ( ( "/" | "*" ) unary )* ;
+        // factor         → exponent ( ( "/" | "*" | "%" ) exponent )* ;
+        let mut exponent = self.exponent()?;
+
+        while let Some(op) = self.match_op([BinOper::Div, BinOper::Mult, BinOper::Mod]) {
+            let right = self.exponent()?;
+            exponent = ExprNode::binary(exponent, op, right);
+        }
+
+        Some(exponent)
+    }
+
+    fn exponent(&mut self) -> Option<ExprNode> {
+        // exponent         → unary ( "^" unary )* ;
         let mut unary = self.unary()?;
 
-        while let Some(op) = self.match_op([BinOper::Div, BinOper::Mult]) {
+        while let Some(op) = self.match_op([BinOper::Pow]) {
             let right = self.unary()?;
             unary = ExprNode::binary(unary, op, right);
         }
@@ -373,6 +387,8 @@ impl FromToken for BinOper {
             Token::Div => Some(BinOper::Div),
             Token::Plus => Some(BinOper::Add),
             Token::Minus => Some(BinOper::Sub),
+            Token::UpArr => Some(BinOper::Pow),
+            Token::Percent => Some(BinOper::Mod),
             _ => None,
         }
     }

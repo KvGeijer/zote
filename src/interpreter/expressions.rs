@@ -191,6 +191,8 @@ fn eval_binary(
         BinOper::Sub => bin_sub(left, right, start_loc, end_loc),
         BinOper::Mult => bin_mult(left, right, start_loc, end_loc),
         BinOper::Div => bin_div(left, right, start_loc, end_loc),
+        BinOper::Mod => bin_mod(left, right, start_loc, end_loc),
+        BinOper::Pow => bin_pow(left, right, start_loc, end_loc),
         BinOper::Eq => bin_eq(left, right, start_loc, end_loc),
         BinOper::Neq => bin_neq(left, right, start_loc, end_loc),
         BinOper::Lt => bin_lt(left, right, start_loc, end_loc),
@@ -241,6 +243,40 @@ fn bin_div(left: Value, right: Value, start_loc: CodeLoc, end_loc: CodeLoc) -> R
     match (left, right) {
         (Value::Float(x), Value::Float(y)) => Ok(Value::Float(x / y)),
         (Value::Int(x), Value::Int(y)) => Ok(Value::Int(x / y)),
+        _other => error(
+            start_loc,
+            end_loc,
+            "Division operands must be two numbers".to_string(),
+        ),
+    }
+}
+
+fn bin_mod(left: Value, right: Value, start_loc: CodeLoc, end_loc: CodeLoc) -> RunRes<Value> {
+    match (left, right) {
+        (Value::Float(x), Value::Float(y)) => Ok(Value::Float(x.rem_euclid(y))),
+        (Value::Int(x), Value::Int(y)) => Ok(Value::Int(x.rem_euclid(y))),
+        _other => error(
+            start_loc,
+            end_loc,
+            "Modulo operands must be two numbers".to_string(),
+        ),
+    }
+}
+
+fn bin_pow(left: Value, right: Value, start_loc: CodeLoc, end_loc: CodeLoc) -> RunRes<Value> {
+    match (left, right) {
+        (Value::Float(x), Value::Float(y)) => Ok(Value::Float(x.powf(y))),
+        (Value::Int(x), Value::Int(y)) if y >= 0 => Ok(Value::Int({
+            let safe_x: u32 = x.abs().try_into().expect("Overflow in pow base");
+            let safe_y: u32 = y.try_into().expect("Overflow in pow exponent");
+            let pow = safe_x.pow(safe_y) as i64;
+            if x >= 0 {
+                pow
+            } else {
+                -pow
+            }
+        })),
+        (Value::Int(x), Value::Int(y)) => Ok(Value::Float((x as f64).powf(y as f64))),
         _other => error(
             start_loc,
             end_loc,
@@ -404,12 +440,44 @@ mod tests {
     }
 
     #[test]
+    fn more_int_math() {
+        let program = "5^6 == 15625 and -5^6 == -15625 and 7 % 4 == 3 and -7 % 4 == 1;";
+        let val = interpret_expression_string(program).unwrap();
+        assert!(matches!(val, Value::Bool(true)));
+    }
+
+    #[test]
     fn float_comparisons() {
-        let program = "2.5*3125.0 > 2.499*3125.0 and \
-                       0.0 == 0.0 and \
-                       2.2/5.1 - 3.5*5.0 < -17.0 and \
-                       !(1.1>=1.100001 or (2.2 != 2.2)) and \
-                       1.1 <= 1.01*1.11; ";
+        // Not the prettiest, but easy to find if one fails, rather than having one big string.
+        let program = "2.5*3125.0 > 2.499*3125.0;";
+        let val = interpret_expression_string(program).unwrap();
+        assert!(matches!(val, Value::Bool(true)));
+
+        let program = "0.0 == 0.0;";
+        let val = interpret_expression_string(program).unwrap();
+        assert!(matches!(val, Value::Bool(true)));
+
+        let program = "2.2/5.1 - 3.5*5.0 < -17.0;";
+        let val = interpret_expression_string(program).unwrap();
+        assert!(matches!(val, Value::Bool(true)));
+
+        let program = "!(1.1>=1.100001);";
+        let val = interpret_expression_string(program).unwrap();
+        assert!(matches!(val, Value::Bool(true)));
+
+        let program = "!(2.2 != 2.2);";
+        let val = interpret_expression_string(program).unwrap();
+        assert!(matches!(val, Value::Bool(true)));
+
+        let program = "1.1 <= 1.01*1.11;";
+        let val = interpret_expression_string(program).unwrap();
+        assert!(matches!(val, Value::Bool(true)));
+
+        let program = "2.000000001 % 0.1 < 0.00001;";
+        let val = interpret_expression_string(program).unwrap();
+        assert!(matches!(val, Value::Bool(true)));
+
+        let program = "2.2^-2.2 >= 0.176;";
         let val = interpret_expression_string(program).unwrap();
         assert!(matches!(val, Value::Bool(true)));
     }

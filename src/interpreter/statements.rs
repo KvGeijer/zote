@@ -9,11 +9,11 @@ use super::{
     RunRes,
 };
 
-pub(super) fn eval(stmt: &StmtNode, env: &Rc<Environment>) -> RunRes<()> {
+pub(super) fn eval(stmt: &StmtNode, env: &Rc<Environment>) -> RunRes<Option<Value>> {
     match &stmt.node {
-        Stmt::Decl(id, expr) => decl(id, expr, env),
-        Stmt::FuncDecl(name, param, body) => func_decl(name, param, body, env),
-        Stmt::Expr(expr) => expressions::eval(expr, env).map(|_| ()),
+        Stmt::Decl(id, expr) => decl(id, expr, env).map(|_| None),
+        Stmt::FuncDecl(name, param, body) => func_decl(name, param, body, env).map(|_| None),
+        Stmt::Expr(expr) => expressions::eval(expr, env).map(Some),
         Stmt::Invalid => panic!("Tried to interpret an invalid statement!"),
     }
 }

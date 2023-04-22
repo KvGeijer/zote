@@ -1,9 +1,15 @@
 use either::Either;
 
 use super::{expressions::MAX_ARGS, AstNode, ExprNode, Parser};
-use crate::{code_loc::CodeLoc, scanner::Token};
+use crate::scanner::Token;
 
 pub type StmtNode = AstNode<Stmt>;
+
+#[derive(Debug, PartialEq, Clone)]
+pub struct Stmts {
+    pub stmts: Vec<StmtNode>,
+    pub output: bool,
+}
 
 #[derive(Debug, PartialEq, Clone)]
 pub enum Stmt {
@@ -14,52 +20,40 @@ pub enum Stmt {
 }
 
 impl<'a> Parser<'a> {
-    /// Only for top level parsing of global statements
-    pub fn statements(&mut self) -> Result<Vec<StmtNode>, Vec<StmtNode>> {
-        // If a single expression it is wrapped in a print statement
-        let mut stmts = Vec::new();
-        match self.statement(true) {
-            Either::Left(stmt) => stmts.push(stmt),
-            Either::Right(expr) => {
-                self.accept(Token::EOF, "Expect singleton expression")
-                    .ok_or(stmts)?;
-                let start = expr.start_loc.clone();
-                let end = expr.end_loc.clone();
-                // Very hacky and ugly...
-                let print_expr = ExprNode::new(
-                    super::Expr::Call(
-                        Box::new(ExprNode::new(
-                            super::Expr::Var("print".to_string()),
-                            CodeLoc::new(0, 0, 0),
-                            CodeLoc::new(0, 0, 0),
-                        )),
-                        vec![expr],
-                    ),
-                    start.clone(),
-                    end.clone(),
-                );
-                let print_stmt = StmtNode::new(Stmt::Expr(print_expr), start, end);
-                return Ok(vec![print_stmt]);
+    // Parses a number of statements, terminated by a certain token
+    pub fn statements(&mut self, terminator: Token) -> Result<Stmts, Stmts> {
+        let mut stmts = Stmts {
+            stmts: Vec::new(),
+            output: false,
+        };
+
+        while self.peek() != &terminator {
+            match self.statement(true) {
+                Either::Left(stmt) => stmts.stmts.push(stmt),
+                Either::Right(expr) => {
+                    let start = expr.start_loc.clone();
+                    let end = expr.end_loc.clone();
+                    stmts
+                        .stmts
+                        .push(StmtNode::new(Stmt::Expr(expr), start, end));
+                    stmts.output = true;
+                    if self.peek() != &terminator {
+                        self.error(&format!("Expect {:?} to terminate statements", terminator));
+                        return Err(stmts);
+                    }
+                }
             }
         }
 
-        while !self.at_end() {
-            let stmt = self
-                .statement(false)
-                .expect_left("Internal error: allow_expr is false, so should get a statement");
-            stmts.push(stmt);
-        }
-
-        if stmts.iter().any(|stmt| stmt.node == Stmt::Invalid) {
+        if stmts.stmts.iter().any(|stmt| stmt.node == Stmt::Invalid) {
             Err(stmts) // In case we still want to be able so see the ast
         } else {
             Ok(stmts)
         }
     }
 
-    // Maybe not ideal to have pub, but statements can be inside blocks...
     // If allow_expr is on, it will match an expression instead of causing error if there is no closing ;
-    pub fn statement(&mut self, allow_expr: bool) -> Either<StmtNode, ExprNode> {
+    fn statement(&mut self, allow_expr: bool) -> Either<StmtNode, ExprNode> {
         if let Some(node) = self.top_statement(allow_expr) {
             node
         } else {

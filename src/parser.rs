@@ -8,7 +8,7 @@ mod statements;
 pub use expressions::{
     BinOper, BinOperNode, Expr, ExprNode, LogicalOper, LogicalOperNode, UnOper, UnOperNode,
 };
-pub use statements::{Stmt, StmtNode};
+pub use statements::{Stmt, StmtNode, Stmts};
 
 // Each node in the AST is some branch/leaf wrapped in this extra info
 #[derive(Debug, Clone)]
@@ -18,10 +18,9 @@ pub struct AstNode<T> {
     pub end_loc: CodeLoc, // Not including last char. Should we change?
 }
 
-pub fn parse(tokens: &[TokenInfo], error_reporter: &mut ErrorReporter) -> Option<Vec<StmtNode>> {
+pub fn parse(tokens: &[TokenInfo], error_reporter: &mut ErrorReporter) -> Option<Stmts> {
     let mut parser = Parser::new(tokens, error_reporter);
-    // A bit of a cheat, but if there is only a single experssion, we treat it as a print statement
-    parser.statements().ok()
+    parser.statements(crate::scanner::Token::EOF).ok()
 }
 
 // All submodules will add some functionality to this, like parsing expressions

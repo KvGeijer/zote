@@ -1,7 +1,7 @@
 use std::fmt::Debug;
 
-use super::{AstNode, Parser, StmtNode};
-use crate::{code_loc::CodeLoc, parser::Stmt, scanner::Token};
+use super::{AstNode, Parser, Stmts};
+use crate::{code_loc::CodeLoc, scanner::Token};
 
 // Cannot have more than this many arguments to a function
 pub const MAX_ARGS: usize = 255;
@@ -24,7 +24,7 @@ pub enum Expr {
     Float(f64),
     Bool(bool),
     String(String),
-    Block(Vec<StmtNode>), // TODO: Add a field for output, like rust not using semicolon for last.
+    Block(Stmts), // TODO: Add a field for output, like rust not using semicolon for last.
     If(Box<ExprNode>, Box<ExprNode>, Option<Box<ExprNode>>),
     While(Box<ExprNode>, Box<ExprNode>),
     Break,                 // TODO Do we want to return an optional value from this?
@@ -294,23 +294,11 @@ impl<'a> Parser<'a> {
         let start = self.peek_start_loc().clone();
         self.accept(Token::LBrace, "Internal error at block")?;
 
-        // This circular dependence is not great.
-        let mut block = vec![];
-        while self.peek() != &Token::RBrace {
-            match self
-                // TODO: now can more easily allow last statement to be an expression!
-                .statement(false)
-                .expect_left("Internal error: allow_expr is false, so should get a statement")
-            {
-                // So far just throw away the failed ast
-                stmt if stmt.node == Stmt::Invalid => return None,
-                stmt => block.push(stmt),
-            }
-        }
+        let stmts = self.statements(Token::RBrace).ok()?;
 
         let end = self.peek_end_loc().clone();
         self.accept(Token::RBrace, "Need to close block with '}'")?;
-        Some(ExprNode::new(Expr::Block(block), start, end))
+        Some(ExprNode::new(Expr::Block(stmts), start, end))
     }
 
     fn accept_while(&mut self) -> Option<ExprNode> {

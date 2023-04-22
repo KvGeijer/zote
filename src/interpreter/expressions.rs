@@ -3,8 +3,8 @@ use std::{fmt, rc::Rc};
 use crate::{
     code_loc::CodeLoc,
     parser::{
-        AstNode, BinOper, BinOperNode, Expr, ExprNode, LogicalOper, LogicalOperNode, Stmt,
-        StmtNode, UnOper, UnOperNode,
+        BinOper, BinOperNode, Expr, ExprNode, LogicalOper, LogicalOperNode, Stmts, UnOper,
+        UnOperNode,
     },
 };
 
@@ -139,28 +139,24 @@ fn eval_if(
 }
 
 fn eval_block(
-    stmts: &Vec<StmtNode>,
+    stmts: &Stmts,
     env: &Rc<Environment>,
     _start_loc: CodeLoc,
     _end_loc: CodeLoc,
 ) -> RunRes<Value> {
     // Not super pretty, would maybe be better with rusts use of no colon if we return
     let nested_env = Environment::nest(env);
-    for stmt in stmts[0..(stmts.len() - 1)].iter() {
-        statements::eval(stmt, &nested_env)?;
+    let mut output = def_block_return();
+    for stmt in stmts.stmts.iter() {
+        if let Some(val) = statements::eval(stmt, &nested_env)? {
+            output = val;
+        }
     }
 
-    match stmts.last() {
-        Some(AstNode {
-            node: Stmt::Expr(expr),
-            start_loc: _,
-            end_loc: _,
-        }) => eval(expr, &nested_env),
-        Some(stmt) => {
-            statements::eval(stmt, &nested_env)?;
-            Ok(def_block_return())
-        }
-        None => Ok(def_block_return()),
+    if stmts.output {
+        Ok(output)
+    } else {
+        Ok(def_block_return())
     }
 }
 
@@ -416,7 +412,7 @@ impl fmt::Display for Value {
 mod tests {
     use super::*;
     use crate::errors::ErrorReporter;
-    use crate::parser::parse;
+    use crate::parser::{parse, Stmt};
     use crate::scanner::tokenize;
 
     /// Helper to interpret an expression from a string
@@ -424,8 +420,8 @@ mod tests {
         let mut error_reporter = ErrorReporter::new();
         let tokens = tokenize(program, &mut error_reporter);
         let ast = parse(&tokens, &mut error_reporter).unwrap();
-        assert!(ast.len() == 1);
-        if let Stmt::Expr(expr) = &ast.first().unwrap().node {
+        assert!(ast.stmts.len() == 1);
+        if let Stmt::Expr(expr) = &ast.stmts.first().unwrap().node {
             eval(expr, &Environment::new())
         } else {
             panic!("Could not parse an expression!")

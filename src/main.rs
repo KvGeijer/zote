@@ -64,6 +64,7 @@ fn run(code: &str, error_reporter: &mut ErrorReporter, state: &mut InterpreterSt
     let tokens = scanner::tokenize(code, error_reporter);
 
     if let Some(stmts) = parser::parse(&tokens, error_reporter) {
+        // Should we look at error_reporter instead? Probably way better
         interpreter::interpret(&stmts, error_reporter, state);
     }
 }

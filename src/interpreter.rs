@@ -1,6 +1,6 @@
 use std::rc::Rc;
 
-use crate::{code_loc::CodeLoc, errors::ErrorReporter, parser::StmtNode};
+use crate::{code_loc::CodeLoc, errors::ErrorReporter, parser::Stmts};
 
 use environment::Environment;
 
@@ -25,14 +25,13 @@ impl InterpreterState {
     }
 }
 
-pub fn interpret(
-    program: &Vec<StmtNode>,
-    error_reporter: &mut ErrorReporter,
-    env: &mut InterpreterState,
-) {
-    for stmt in program {
+/// Top level interpret function
+pub fn interpret(program: &Stmts, error_reporter: &mut ErrorReporter, env: &mut InterpreterState) {
+    let mut output = Value::Uninitialized;
+    for stmt in program.stmts.iter() {
         match statements::eval(stmt, &env.env) {
-            Ok(_) => continue,
+            Ok(Some(val)) => output = val,
+            Ok(None) => continue,
             Err(RuntimeError::Error(start, end, reason)) => {
                 return error_reporter.runtime_error(&start, &end, &reason)
             }
@@ -44,6 +43,10 @@ pub fn interpret(
                 v.stringify()
             )),
         }
+    }
+
+    if program.output {
+        println!("{}", output.stringify());
     }
 }
 

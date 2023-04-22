@@ -27,26 +27,19 @@ impl InterpreterState {
 
 /// Top level interpret function
 pub fn interpret(program: &Stmts, error_reporter: &mut ErrorReporter, env: &mut InterpreterState) {
-    let mut output = Value::Uninitialized;
-    for stmt in program.stmts.iter() {
-        match statements::eval(stmt, &env.env) {
-            Ok(Some(val)) => output = val,
-            Ok(None) => continue,
-            Err(RuntimeError::Error(start, end, reason)) => {
-                return error_reporter.runtime_error(&start, &end, &reason)
-            }
-            Err(RuntimeError::Break) => {
-                error_reporter.runtime_panic("Break propagated to top-level scope")
-            }
-            Err(RuntimeError::Return(v)) => error_reporter.runtime_panic(&format!(
-                "Return {} propagated to top-level scope",
-                v.stringify()
-            )),
+    match statements::eval_statements(program, &env.env) {
+        Ok(Some(value)) => println!("{}", value.stringify()),
+        Ok(None) => (),
+        Err(RuntimeError::Error(start, end, reason)) => {
+            error_reporter.runtime_error(&start, &end, &reason)
         }
-    }
-
-    if program.output {
-        println!("{}", output.stringify());
+        Err(RuntimeError::Break) => {
+            error_reporter.runtime_panic("Break propagated to top-level scope")
+        }
+        Err(RuntimeError::Return(v)) => error_reporter.runtime_panic(&format!(
+            "Return {} propagated to top-level scope",
+            v.stringify()
+        )),
     }
 }
 

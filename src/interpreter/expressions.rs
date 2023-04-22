@@ -146,17 +146,9 @@ fn eval_block(
 ) -> RunRes<Value> {
     // Not super pretty, would maybe be better with rusts use of no colon if we return
     let nested_env = Environment::nest(env);
-    let mut output = def_block_return();
-    for stmt in stmts.stmts.iter() {
-        if let Some(val) = statements::eval(stmt, &nested_env)? {
-            output = val;
-        }
-    }
-
-    if stmts.output {
-        Ok(output)
-    } else {
-        Ok(def_block_return())
+    match statements::eval_statements(stmts, &nested_env)? {
+        Some(val) => Ok(val),
+        None => Ok(def_block_return()),
     }
 }
 
@@ -412,7 +404,7 @@ impl fmt::Display for Value {
 mod tests {
     use super::*;
     use crate::errors::ErrorReporter;
-    use crate::parser::{parse, Stmt};
+    use crate::parser::parse;
     use crate::scanner::tokenize;
 
     /// Helper to interpret an expression from a string
@@ -420,24 +412,20 @@ mod tests {
         let mut error_reporter = ErrorReporter::new();
         let tokens = tokenize(program, &mut error_reporter);
         let ast = parse(&tokens, &mut error_reporter).unwrap();
-        assert!(ast.stmts.len() == 1);
-        if let Stmt::Expr(expr) = &ast.stmts.first().unwrap().node {
-            eval(expr, &Environment::new())
-        } else {
-            panic!("Could not parse an expression!")
-        }
+        statements::eval_statements(&ast, &Environment::new())
+            .map(|opt_val| opt_val.expect("Expects an uncaptured expressions"))
     }
 
     #[test]
     fn basic_int_math() {
-        let program = "1 + 6 / 4 + 20 * -2 / 1;";
+        let program = "1 + 6 / 4 + 20 * -2 / 1";
         let val = interpret_expression_string(program).unwrap();
         assert!(matches!(val, Value::Int(-38)));
     }
 
     #[test]
     fn more_int_math() {
-        let program = "5^6 == 15625 and -5^6 == -15625 and 7 % 4 == 3 and -7 % 4 == 1;";
+        let program = "5^6 == 15625 and -5^6 == -15625 and 7 % 4 == 3 and -7 % 4 == 1";
         let val = interpret_expression_string(program).unwrap();
         assert!(matches!(val, Value::Bool(true)));
     }
@@ -445,35 +433,35 @@ mod tests {
     #[test]
     fn float_comparisons() {
         // Not the prettiest, but easy to find if one fails, rather than having one big string.
-        let program = "2.5*3125.0 > 2.499*3125.0;";
+        let program = "2.5*3125.0 > 2.499*3125.0";
         let val = interpret_expression_string(program).unwrap();
         assert!(matches!(val, Value::Bool(true)));
 
-        let program = "0.0 == 0.0;";
+        let program = "0.0 == 0.0";
         let val = interpret_expression_string(program).unwrap();
         assert!(matches!(val, Value::Bool(true)));
 
-        let program = "2.2/5.1 - 3.5*5.0 < -17.0;";
+        let program = "2.2/5.1 - 3.5*5.0 < -17.0";
         let val = interpret_expression_string(program).unwrap();
         assert!(matches!(val, Value::Bool(true)));
 
-        let program = "!(1.1>=1.100001);";
+        let program = "!(1.1>=1.100001)";
         let val = interpret_expression_string(program).unwrap();
         assert!(matches!(val, Value::Bool(true)));
 
-        let program = "!(2.2 != 2.2);";
+        let program = "!(2.2 != 2.2)";
         let val = interpret_expression_string(program).unwrap();
         assert!(matches!(val, Value::Bool(true)));
 
-        let program = "1.1 <= 1.01*1.11;";
+        let program = "1.1 <= 1.01*1.11";
         let val = interpret_expression_string(program).unwrap();
         assert!(matches!(val, Value::Bool(true)));
 
-        let program = "2.000000001 % 0.1 < 0.00001;";
+        let program = "2.000000001 % 0.1 < 0.00001";
         let val = interpret_expression_string(program).unwrap();
         assert!(matches!(val, Value::Bool(true)));
 
-        let program = "2.2^-2.2 >= 0.176;";
+        let program = "2.2^-2.2 >= 0.176";
         let val = interpret_expression_string(program).unwrap();
         assert!(matches!(val, Value::Bool(true)));
     }
@@ -481,7 +469,7 @@ mod tests {
     #[test]
     fn short_circuits() {
         let program = "true or time('invalid argument count') and \
-                       !(false and time('again the same...'));";
+                       !(false and time('again the same...'))";
         let val = interpret_expression_string(program).unwrap();
         assert!(matches!(val, Value::Bool(true)));
     }

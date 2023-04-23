@@ -88,4 +88,43 @@ mod tests {
             Value::Int(13)
         ));
     }
+
+    #[test]
+    fn implicit_nil_returns() {
+        let program = "fn nil_ret() { return }; nil_ret()";
+        assert!(matches!(
+            interpret_string(program).unwrap().unwrap(),
+            Value::Nil
+        ));
+
+        let program = concat!(
+            "fn maybe_nil_ret(x) {   ",
+            "    if x == Nil         ",
+            "        return          ",
+            "    else                ",
+            "        return true     ",
+            "};                      ",
+            "                        ",
+            "maybe_nil_ret(Nil)      ",
+        );
+        assert!(matches!(
+            interpret_string(program).unwrap().unwrap(),
+            Value::Nil
+        ));
+
+        let program = concat!(
+            "fn maybe_nil_ret(x) {   ",
+            "    if x == Nil         ",
+            "        return          ",
+            "    else                ",
+            "        return true     ",
+            "};                      ",
+            "                        ",
+            "maybe_nil_ret('Nil')    ",
+        );
+        assert!(matches!(
+            interpret_string(program).unwrap().unwrap(),
+            Value::Bool(true)
+        ));
+    }
 }

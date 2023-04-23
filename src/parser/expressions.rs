@@ -27,8 +27,8 @@ pub enum Expr {
     Block(Stmts),
     If(Box<ExprNode>, Box<ExprNode>, Option<Box<ExprNode>>),
     While(Box<ExprNode>, Box<ExprNode>),
-    Break,                 // TODO Do we want to return an optional value from this?
-    Return(Box<ExprNode>), // TODO Implicit nil returns? Optional here maybe?
+    Break, // TODO Do we want to return an optional value from this?
+    Return(Option<Box<ExprNode>>),
     Nil,
 }
 
@@ -264,10 +264,25 @@ impl<'a> Parser<'a> {
     fn accept_return(&mut self) -> Option<ExprNode> {
         let start = self.peek_start_loc().clone();
         self.accept(Token::Return, "Internal error at return")?;
-        // TODO implicit nil returns?
-        let expr = self.expression()?;
+
+        // Ugly way, but if there is no expression we try to infer a nil return,
+        // but only a simple check, which might miss things in strange expressions
+        let expr = if ![
+            Token::Semicolon,
+            Token::Comma,
+            Token::Else,
+            Token::RBrace,
+            Token::RPar,
+            Token::RBrack,
+        ]
+        .contains(self.peek())
+        {
+            Some(Box::new(self.expression()?))
+        } else {
+            None
+        };
         let end = self.peek_end_loc().clone();
-        Some(ExprNode::new(Expr::Return(Box::new(expr)), start, end))
+        Some(ExprNode::new(Expr::Return(expr), start, end))
     }
 
     fn accept_if(&mut self) -> Option<ExprNode> {

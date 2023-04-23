@@ -28,6 +28,7 @@ impl InterpreterState {
 /// Top level interpret function
 pub fn interpret(program: &Stmts, error_reporter: &mut ErrorReporter, env: &mut InterpreterState) {
     match statements::eval_statements(program, &env.env) {
+        Ok(Some(Value::Nil)) => (), // Might want to print this sometimes, but mostly I assume it is not intended
         Ok(Some(value)) => println!("{}", value.stringify()),
         Ok(None) => (),
         Err(RuntimeError::Error(start, end, reason)) => {

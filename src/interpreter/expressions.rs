@@ -18,6 +18,7 @@ pub(super) enum Value {
     Bool(bool),
     String(String),
     Callable(Function),
+    Nil,
     Uninitialized,
 }
 
@@ -29,6 +30,7 @@ impl Value {
             Value::Float(float) => *float != 0.0,
             Value::String(string) => !string.is_empty(),
             Value::Callable(_) => panic!("Can't convert function to bool"), // TODO: real error, or just warning
+            Value::Nil => false,
             Value::Uninitialized => panic!("Use of uninit value!"),
         }
     }
@@ -40,6 +42,7 @@ impl Value {
             Value::Float(float) => format!("{float}"),
             Value::String(string) => string.to_string(),
             Value::Callable(callable) => callable.name().to_string(),
+            Value::Nil => "Nil".to_string(),
             Value::Uninitialized => panic!("Use of uninit value!"),
         }
     }
@@ -81,6 +84,7 @@ pub(super) fn eval(expr: &ExprNode, env: &Rc<Environment>) -> RunRes<Value> {
             end,
         ),
         Expr::Return(expr) => Err(RuntimeError::Return(eval(expr, env)?)),
+        Expr::Nil => Ok(Value::Nil),
     }
 }
 
@@ -109,7 +113,7 @@ fn error(start: CodeLoc, end: CodeLoc, message: String) -> RunRes<Value> {
 }
 
 fn def_block_return() -> Value {
-    Value::Uninitialized
+    Value::Nil
 }
 
 fn eval_while(cond: &ExprNode, repeat: &ExprNode, env: &Rc<Environment>) -> RunRes<Value> {
@@ -395,6 +399,7 @@ impl fmt::Display for Value {
             Value::Float(float) => write!(f, "Float({float})"),
             Value::String(string) => write!(f, "String({string})"),
             Value::Callable(callable) => write!(f, "fn {}/{}", callable.name(), callable.arity()),
+            Value::Nil => write!(f, "Nil"),
             Value::Uninitialized => panic!("Use of uninit value!"),
         }
     }
@@ -404,6 +409,7 @@ impl fmt::Display for Value {
 mod tests {
     use super::*;
     use crate::errors::ErrorReporter;
+    use crate::interpreter::functions::define_builtins;
     use crate::parser::parse;
     use crate::scanner::tokenize;
 
@@ -412,7 +418,9 @@ mod tests {
         let mut error_reporter = ErrorReporter::new();
         let tokens = tokenize(program, &mut error_reporter);
         let ast = parse(&tokens, &mut error_reporter).unwrap();
-        statements::eval_statements(&ast, &Environment::new())
+        let env = Environment::new();
+        define_builtins(&env);
+        statements::eval_statements(&ast, &env)
             .map(|opt_val| opt_val.expect("Expects an uncaptured expressions"))
     }
 
@@ -472,5 +480,20 @@ mod tests {
                        !(false and time('again the same...'))";
         let val = interpret_expression_string(program).unwrap();
         assert!(matches!(val, Value::Bool(true)));
+    }
+
+    #[test]
+    fn nil_returns() {
+        let program = "{ 2; }";
+        let val = interpret_expression_string(program).unwrap();
+        assert!(matches!(val, Value::Nil));
+
+        let program = "print(3)";
+        let val = interpret_expression_string(program).unwrap();
+        assert!(matches!(val, Value::Nil));
+
+        let program = "if false 1";
+        let val = interpret_expression_string(program).unwrap();
+        assert!(matches!(val, Value::Nil));
     }
 }

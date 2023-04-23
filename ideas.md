@@ -7,8 +7,6 @@
 
 * Implement syntacti analysis for if/else expressions. If we use the value of such an expression we might want to force it to have both if and else? Could do for eg blocks as well.
 
-* Add _nil_. We really need it for empty returns. What to call it though?
-
 * Add structs.
   * What features should they have? For example would be nice to implment some point struct for AoC...
 

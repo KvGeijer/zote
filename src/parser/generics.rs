@@ -66,7 +66,7 @@ impl<'a> Parser<'a> {
     }
 
     pub fn peek_info(&self) -> &TokenInfo {
-        &self.tokens[self.current]
+        self.tokens[self.current]
     }
 
     pub fn peek(&self) -> &Token {

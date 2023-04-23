@@ -24,11 +24,12 @@ pub enum Expr {
     Float(f64),
     Bool(bool),
     String(String),
-    Block(Stmts), // TODO: Add a field for output, like rust not using semicolon for last.
+    Block(Stmts),
     If(Box<ExprNode>, Box<ExprNode>, Option<Box<ExprNode>>),
     While(Box<ExprNode>, Box<ExprNode>),
     Break,                 // TODO Do we want to return an optional value from this?
     Return(Box<ExprNode>), // TODO Implicit nil returns? Optional here maybe?
+    Nil,
 }
 
 #[derive(PartialEq, Eq, Debug, Clone)]
@@ -247,7 +248,7 @@ impl<'a> Parser<'a> {
             Token::String(str) => some_node(Expr::String(str.to_string()), start, end),
             Token::Identifier(str) => some_node(Expr::Var(str.to_owned()), start, end),
             Token::Break => some_node(Expr::Break, start, end),
-            // Token::Nil => Expr::Nil(),
+            Token::Nil => some_node(Expr::Nil, start, end),
             _ => {
                 self.error("Expect expression");
                 None

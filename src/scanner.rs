@@ -52,8 +52,6 @@ pub enum Token {
 
     EOF,
 
-    // Ones I might want to combine with identifier
-    // But can do that later
     True,
     False,
     And,
@@ -68,6 +66,7 @@ pub enum Token {
     Gt,
     Leq,
     Geq,
+    Nil,
 }
 
 #[derive(Debug)]
@@ -125,6 +124,7 @@ lazy_static! {
         (r">", |_| Token::Gt),
         (r"<=", |_| Token::Leq),
         (r">=", |_| Token::Geq),
+        (r"Nil", |_| Token::Nil),
     ];
 }
 

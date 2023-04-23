@@ -77,7 +77,7 @@ impl PartialOrd for Function {
     fn partial_cmp(&self, other: &Self) -> Option<Ordering> {
         // Arbitraty ordering
         println!("WARNING: Comparing function handles");
-        Some(self.name().cmp(&other.name()))
+        Some(self.name().cmp(other.name()))
     }
 }
 
@@ -167,7 +167,7 @@ struct Print;
 impl Builtin for Print {
     fn run(&self, args: Vec<Value>) -> RunRes<Value> {
         println!("{}", args[0].stringify());
-        Ok(Value::Uninitialized)
+        Ok(Value::Nil)
     }
 
     fn arity(&self) -> usize {

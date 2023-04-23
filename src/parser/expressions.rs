@@ -176,7 +176,7 @@ impl<'a> Parser<'a> {
     fn unary(&mut self) -> Option<ExprNode> {
         // unary          → ( "!" | "-" )? call ;
         if let Some(op) = self.match_op([UnOper::Sub, UnOper::Not]) {
-            let right = self.primary()?;
+            let right = self.call()?;
             Some(ExprNode::unary(op, right))
         } else {
             self.call()

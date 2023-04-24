@@ -62,7 +62,17 @@ pub enum LogicalOper {
 
 impl<'a> Parser<'a> {
     pub fn expression(&mut self) -> Option<ExprNode> {
-        self.assignment()
+        self.whole_expression()
+    }
+
+    fn whole_expression(&mut self) -> Option<ExprNode> {
+        // For expressions like return/break, which shouldn't be part of larger composite expressions
+
+        match self.peek() {
+            Token::Return => self.accept_return(),
+            Token::Break => self.accept_break(),
+            _ => self.assignment(),
+        }
     }
 
     fn assignment(&mut self) -> Option<ExprNode> {
@@ -222,7 +232,6 @@ impl<'a> Parser<'a> {
             Token::If => self.accept_if(),
             Token::LBrace => self.accept_block(),
             Token::While => self.accept_while(),
-            Token::Return => self.accept_return(),
             Token::LPar => {
                 // Dont have the correct location really for this
                 self.accept(Token::LPar, "Internal error, should have peeked LPar");
@@ -247,7 +256,6 @@ impl<'a> Parser<'a> {
             Token::Float(float) => some_node(Expr::Float(*float), start, end),
             Token::String(str) => some_node(Expr::String(str.to_string()), start, end),
             Token::Identifier(str) => some_node(Expr::Var(str.to_owned()), start, end),
-            Token::Break => some_node(Expr::Break, start, end),
             Token::Nil => some_node(Expr::Nil, start, end),
             _ => {
                 self.error("Expect expression");
@@ -281,8 +289,15 @@ impl<'a> Parser<'a> {
         } else {
             None
         };
-        let end = self.peek_end_loc().clone();
+        let end = self.peek_last_end_loc()?.clone();
         Some(ExprNode::new(Expr::Return(expr), start, end))
+    }
+
+    fn accept_break(&mut self) -> Option<ExprNode> {
+        let start = self.peek_start_loc().clone();
+        let end = self.peek_end_loc().clone();
+        self.accept(Token::Break, "Internal error at break")?;
+        Some(ExprNode::new(Expr::Break, start, end))
     }
 
     fn accept_if(&mut self) -> Option<ExprNode> {
@@ -298,7 +313,7 @@ impl<'a> Parser<'a> {
             None
         };
 
-        let end = self.peek_end_loc().clone();
+        let end = self.peek_last_end_loc()?.clone();
         Some(ExprNode::new(
             Expr::If(Box::new(cond), Box::new(then), otherwise),
             start,
@@ -312,7 +327,7 @@ impl<'a> Parser<'a> {
 
         let stmts = self.statements(Token::RBrace).ok()?;
 
-        let end = self.peek_end_loc().clone();
+        let end = self.peek_last_end_loc()?.clone();
         self.accept(Token::RBrace, "Need to close block with '}'")?;
         Some(ExprNode::new(Expr::Block(stmts), start, end))
     }
@@ -324,7 +339,7 @@ impl<'a> Parser<'a> {
         let cond = self.expression()?;
         let repeat = self.expression()?;
 
-        let end = self.peek_end_loc().clone();
+        let end = self.peek_last_end_loc()?.clone();
         Some(ExprNode::new(
             Expr::While(Box::new(cond), Box::new(repeat)),
             start,

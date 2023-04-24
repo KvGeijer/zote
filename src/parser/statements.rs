@@ -27,7 +27,7 @@ impl<'a> Parser<'a> {
             output: false,
         };
 
-        while self.peek() != &terminator {
+        while self.peek() != &terminator && !self.at_end() {
             match self.statement(true) {
                 Either::Left(stmt) => stmts.stmts.push(stmt),
                 Either::Right(expr) => {

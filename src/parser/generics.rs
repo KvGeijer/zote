@@ -48,14 +48,9 @@ impl<'a> Parser<'a> {
                 return;
             }
 
-            // If the next token is the start of a new statement we can also return
+            // If the next token is the start of a new statement (declaration) we can also return
             match self.peek() {
-                Token::Var
-                | Token::Struct
-                | Token::Fn
-                | Token::For
-                | Token::While
-                | Token::Return => return,
+                Token::Var | Token::Struct | Token::Fn => return,
                 _ => continue,
             }
         }

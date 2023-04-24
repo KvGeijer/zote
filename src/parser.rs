@@ -20,7 +20,7 @@ pub struct AstNode<T> {
 
 pub fn parse(tokens: &[TokenInfo], error_reporter: &mut ErrorReporter) -> Option<Stmts> {
     let mut parser = Parser::new(tokens, error_reporter);
-    parser.statements(crate::scanner::Token::EOF).ok()
+    parser.statements(crate::scanner::Token::Eof).ok()
 }
 
 // All submodules will add some functionality to this, like parsing expressions

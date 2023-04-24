@@ -50,7 +50,7 @@ pub enum Token {
     UpArr,
     Percent,
 
-    EOF,
+    Eof,
 
     True,
     False,
@@ -153,7 +153,7 @@ pub fn tokenize(code: &str, error_reporter: &mut ErrorReporter) -> Vec<TokenInfo
         }
     }
     tokens.push(TokenInfo {
-        token: Token::EOF,
+        token: Token::Eof,
         start_loc: loc.clone(),
         end_loc: loc,
         string: "EOF".to_string(),
@@ -214,7 +214,7 @@ mod tests {
             Token::Identifier("for_forforwhile".to_string()),
             Token::Identifier("notersteWeanfnåÅö".to_string()),
             Token::Identifier("áßãåãåøœđéđł".to_string()),
-            Token::EOF,
+            Token::Eof,
         ];
         let scanned_tokens: Vec<_> = tokens.iter().map(|info| info.token.clone()).collect();
         assert_eq!(scanned_tokens, expected_tokens);
@@ -261,7 +261,7 @@ mod tests {
             Token::String("secondthird".to_string()),
             Token::String("'inner'".to_string()),
             Token::String("\"inner2\"".to_string()),
-            Token::EOF,
+            Token::Eof,
         ];
         let scanned_tokens: Vec<_> = tokens.iter().map(|info| info.token.clone()).collect();
         assert_eq!(scanned_tokens, expected_tokens);
@@ -309,7 +309,7 @@ mod tests {
             Token::Leq,
             Token::Geq,
             Token::RBrack,
-            Token::EOF,
+            Token::Eof,
         ];
         let scanned_tokens: Vec<_> = tokens.iter().map(|info| info.token.clone()).collect();
         assert_eq!(scanned_tokens, expected_tokens);

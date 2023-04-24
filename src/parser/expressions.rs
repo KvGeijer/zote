@@ -477,7 +477,7 @@ mod tests {
             fake_token(Token::Minus),
             fake_token(Token::Integer(1)),
             fake_token(Token::RPar),
-            fake_token(Token::EOF),
+            fake_token(Token::Eof),
         ];
 
         let mut parser = Parser::new(&tokens, &mut error_reporter);
@@ -534,7 +534,7 @@ mod tests {
             fake_token(Token::Integer(5)),
             fake_token(Token::BangEq),
             fake_token(Token::Integer(6)),
-            fake_token(Token::EOF),
+            fake_token(Token::Eof),
         ];
 
         let mut parser = Parser::new(&tokens, &mut error_reporter);

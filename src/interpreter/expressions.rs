@@ -8,7 +8,9 @@ use crate::{
     },
 };
 
-use super::{environment::Environment, functions::Function, statements, RunRes, RuntimeError};
+use super::{
+    environment::Environment, functions::Function, list::List, statements, RunRes, RuntimeError,
+};
 
 // An interface between Zote and Rust values
 #[derive(PartialEq, Debug, PartialOrd, Clone)]
@@ -20,6 +22,7 @@ pub(super) enum Value {
     Callable(Function),
     Nil,
     Uninitialized,
+    List(List),
 }
 
 impl Value {
@@ -32,10 +35,12 @@ impl Value {
             Value::Callable(_) => panic!("Can't convert function to bool"), // TODO: real error, or just warning
             Value::Nil => false,
             Value::Uninitialized => panic!("Use of uninit value!"),
+            Value::List(list) => list.to_bool(),
         }
     }
 
     pub fn stringify(&self) -> String {
+        // OPT Could we just return &str here?
         match self {
             Value::Bool(bool) => format!("{bool}"),
             Value::Int(int) => format!("{int}"),
@@ -44,6 +49,7 @@ impl Value {
             Value::Callable(callable) => callable.name().to_string(),
             Value::Nil => "Nil".to_string(),
             Value::Uninitialized => panic!("Use of uninit value!"),
+            Value::List(list) => list.stringify(),
         }
     }
 }
@@ -86,7 +92,18 @@ pub(super) fn eval(expr: &ExprNode, env: &Rc<Environment>) -> RunRes<Value> {
         Expr::Return(Some(expr)) => Err(RuntimeError::Return(eval(expr, env)?)),
         Expr::Return(None) => Err(RuntimeError::Return(Value::Nil)),
         Expr::Nil => Ok(Value::Nil),
+        Expr::List(exprs) => eval_list(exprs, env),
     }
+}
+
+fn eval_list(exprs: &Vec<ExprNode>, env: &Rc<Environment>) -> RunRes<Value> {
+    Ok(Value::List(List::new(
+        exprs
+            .iter()
+            .map(|expr| eval(expr, env))
+            .collect::<Result<Vec<_>, _>>()?
+            .into_iter(), // Not beautiful collecting and then making back to iterator
+    )))
 }
 
 fn eval_call(callee: Value, args: Vec<Value>, start: CodeLoc, end: CodeLoc) -> RunRes<Value> {
@@ -392,6 +409,7 @@ fn eval_logical(
 }
 
 // Simple print with the value wrapped in its type, for informative prints
+// Why do we need this and stringify?
 impl fmt::Display for Value {
     fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
         match self {
@@ -402,6 +420,7 @@ impl fmt::Display for Value {
             Value::Callable(callable) => write!(f, "fn {}/{}", callable.name(), callable.arity()),
             Value::Nil => write!(f, "Nil"),
             Value::Uninitialized => panic!("Use of uninit value!"),
+            Value::List(list) => write!(f, "{}", list.stringify()),
         }
     }
 }

@@ -56,6 +56,8 @@ fn func_decl(id: &str, param: &[String], body: &ExprNode, env: &Rc<Environment>)
 mod tests {
     use super::*;
     use crate::errors::ErrorReporter;
+    use crate::interpreter::functions::define_builtins;
+    use crate::interpreter::list::List;
     use crate::parser::parse;
     use crate::scanner::tokenize;
 
@@ -64,7 +66,9 @@ mod tests {
         let mut error_reporter = ErrorReporter::new();
         let tokens = tokenize(program, &mut error_reporter);
         let ast = parse(&tokens, &mut error_reporter).unwrap();
-        eval_statements(&ast, &Environment::new())
+        let env = Environment::new();
+        define_builtins(&env);
+        eval_statements(&ast, &env)
     }
 
     #[test]
@@ -125,6 +129,76 @@ mod tests {
         assert!(matches!(
             interpret_string(program).unwrap().unwrap(),
             Value::Bool(true)
+        ));
+    }
+
+    // TODO Move tests into its own file under interpreter...
+    #[test]
+    fn list_operations() {
+        let program = "pop([])";
+        assert!(matches!(
+            interpret_string(program).unwrap().unwrap(),
+            Value::Nil
+        ));
+
+        let program = concat!(
+            "fn pop_twice(list) {    ",
+            "    if list             ",
+            "        pop(list);      ",
+            "    if list             ",
+            "        pop(list)       ",
+            "    else                ",
+            "        Nil             ",
+            "};                      ",
+            "                        ",
+            "pop_twice([1,121/11, 3])",
+        );
+
+        assert!(matches!(
+            interpret_string(program).unwrap().unwrap(),
+            Value::Int(11)
+        ));
+
+        let program = concat!(
+            "fn replace_list(list, x) { ",
+            "    var ret = pop(list);   ",
+            "    push(list, x);         ",
+            "    ret                    ",
+            "};                         ",
+            "                           ",
+            "var list = [1,2,3,4];      ",
+            "[                          ",
+            "    replace_list(list, 42),",
+            "    replace_list(list, 42),",
+            "    pop(list),             ",
+            "    pop(list),             ",
+            "    pop(list),             ",
+            "    pop(list),             ",
+            "    pop(list),             ",
+            "    pop(list),             ",
+            "    pop(list)              ",
+            "]                          ",
+        );
+
+        // Why does it comlain about unused?
+        let _expected = Value::List(List::new(
+            vec![
+                Value::Int(4),
+                Value::Int(42),
+                Value::Int(42),
+                Value::Int(3),
+                Value::Int(2),
+                Value::Int(1),
+                Value::Nil,
+                Value::Nil,
+                Value::Nil,
+            ]
+            .into_iter(),
+        ));
+
+        assert!(matches!(
+            interpret_string(program).unwrap().unwrap(),
+            _expected
         ));
     }
 }

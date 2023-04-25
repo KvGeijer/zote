@@ -1,16 +1,20 @@
 # Improvement ideas for Zote
 
+* Fix the if peek... self.accept(..., "Internal error... ") by adding some match function
+
 * Benchmark performance of the ast interpreter. It is probably very slow, but can we optimize it to be fast enough for Aoc? We need benchmarks to be able to do the optimizations. Some things to benchmark:
   * Variable resolution: We can resolve variables with syntactic anaysis before runtime, in maybe a single global hashmap.
   * String operations: Now clone stings left and right when reading values. Maybe change to using reference counting?
   * Some general tests. Solve a few AoC problems to use for benchmarking general improvements/degradations.
 
-* Implement syntacti analysis for if/else expressions. If we use the value of such an expression we might want to force it to have both if and else? Could do for eg blocks as well.
+* Implement syntactic analysis for if/else expressions. If we use the value of such an expression we might want to force it to have both if and else? Could do for eg blocks as well.
 
 * Add structs.
   * What features should they have? For example would be nice to implment some point struct for AoC...
 
-* Add arrays.
+* Expand arrays to be actually useable.
+  * Decide if we want methods, and how functions should be in the language
+  * Add parsing to allow , after last element in initializer
 
 * Add maps (sets as well)
 

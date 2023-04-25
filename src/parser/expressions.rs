@@ -30,6 +30,7 @@ pub enum Expr {
     Break, // TODO Do we want to return an optional value from this?
     Return(Option<Box<ExprNode>>),
     Nil,
+    List(Vec<ExprNode>),
 }
 
 #[derive(PartialEq, Eq, Debug, Clone)]
@@ -195,11 +196,14 @@ impl<'a> Parser<'a> {
     }
 
     fn call(&mut self) -> Option<ExprNode> {
-        // call           → primary ( "(" arguments? ")" )* ;
+        // call           → primary ( "(" exprs_list ")" )* ;
         let mut expr = self.primary()?;
         let start = expr.start_loc.clone();
         while self.peek() == &Token::LPar {
-            let args = self.accept_arguments()?;
+            self.accept(Token::LPar, "Internal error at call arguments");
+            let args = self.accept_exprs_list(&Token::RPar)?;
+            self.accept(Token::RPar, "Expect ')' to close call arguments");
+
             if args.len() >= MAX_ARGS {
                 self.error("Can't have more than {MAX_ARGS} arguments");
             }
@@ -209,19 +213,18 @@ impl<'a> Parser<'a> {
         Some(expr)
     }
 
-    fn accept_arguments(&mut self) -> Option<Vec<ExprNode>> {
-        // arguments      → expression ( "," expression )* ;
-        self.accept(Token::LPar, "Internal error at accept arguments");
-        let mut args = if &Token::RPar == self.peek() {
+    fn accept_exprs_list(&mut self, terminator: &Token) -> Option<Vec<ExprNode>> {
+        // exprs_list      → ( expression ( "," expression )* )? ;
+        // The argument "terminator" will directly follow the optional list
+        let mut args = if terminator == self.peek() {
             vec![]
         } else {
             vec![self.expression()?]
         };
         while self.peek() == &Token::Comma {
-            self.accept(Token::Comma, "Internal error in accept_arguments");
+            self.accept(Token::Comma, "Internal error in accept_exprs_list");
             args.push(self.expression()?);
         }
-        self.accept(Token::RPar, "Expect ')' to close arguments");
         Some(args)
     }
 
@@ -232,6 +235,7 @@ impl<'a> Parser<'a> {
             Token::If => self.accept_if(),
             Token::LBrace => self.accept_block(),
             Token::While => self.accept_while(),
+            Token::LBrack => self.accept_list(),
             Token::LPar => {
                 // Dont have the correct location really for this
                 self.accept(Token::LPar, "Internal error, should have peeked LPar");
@@ -267,6 +271,17 @@ impl<'a> Parser<'a> {
             self.take();
             res
         })
+    }
+
+    fn accept_list(&mut self) -> Option<ExprNode> {
+        let start = self.peek_start_loc().clone();
+        self.accept(Token::LBrack, "Internal error at list")?;
+
+        let entries = self.accept_exprs_list(&Token::RBrack)?;
+
+        self.accept(Token::RBrack, "Need to close list with ']'")?;
+        let end = self.peek_last_end_loc()?.clone();
+        Some(ExprNode::new(Expr::List(entries), start, end))
     }
 
     fn accept_return(&mut self) -> Option<ExprNode> {

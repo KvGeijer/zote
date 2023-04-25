@@ -1,3 +1,5 @@
+use itertools::Itertools;
+
 use std::{
     cmp::Ordering,
     fmt::{self, Debug, Formatter},
@@ -19,7 +21,9 @@ impl Function {
     pub(super) fn call(&self, args: Vec<Value>, start: CodeLoc, end: CodeLoc) -> RunRes<Value> {
         let result = match self {
             Function::Closure(closure) => closure.call(args),
-            Function::Builtin(builtin) => builtin.run(args),
+            Function::Builtin(builtin) => builtin
+                .run(args)
+                .map_err(|msg| RuntimeError::Error(start.clone(), end.clone(), msg)),
         };
 
         match result {
@@ -122,7 +126,7 @@ impl Closure {
 }
 
 pub(super) trait Builtin {
-    fn run(&self, args: Vec<Value>) -> RunRes<Value>;
+    fn run(&self, args: Vec<Value>) -> Result<Value, String>;
     fn arity(&self) -> usize;
     fn name(&self) -> &str;
 }
@@ -139,13 +143,13 @@ macro_rules! define_builtins {
 }
 
 pub(super) fn define_builtins(env: &Environment) {
-    define_builtins!(env, Time, Print, Str);
+    define_builtins!(env, Time, Print, Str, Push, Pop);
 }
 
 struct Time;
 
 impl Builtin for Time {
-    fn run(&self, _args: Vec<Value>) -> RunRes<Value> {
+    fn run(&self, _args: Vec<Value>) -> Result<Value, String> {
         let now = std::time::SystemTime::now()
             .duration_since(std::time::UNIX_EPOCH)
             .expect("Time went backwards")
@@ -165,7 +169,7 @@ impl Builtin for Time {
 struct Print;
 
 impl Builtin for Print {
-    fn run(&self, args: Vec<Value>) -> RunRes<Value> {
+    fn run(&self, args: Vec<Value>) -> Result<Value, String> {
         println!("{}", args[0].stringify());
         Ok(Value::Nil)
     }
@@ -182,7 +186,7 @@ impl Builtin for Print {
 struct Str;
 
 impl Builtin for Str {
-    fn run(&self, args: Vec<Value>) -> RunRes<Value> {
+    fn run(&self, args: Vec<Value>) -> Result<Value, String> {
         Ok(Value::String(args[0].stringify()))
     }
 
@@ -192,5 +196,47 @@ impl Builtin for Str {
 
     fn name(&self) -> &str {
         "str"
+    }
+}
+
+struct Push;
+
+impl Builtin for Push {
+    fn run(&self, args: Vec<Value>) -> Result<Value, String> {
+        match args.into_iter().collect_tuple().unwrap() {
+            // Strange if pushing a list to itself. Print crashes :D
+            (Value::List(mut list), value) => {
+                list.push(value);
+                Ok(Value::Nil)
+            }
+            (_, _) => Err("First argument to push must be a list".to_string()),
+        }
+    }
+
+    fn arity(&self) -> usize {
+        2
+    }
+
+    fn name(&self) -> &str {
+        "push"
+    }
+}
+
+struct Pop;
+
+impl Builtin for Pop {
+    fn run(&self, args: Vec<Value>) -> Result<Value, String> {
+        match args.into_iter().next().unwrap() {
+            Value::List(mut list) => Ok(list.pop()),
+            _ => Err("Argument to pop must be a list".to_string()),
+        }
+    }
+
+    fn arity(&self) -> usize {
+        1
+    }
+
+    fn name(&self) -> &str {
+        "pop"
     }
 }

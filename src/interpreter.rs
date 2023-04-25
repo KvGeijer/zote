@@ -7,6 +7,7 @@ use environment::Environment;
 mod environment;
 mod expressions;
 mod functions;
+mod list;
 mod statements;
 
 use expressions::Value;

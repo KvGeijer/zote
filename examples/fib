@@ -12,8 +12,8 @@ fn fib(n) {
 		var x = 2;
 		var y;
 
-		x = fib(n-2) + (y = fib(n-1));
-	};
+		x = fib(n-2) + (y = fib(n-1))
+	}
 };
 
 

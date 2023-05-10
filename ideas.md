@@ -10,7 +10,7 @@
 * Implement syntactic analysis for if/else expressions. If we use the value of such an expression we might want to force it to have both if and else? Could do for eg blocks as well.
 
 * Add structs.
-  * What features should they have? For example would be nice to implment some point struct for AoC...
+  * What features should they have? For example would be nice to implement some point struct for AoC...
 
 * Expand arrays to be actually useable.
   * Decide if we want methods, and how functions should be in the language

@@ -67,6 +67,7 @@ pub enum Token {
     Leq,
     Geq,
     Nil,
+    Pipe,
 }
 
 #[derive(Debug)]
@@ -125,6 +126,7 @@ lazy_static! {
         (r"<=", |_| Token::Leq),
         (r">=", |_| Token::Geq),
         (r"Nil", |_| Token::Nil),
+        (r">>", |_| Token::Pipe),
     ];
 }
 
@@ -275,7 +277,7 @@ mod tests {
     #[test]
     fn mixed() {
         let mut reporter = ErrorReporter::new();
-        let code = "// Test []!\nif {+ = -} (==) else [match return for while .,;true false and or */ <> <=>=]";
+        let code = "// Test []!\nif {+ = -} (==) else [match return for while .,;true false and or */ <> <=>=]Nil>>";
         let tokens = tokenize(code, &mut reporter);
 
         let expected_tokens = vec![
@@ -309,6 +311,8 @@ mod tests {
             Token::Leq,
             Token::Geq,
             Token::RBrack,
+            Token::Nil,
+            Token::Pipe,
             Token::Eof,
         ];
         let scanned_tokens: Vec<_> = tokens.iter().map(|info| info.token.clone()).collect();

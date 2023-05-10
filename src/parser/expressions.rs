@@ -79,7 +79,7 @@ impl<'a> Parser<'a> {
     fn assignment(&mut self) -> Option<ExprNode> {
         // assignment     → IDENTIFIER "=" assignment | equality ;
         // TODO At least assign to tuples
-        let expr = self.or()?;
+        let expr = self.pipe()?;
         if self.peek() == &Token::Eq {
             self.accept(Token::Eq, "Internal error, expected eq");
             if let AstNode {
@@ -98,6 +98,45 @@ impl<'a> Parser<'a> {
             }
         } else {
             Some(expr)
+        }
+    }
+
+    fn pipe(&mut self) -> Option<ExprNode> {
+        // pipe       → or ( ">>" or )* ;
+        let mut expr = self.or()?;
+
+        while self.peek() == &Token::Pipe {
+            self.accept(Token::Pipe, "Internal error at pipe");
+            let start = expr.start_loc.clone();
+            let (func, mut args, end) = self.accept_call()?;
+            args.insert(0, expr); // Does this really work with ownership?
+            expr = ExprNode::new(Expr::Call(func, args), start, end);
+        }
+
+        Some(expr)
+    }
+
+    fn accept_call(&mut self) -> Option<(Box<ExprNode>, Vec<ExprNode>, CodeLoc)> {
+        // pipe_call   → IDENTIFIER | primary ( "(" exprs_list ")" )+
+        // Just like a call, but must be a call or id, not boil down somehow
+
+        let call = self.call()?;
+
+        // Is it just a variable?
+        if let &Expr::Var(_) = &call.node {
+            let end = call.end_loc.clone();
+            Some((Box::new(call), vec![], end))
+        } else if let AstNode {
+            // Or a real call
+            start_loc: _,
+            end_loc,
+            node: Expr::Call(caller, args),
+        } = call
+        {
+            Some((caller, args, end_loc))
+        } else {
+            self.error("Expected variable or call expression following pipe");
+            None
         }
     }
 
@@ -607,5 +646,58 @@ mod tests {
                 fake_node(Expr::Int(6))
             )
         );
+    }
+
+    #[test]
+    fn pipes() {
+        // These tests are really going over board
+
+        // Can't really test floats due to Rust not implementing Eq for them
+        // "[1 >> print] >> print() >> fake(2)"
+        let tokens = vec![
+            fake_token(Token::LBrack),
+            fake_token(Token::Integer(1)),
+            fake_token(Token::Pipe),
+            fake_token(Token::Identifier("print".to_string())),
+            fake_token(Token::RBrack),
+            fake_token(Token::Pipe),
+            fake_token(Token::Identifier("print".to_string())),
+            fake_token(Token::LPar),
+            fake_token(Token::RPar),
+            fake_token(Token::Pipe),
+            fake_token(Token::Identifier("fake".to_string())),
+            fake_token(Token::LPar),
+            fake_token(Token::Integer(2)),
+            fake_token(Token::RPar),
+            fake_token(Token::Eof),
+        ];
+        let mut error_reporter = ErrorReporter::new();
+        let mut pipe_parser = Parser::new(&tokens, &mut error_reporter);
+        let pipe_expr = pipe_parser.expression().unwrap();
+
+        // Logically equal to "fake(print([print(1)]), 2)"
+        let tokens = vec![
+            fake_token(Token::Identifier("fake".to_string())),
+            fake_token(Token::LPar),
+            fake_token(Token::Identifier("print".to_string())),
+            fake_token(Token::LPar),
+            fake_token(Token::LBrack),
+            fake_token(Token::Identifier("print".to_string())),
+            fake_token(Token::LPar),
+            fake_token(Token::Integer(1)),
+            fake_token(Token::RPar),
+            fake_token(Token::RBrack),
+            fake_token(Token::RPar),
+            fake_token(Token::Comma),
+            fake_token(Token::Integer(2)),
+            fake_token(Token::RPar),
+            fake_token(Token::Eof),
+        ];
+        let mut error_reporter = ErrorReporter::new();
+        let mut normal_parser = Parser::new(&tokens, &mut error_reporter);
+        let normal_expr = normal_parser.expression().unwrap();
+
+        // Just assert that they are equal. Maybe should also spell out what is should be
+        assert_eq!(pipe_expr, normal_expr);
     }
 }

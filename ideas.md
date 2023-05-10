@@ -1,5 +1,9 @@
 # Improvement ideas for Zote
 
+* Add >>= operator which binds just lower than >> but assigns the value of the left to the right.
+  * It should preferably just be syntax sugar like >> but how do we handle more complicated lvalues, or declarations?
+  * This should be implemented after we implement some lvalue pattern matching.
+
 * Fix the if peek... self.accept(..., "Internal error... ") by adding some match function
 
 * Benchmark performance of the ast interpreter. It is probably very slow, but can we optimize it to be fast enough for Aoc? We need benchmarks to be able to do the optimizations. Some things to benchmark:

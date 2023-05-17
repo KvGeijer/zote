@@ -1,42 +1,25 @@
 # The Zote programming language
 
-[Work in Progress]
+[WIP, expect many breaking changes and no documentation]
 
-The ultimate goal is to create a language which can solve Advent of Code next year. It would be cool if I could make compile and run bytecode, but that takes a lot more effort than interpreting it directly...
+Zote is an imperative, dynamically typed scripting language with some support for functional programming. Its name is inspired by the most [mighty](https://www.youtube.com/watch?v=j873sMpA16Q&ab_channel=BossFighter) and [wise](https://www.reddit.com/r/HollowKnight/comments/643usq/the_fiftyseven_precepts_of_zote/) character I know of. One of the goals was to solve [Advent of Code](https://adventofcode.com/) in it, which acts as a motivator to improve it, and a clear goal of which type of things should be possible in it, and its standard library.
 
-I'll implement it following the excellent book [Crafting Interpreters](craftinginterpreters.com), but I'll probably deviate on some parts. For example, I really didn't want to create a scanner completely by hand, so I sort of made a scanner generator in Rust (but it is super inefficient due to me not finding a simple longest match function for Rust regexes).
+One of its core values is that you should be able to logically build your programs in the same direction you write. Take this Python code
+``` python
+x = max(map(int, input.split("\n")))
+```
+This splits the input sting, maps each line to an int, takes the max of all the lines, and assigns that to x. The last sentence describes how I think of that code, but it is not really in the same order as the code is written. Each new transformation (like map or max) comes to the left of the last stages output. Furthermore, you have to enclose each stage in parenthesis, requiring you to hop back and forth to write this. Finally, the assignment to x is mostly fine, but sometimes you start with the transformations, and at some point decide to save the value in some variable for further use, and then you have to go back and write the assignment. In Zote you can instead write something like
 
-## Feature ideas
-
-Here are some of the ideas I want to implement in my language.
-
-### Pipe
-
-One thing object oriented languages do right is the notation for methods. They write the source data first, and then apply one or several functions. This makes it easy to understand how we go from the data to the result through a series of transformations. Haskell on the other hand is made for that in a way, but as you write the outermost function first there I feel it becomes a bit unintuitive to read. So I want something similar to the method syntax where I can pipe data through one or several functions.
-
-Therefore I introduce the pipe operator ```>>``` which takes data from the left and a function from the right. 
-
-``` rust
-[1,2,3,4] >> max;     -> 4
-[1,2,3,4] >> first;   -> 1
+``` python
+input >> split("\n") >> map(int) >> max >>: x;
 ```
 
-### Weak partially applied functions
-
-Our pipe operator is similar to ```|>``` in Julia, but that becomes a bit strange when the function to the rigth takes several arguments. We fix this by some wonderful syntactic sugar and indroduces the ```|``` operator which is a shorthand for a lambda function abstracting away the first parameter. This can then be used for partially applying functions.
-
-``` rust
-max(1, 2);        -> 2
-|max(2)(1);       -> 2
-1 >> |max(2);     -> 2
+For me, this more closely follows how I think. Especially when thinking in terms of transformations. Rust and Java achieve this by using methods constantly, but I wanted a more mathematical notation of functions, so settled on this. However, this all just desugarizes to
+```python
+var x = max(map(split("\n"), int));
 ```
+which is also valid Zote (or at least will be once the standard library is larger). These two styles can then be mixed depending on what mindset you are writing in.
 
-This is under heavy consideration. In one way it is nice because it can also be used for things such as map, but it takes three chars to write a single pipe. First I thought this would be done implicitly for the pipe operator, but that might give rise to strange behaviour in some cases, such as when we pipe something into a function call returning another function...
+In the beginning, I loosely followed the excellent book [Crafting Interpreters](craftinginterpreters.com) (kept the same development order, but tried to change most stuff up). Zote will not have any big innovations but instead combines ideas from [Rust](https://www.rust-lang.org/), [Julia](https://julialang.org/), [Python](https://www.python.org/) and [Noulith](https://github.com/betaveros/noulith), in no particular order (and of course from other languages as well).
 
-### Structs, not classes
-
-The book I'm following implements a class system, but I would like to stay away from that if possilbe. Instead I just want the old fashioned structs. However I must admit that classes might be nice for scoping functions with the same name on different types, or implementing for example traits (although, we could go the Rust routh here I guess). For example, what shall I do if I want to make a struct an iterable, or implement addidion for one of them? We will have to see how it goes. Especially since the language is dynamically typed (this would be easy if we knew all types at compile time).
-
-### Minimal language
-
-The goal is to have a small scripting language where it is super quick and easy to write running code. It will not be that fast, and probably quite bad for larger projects. For example I think some form of trait/interface systhem is required in a good language, but for a small one like this we can probably skip it as we seldom implement traits in such small scripts.
+Initially, the interpreter will directly interpret the syntax tree, but it would be cool to compile it to bytecode which can be interpreted by a virtual machine. That will however take some work and will be left until the language is rather stable.

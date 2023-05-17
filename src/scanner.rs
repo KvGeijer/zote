@@ -69,6 +69,7 @@ pub enum Token {
     Geq,
     Nil,
     Pipe,
+    PipeColon,
 }
 
 #[derive(Debug)]
@@ -129,6 +130,7 @@ lazy_static! {
         (r">=", |_| Token::Geq),
         (r"Nil", |_| Token::Nil),
         (r">>", |_| Token::Pipe),
+        (r">>:", |_| Token::PipeColon),
     ];
 }
 

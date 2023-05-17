@@ -109,7 +109,7 @@ impl<'a> Parser<'a> {
         while self.match_token(Token::Pipe) {
             let start = expr.start_loc.clone();
             let (func, mut args, end) = self.accept_call()?;
-            args.insert(0, expr); // Does this really wlambdak with ownership?
+            args.insert(0, expr); // Does this really work with ownership?
             expr = ExprNode::new(Expr::Call(func, args), start, end);
         }
 
@@ -164,6 +164,10 @@ impl<'a> Parser<'a> {
                     return None;
                 }
             };
+
+            if params.len() >= MAX_ARGS {
+                self.error("Cannot have more than {MAX_ARGS} parameters");
+            }
 
             let body = self.expression()?;
             let end = body.end_loc.clone();
@@ -419,8 +423,7 @@ impl<'a> Parser<'a> {
 
         let cond = self.expression()?;
         let then = self.expression()?;
-        let otherwise = if self.peek() == &Token::Else {
-            self.accept(Token::Else, "Internal error at if")?;
+        let otherwise = if self.match_token(Token::Else) {
             Some(self.expression()?)
         } else {
             None

@@ -76,7 +76,8 @@ mod tests {
                 }                           \
             };                              \
                                             \
-            fib(6)                          \
+            6 >> fib >>: result;            \
+            result                          \
             ";
 
         assert!(matches!(

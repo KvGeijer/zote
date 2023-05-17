@@ -1,10 +1,5 @@
 # Improvement ideas for Zote
 
-* Add >>= operator which binds just lower than >> but assigns the value of the left to the right.
-  * It should preferably just be syntax sugar like >> but how do we handle more complicated lvalues, or declarations?
-  * This should be implemented after we implement some lvalue pattern matching.
-  * Could we add a similar one for binding and declaring a new variable? Like >>:? Or should it always declare a new one? Probably best?
-
 * Should we have tuples? They are in place. They are more suitable when using as keys for example. 
   * Or should we use them in some way for >> instead. So that 1 >> f(2, 3) is the same as (1, 2) >> f(3) or (1,2,3) >> f? 
 
@@ -36,3 +31,8 @@
 
 * Add pattern matching.
   * Do we want to just add a match expression, or do we want to do it in other places as well? Such as assinments, probably good...
+
+* Maybe add >>= which is like >>: except it does not declare a new variable, just assigns. Could then be part of chain.
+  * Should only be added after I feel like it is needed.
+  * If it is not used, maybe change >>: to >>=, which might be more loigcal, and not introduce :
+

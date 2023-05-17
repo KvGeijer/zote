@@ -165,9 +165,23 @@ impl<'a> Parser<'a> {
     }
 
     fn expr_stmt(&mut self, allow_expr: bool) -> Option<Either<StmtNode, ExprNode>> {
+        // expr_stmt      → expression ">>:" IDENTIFIER | epression | expression ";"
+
         let expr = self.expression()?;
-        if !allow_expr || self.peek() == &Token::Semicolon {
-            let start = expr.start_loc.clone();
+        let start = expr.start_loc.clone();
+
+        // This first case is to desugar >>: to a declaration statement, could be combined in some way
+        if self.match_token(Token::PipeColon) {
+            if let Some(id) = self.match_identifier() {
+                let end = self.peek_end_loc().clone();
+                self.accept(Token::Semicolon, "Expect ';' after expression statement")?;
+                let decl_stmt = StmtNode::new(Stmt::Decl(id, Some(expr)), start, end);
+                Some(Either::Left(decl_stmt))
+            } else {
+                self.error("Expect >>: to pipe into a single variable (TODO pattern matching)");
+                None
+            }
+        } else if !allow_expr || self.peek() == &Token::Semicolon {
             let end = self.peek_end_loc().clone();
             self.accept(Token::Semicolon, "Expect ';' after expression statement")?;
             Some(Either::Left(StmtNode::new(Stmt::Expr(expr), start, end)))

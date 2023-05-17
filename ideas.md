@@ -8,8 +8,6 @@
 * Should we have tuples? They are in place. They are more suitable when using as keys for example. 
   * Or should we use them in some way for >> instead. So that 1 >> f(2, 3) is the same as (1, 2) >> f(3) or (1,2,3) >> f? 
 
-* Fix the if peek... self.accept(..., "Internal error... ") by adding some match function
-
 * Benchmark performance of the ast interpreter. It is probably very slow, but can we optimize it to be fast enough for Aoc? We need benchmarks to be able to do the optimizations. Some things to benchmark:
   * Variable resolution: We can resolve variables with syntactic anaysis before runtime, in maybe a single global hashmap.
   * String operations: Now clone stings left and right when reading values. Maybe change to using reference counting?

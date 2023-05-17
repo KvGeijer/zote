@@ -147,9 +147,8 @@ impl<'a> Parser<'a> {
         if let Token::Identifier(id) = self.peek().clone() {
             let start = self.peek_start_loc().clone();
             self.take();
-            let expr = if self.peek() == &Token::Eq {
+            let expr = if self.match_token(Token::Eq) {
                 // Also assign it a value
-                self.take();
                 let expr = self.expression()?;
                 Some(expr)
             } else {

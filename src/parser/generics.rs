@@ -56,6 +56,17 @@ impl<'a> Parser<'a> {
         }
     }
 
+    pub fn match_token(&mut self, token: Token) -> bool {
+        if self.peek() == &token {
+            if self.take() != &token {
+                panic!("Internal error at match_token");
+            }
+            true
+        } else {
+            false
+        }
+    }
+
     pub fn at_end(&self) -> bool {
         self.current == self.tokens.len() - 1
     }
@@ -85,8 +96,7 @@ impl<'a> Parser<'a> {
     }
 
     pub fn accept(&mut self, expected: Token, error_str: &str) -> Option<()> {
-        if self.peek() == &expected {
-            self.take();
+        if self.match_token(expected) {
             Some(())
         } else {
             self.error(error_str);

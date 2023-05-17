@@ -82,8 +82,7 @@ impl<'a> Parser<'a> {
         // assignment     → IDENTIFIER "=" assignment | equality ;
         // TODO At least assign to tuples
         let expr = self.pipe()?;
-        if self.peek() == &Token::Eq {
-            self.accept(Token::Eq, "Internal error, expected eq");
+        if self.match_token(Token::Eq) {
             if let AstNode {
                 start_loc,
                 end_loc: _,
@@ -107,8 +106,7 @@ impl<'a> Parser<'a> {
         // pipe       → lambda ( ">>" lambda )* ;
         let mut expr = self.lambda()?;
 
-        while self.peek() == &Token::Pipe {
-            self.accept(Token::Pipe, "Internal errlambda at pipe");
+        while self.match_token(Token::Pipe) {
             let start = expr.start_loc.clone();
             let (func, mut args, end) = self.accept_call()?;
             args.insert(0, expr); // Does this really wlambdak with ownership?
@@ -149,7 +147,7 @@ impl<'a> Parser<'a> {
 
         let expr = self.or()?;
 
-        if self.peek() == &Token::RArrow {
+        if self.match_token(Token::RArrow) {
             let start = expr.start_loc.clone();
 
             let params = match expr.node {
@@ -167,7 +165,6 @@ impl<'a> Parser<'a> {
                 }
             };
 
-            self.accept(Token::RArrow, "Internal error at param_group");
             let body = self.expression()?;
             let end = body.end_loc.clone();
             let name = format!(
@@ -284,8 +281,7 @@ impl<'a> Parser<'a> {
         // call           → primary ( "(" exprs_list ")" )* ;
         let mut expr = self.primary()?;
         let start = expr.start_loc.clone();
-        while self.peek() == &Token::LPar {
-            self.accept(Token::LPar, "Internal error at call arguments");
+        while self.match_token(Token::LPar) {
             let args = self.accept_exprs_list(&Token::RPar)?;
             self.accept(Token::RPar, "Expect ')' to close call arguments");
 
@@ -306,8 +302,7 @@ impl<'a> Parser<'a> {
         } else {
             vec![self.expression()?]
         };
-        while self.peek() == &Token::Comma {
-            self.accept(Token::Comma, "Internal error in accept_exprs_list");
+        while self.match_token(Token::Comma) {
             args.push(self.expression()?);
         }
         Some(args)
@@ -359,8 +354,7 @@ impl<'a> Parser<'a> {
         );
         let first = self.expression()?;
 
-        if self.peek() == &Token::RPar {
-            self.accept(Token::RPar, "Expect ')' after expression.")?;
+        if self.match_token(Token::RPar) {
             Some(first)
         } else {
             // Could use accept_exprs_list maybe? A bit clunky with 'first' outside

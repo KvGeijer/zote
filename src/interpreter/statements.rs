@@ -5,7 +5,6 @@ use crate::parser::{ExprNode, Stmt, StmtNode, Stmts};
 use super::{
     environment::Environment,
     expressions::{self, Value},
-    functions::{Closure, Function},
     RunRes,
 };
 
@@ -28,9 +27,8 @@ pub(super) fn eval_statements(statements: &Stmts, env: &Rc<Environment>) -> RunR
 }
 
 fn eval(stmt: &StmtNode, env: &Rc<Environment>) -> RunRes<Option<Value>> {
-    match &stmt.node {
+    match stmt.node.as_ref() {
         Stmt::Decl(id, expr) => decl(id, expr, env).map(|_| None),
-        Stmt::FuncDecl(name, param, body) => func_decl(name, param, body, env).map(|_| None),
         Stmt::Expr(expr) => expressions::eval(expr, env).map(Some),
         Stmt::Invalid => panic!("Tried to interpret an invalid statement!"),
     }
@@ -43,12 +41,6 @@ fn decl(id: &str, expr: &Option<ExprNode>, env: &Rc<Environment>) -> RunRes<()> 
         Value::Uninitialized
     };
     env.define(id.to_owned(), value);
-    Ok(())
-}
-
-fn func_decl(id: &str, param: &[String], body: &ExprNode, env: &Rc<Environment>) -> RunRes<()> {
-    let closure = Closure::new(id.to_string(), param.to_vec(), body.clone(), env);
-    env.define(id.to_string(), Value::Callable(Function::Closure(closure)));
     Ok(())
 }
 
@@ -74,7 +66,7 @@ mod tests {
     #[test]
     fn fibonachi() {
         let program = "                     \
-            fn fib(n) {                     \
+            fn fib(n) -> {                  \
                 if n < 0 return 0;          \
                                             \
                 if n <= 1                   \
@@ -95,14 +87,14 @@ mod tests {
 
     #[test]
     fn implicit_nil_returns() {
-        let program = "fn nil_ret() { return }; nil_ret()";
+        let program = "fn nil_ret() -> { return }; nil_ret()";
         assert!(matches!(
             interpret_string(program).unwrap().unwrap(),
             Value::Nil
         ));
 
         let program = concat!(
-            "fn maybe_nil_ret(x) {   ",
+            "fn maybe_nil_ret(x) -> {",
             "    if x == Nil         ",
             "        return          ",
             "    else                ",
@@ -117,14 +109,14 @@ mod tests {
         ));
 
         let program = concat!(
-            "fn maybe_nil_ret(x) {   ",
-            "    if x == Nil         ",
-            "        return          ",
-            "    else                ",
-            "        return true     ",
-            "};                      ",
-            "                        ",
-            "maybe_nil_ret('Nil')    ",
+            "var maybe_nil_ret = x -> {",
+            "    if x == Nil           ",
+            "        return            ",
+            "    else                  ",
+            "        return true       ",
+            "};                        ",
+            "                          ",
+            "maybe_nil_ret('Nil')      ",
         );
         assert!(matches!(
             interpret_string(program).unwrap().unwrap(),
@@ -142,7 +134,7 @@ mod tests {
         ));
 
         let program = concat!(
-            "fn pop_twice(list) {    ",
+            "fn pop_twice(list) -> { ",
             "    if list             ",
             "        pop(list);      ",
             "    if list             ",
@@ -160,24 +152,24 @@ mod tests {
         ));
 
         let program = concat!(
-            "fn replace_list(list, x) { ",
-            "    var ret = pop(list);   ",
-            "    push(list, x);         ",
-            "    ret                    ",
-            "};                         ",
-            "                           ",
-            "var list = [1,2,3,4];      ",
-            "[                          ",
-            "    replace_list(list, 42),",
-            "    replace_list(list, 42),",
-            "    pop(list),             ",
-            "    pop(list),             ",
-            "    pop(list),             ",
-            "    pop(list),             ",
-            "    pop(list),             ",
-            "    pop(list),             ",
-            "    pop(list)              ",
-            "]                          ",
+            "fn replace_list(list, x) -> { ",
+            "    var ret = pop(list);      ",
+            "    push(list, x);            ",
+            "    ret                       ",
+            "};                            ",
+            "                              ",
+            "var list = [1,2,3,4];         ",
+            "[                             ",
+            "    replace_list(list, 42),   ",
+            "    replace_list(list, 42),   ",
+            "    pop(list),                ",
+            "    pop(list),                ",
+            "    pop(list),                ",
+            "    pop(list),                ",
+            "    pop(list),                ",
+            "    pop(list),                ",
+            "    pop(list)                 ",
+            "]                             ",
         );
 
         // Why does it comlain about unused?

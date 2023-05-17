@@ -11,7 +11,7 @@ impl<T: Debug> AstNode<T> {
     // This should not be visible outside the parser right, as this module is not pub.
     pub fn new(node: T, start_loc: CodeLoc, end_loc: CodeLoc) -> AstNode<T> {
         Self {
-            node,
+            node: Box::new(node),
             start_loc,
             end_loc,
         }

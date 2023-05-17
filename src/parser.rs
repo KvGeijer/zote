@@ -13,7 +13,7 @@ pub use statements::{Stmt, StmtNode, Stmts};
 // Each node in the AST is some branch/leaf wrapped in this extra info
 #[derive(Debug, Clone)]
 pub struct AstNode<T> {
-    pub node: T,
+    pub node: Box<T>,
     pub start_loc: CodeLoc,
     pub end_loc: CodeLoc, // Not including last char. Should we change?
 }

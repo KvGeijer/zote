@@ -1,3 +1,5 @@
+#![feature(box_patterns, let_chains)]
+
 use clap::Parser;
 use errors::ErrorReporter;
 use interpreter::InterpreterState;

@@ -14,23 +14,25 @@ pub type LogicalOperNode = AstNode<LogicalOper>;
 
 #[derive(Debug, PartialEq, Clone)]
 pub enum Expr {
-    Call(Box<ExprNode>, Vec<ExprNode>), // TODO
-    Binary(Box<ExprNode>, BinOperNode, Box<ExprNode>),
-    Unary(UnOperNode, Box<ExprNode>),
-    Logical(Box<ExprNode>, LogicalOperNode, Box<ExprNode>),
-    Assign(String, Box<ExprNode>),
+    Call(ExprNode, Vec<ExprNode>), // TODO
+    Binary(ExprNode, BinOperNode, ExprNode),
+    Unary(UnOperNode, ExprNode),
+    Logical(ExprNode, LogicalOperNode, ExprNode),
+    Assign(String, ExprNode),
     Var(String),
     Int(i64),
     Float(f64),
     Bool(bool),
     String(String),
     Block(Stmts),
-    If(Box<ExprNode>, Box<ExprNode>, Option<Box<ExprNode>>),
-    While(Box<ExprNode>, Box<ExprNode>),
+    If(ExprNode, ExprNode, Option<ExprNode>),
+    While(ExprNode, ExprNode),
     Break, // TODO Do we want to return an optional value from this?
-    Return(Option<Box<ExprNode>>),
+    Return(Option<ExprNode>),
     Nil,
     List(Vec<ExprNode>),
+    Tuple(Vec<ExprNode>),
+    FunctionDefinition(Vec<String>, ExprNode),
 }
 
 #[derive(PartialEq, Eq, Debug, Clone)]
@@ -85,12 +87,12 @@ impl<'a> Parser<'a> {
             if let AstNode {
                 start_loc,
                 end_loc: _,
-                node: Expr::Var(id),
+                node: box Expr::Var(id),
             } = expr
             {
                 let rvalue = self.assignment()?;
                 let end = rvalue.end_loc.clone();
-                let assign = Expr::Assign(id, Box::new(rvalue));
+                let assign = Expr::Assign(id, rvalue);
                 Some(ExprNode::new(assign, start_loc, end))
             } else {
                 self.error("Invalid lvalue");
@@ -102,41 +104,79 @@ impl<'a> Parser<'a> {
     }
 
     fn pipe(&mut self) -> Option<ExprNode> {
-        // pipe       → or ( ">>" or )* ;
-        let mut expr = self.or()?;
+        // pipe       → lambda ( ">>" lambda )* ;
+        let mut expr = self.lambda()?;
 
         while self.peek() == &Token::Pipe {
-            self.accept(Token::Pipe, "Internal error at pipe");
+            self.accept(Token::Pipe, "Internal errlambda at pipe");
             let start = expr.start_loc.clone();
             let (func, mut args, end) = self.accept_call()?;
-            args.insert(0, expr); // Does this really work with ownership?
+            args.insert(0, expr); // Does this really wlambdak with ownership?
             expr = ExprNode::new(Expr::Call(func, args), start, end);
         }
 
         Some(expr)
     }
 
-    fn accept_call(&mut self) -> Option<(Box<ExprNode>, Vec<ExprNode>, CodeLoc)> {
+    fn accept_call(&mut self) -> Option<(ExprNode, Vec<ExprNode>, CodeLoc)> {
         // pipe_call   → IDENTIFIER | primary ( "(" exprs_list ")" )+
         // Just like a call, but must be a call or id, not boil down somehow
+
+        // TODO This should acceps labmdas as well as variables now...
 
         let call = self.call()?;
 
         // Is it just a variable?
-        if let &Expr::Var(_) = &call.node {
+        if let &Expr::Var(_) = call.node.as_ref() {
             let end = call.end_loc.clone();
-            Some((Box::new(call), vec![], end))
+            Some((call, vec![], end))
         } else if let AstNode {
             // Or a real call
             start_loc: _,
             end_loc,
-            node: Expr::Call(caller, args),
+            node: box Expr::Call(caller, args),
         } = call
         {
             Some((caller, args, end_loc))
         } else {
             self.error("Expected variable or call expression following pipe");
             None
+        }
+    }
+
+    fn lambda(&mut self) -> Option<ExprNode> {
+        // lambda     → or | ( IDENTIFIER | tuple ) "->" or
+
+        let expr = self.or()?;
+
+        if self.peek() == &Token::RArrow {
+            let start = expr.start_loc.clone();
+
+            let params = match expr.node {
+                box Expr::Tuple(tuple) => tuple
+                    .into_iter()
+                    .map(|expr| match *expr.node {
+                        Expr::Var(param) => Some(param),
+                        _ => None,
+                    })
+                    .collect::<Option<_>>()?,
+                box Expr::Var(param) => vec![param],
+                _pattern => {
+                    self.error("Expected tuple or variable as param in lambda");
+                    return None;
+                }
+            };
+
+            self.accept(Token::RArrow, "Internal error at param_group");
+            let body = self.expression()?;
+            let end = body.end_loc.clone();
+            Some(ExprNode::new(
+                Expr::FunctionDefinition(params, body),
+                start,
+                end,
+            ))
+        } else {
+            Some(expr)
         }
     }
 
@@ -247,7 +287,7 @@ impl<'a> Parser<'a> {
                 self.error("Can't have more than {MAX_ARGS} arguments");
             }
             let end = self.peek_last_end_loc()?.clone();
-            expr = ExprNode::new(Expr::Call(Box::new(expr), args), start.clone(), end);
+            expr = ExprNode::new(Expr::Call(expr, args), start.clone(), end);
         }
         Some(expr)
     }
@@ -268,21 +308,15 @@ impl<'a> Parser<'a> {
     }
 
     fn primary(&mut self) -> Option<ExprNode> {
-        // primary        → "(" expression ")" | block | if | "break" expr? ;
+        // primary        → "(" expression ")" | "(" expression ( "," expression)+ ")"
+        //                | block | if | "break" expr? ;
 
         match self.peek() {
             Token::If => self.accept_if(),
             Token::LBrace => self.accept_block(),
             Token::While => self.accept_while(),
             Token::LBrack => self.accept_list(),
-            Token::LPar => {
-                // Dont have the correct location really for this
-                self.accept(Token::LPar, "Internal error, should have peeked LPar");
-                let expr = self.expression()?;
-                self.accept(Token::RPar, "Expect ')' after expression.")?;
-                // Why does the book create a grouping subclass?
-                Some(expr)
-            }
+            Token::LPar => self.maybe_tuple(),
             _ => self.simple_primary(),
         }
     }
@@ -312,6 +346,31 @@ impl<'a> Parser<'a> {
         })
     }
 
+    fn maybe_tuple(&mut self) -> Option<ExprNode> {
+        self.accept(
+            Token::LPar,
+            "Internal error at maybe_tuple, should have peeked LPar",
+        );
+        let first = self.expression()?;
+
+        if self.peek() == &Token::RPar {
+            self.accept(Token::RPar, "Expect ')' after expression.")?;
+            Some(first)
+        } else {
+            // Could use accept_exprs_list maybe? A bit clunky with 'first' outside
+            let start = first.start_loc.clone();
+            let mut exprs = vec![first];
+            while self.peek() != &Token::RPar {
+                self.accept(Token::Comma, "Expect ',' between expressions.")?;
+                exprs.push(self.expression()?);
+            }
+            let end = self.peek_end_loc().clone();
+            self.accept(Token::RPar, "Expect ')' after tuple.")?;
+            let tuple = ExprNode::new(Expr::Tuple(exprs), start, end);
+            Some(tuple)
+        }
+    }
+
     fn accept_list(&mut self) -> Option<ExprNode> {
         let start = self.peek_start_loc().clone();
         self.accept(Token::LBrack, "Internal error at list")?;
@@ -339,7 +398,7 @@ impl<'a> Parser<'a> {
         ]
         .contains(self.peek())
         {
-            Some(Box::new(self.expression()?))
+            Some(self.expression()?)
         } else {
             None
         };
@@ -362,17 +421,13 @@ impl<'a> Parser<'a> {
         let then = self.expression()?;
         let otherwise = if self.peek() == &Token::Else {
             self.accept(Token::Else, "Internal error at if")?;
-            Some(Box::new(self.expression()?))
+            Some(self.expression()?)
         } else {
             None
         };
 
         let end = self.peek_last_end_loc()?.clone();
-        Some(ExprNode::new(
-            Expr::If(Box::new(cond), Box::new(then), otherwise),
-            start,
-            end,
-        ))
+        Some(ExprNode::new(Expr::If(cond, then, otherwise), start, end))
     }
 
     fn accept_block(&mut self) -> Option<ExprNode> {
@@ -394,11 +449,7 @@ impl<'a> Parser<'a> {
         let repeat = self.expression()?;
 
         let end = self.peek_last_end_loc()?.clone();
-        Some(ExprNode::new(
-            Expr::While(Box::new(cond), Box::new(repeat)),
-            start,
-            end,
-        ))
+        Some(ExprNode::new(Expr::While(cond, repeat), start, end))
     }
 
     fn match_op<F: FromToken + Eq + Debug, T: IntoIterator<Item = F>>(
@@ -424,21 +475,21 @@ impl ExprNode {
     fn binary(left: ExprNode, op: BinOperNode, right: ExprNode) -> ExprNode {
         let start_loc = left.start_loc.clone();
         let end_loc = right.end_loc.clone();
-        let expr = Expr::Binary(Box::new(left), op, Box::new(right));
+        let expr = Expr::Binary(left, op, right);
         AstNode::new(expr, start_loc, end_loc)
     }
 
     fn unary(op: UnOperNode, right: ExprNode) -> ExprNode {
         let start_loc = op.start_loc.clone();
         let end_loc = right.end_loc.clone();
-        let expr = Expr::Unary(op, Box::new(right));
+        let expr = Expr::Unary(op, right);
         AstNode::new(expr, start_loc, end_loc)
     }
 
     fn logical(left: ExprNode, op: LogicalOperNode, right: ExprNode) -> ExprNode {
         let start_loc = left.start_loc.clone();
         let end_loc = right.end_loc.clone();
-        let expr = Expr::Logical(Box::new(left), op, Box::new(right));
+        let expr = Expr::Logical(left, op, right);
         AstNode::new(expr, start_loc, end_loc)
     }
 }
@@ -699,5 +750,67 @@ mod tests {
 
         // Just assert that they are equal. Maybe should also spell out what is should be
         assert_eq!(pipe_expr, normal_expr);
+    }
+
+    #[test]
+    fn lambdas() {
+        // "x -> 2 + x"
+        let tokens = vec![
+            fake_token(Token::Identifier("x".to_string())),
+            fake_token(Token::RArrow),
+            fake_token(Token::Integer(2)),
+            fake_token(Token::Plus),
+            fake_token(Token::Identifier("x".to_string())),
+            fake_token(Token::Eof),
+        ];
+        let mut error_reporter = ErrorReporter::new();
+        let mut parser = Parser::new(&tokens, &mut error_reporter);
+        let expr = parser.expression().unwrap();
+
+        assert_eq!(
+            expr,
+            fake_node(Expr::FunctionDefinition(
+                vec!["x".to_string()],
+                ExprNode::binary(
+                    fake_node(Expr::Int(2)),
+                    fake_node(BinOper::Add),
+                    fake_node(Expr::Var("x".to_string()))
+                )
+            ))
+        );
+
+        // "(x, y) -> max(x, y)"
+        let tokens = vec![
+            fake_token(Token::LPar),
+            fake_token(Token::Identifier("x".to_string())),
+            fake_token(Token::Comma),
+            fake_token(Token::Identifier("y".to_string())),
+            fake_token(Token::RPar),
+            fake_token(Token::RArrow),
+            fake_token(Token::Identifier("max".to_string())),
+            fake_token(Token::LPar),
+            fake_token(Token::Identifier("x".to_string())),
+            fake_token(Token::Comma),
+            fake_token(Token::Identifier("y".to_string())),
+            fake_token(Token::RPar),
+            fake_token(Token::Eof),
+        ];
+        let mut error_reporter = ErrorReporter::new();
+        let mut parser = Parser::new(&tokens, &mut error_reporter);
+        let expr = parser.expression().unwrap();
+
+        assert_eq!(
+            expr,
+            fake_node(Expr::FunctionDefinition(
+                vec!["x".to_string(), "y".to_string()],
+                fake_node(Expr::Call(
+                    fake_node(Expr::Var("max".to_string())),
+                    vec![
+                        fake_node(Expr::Var("x".to_string())),
+                        fake_node(Expr::Var("y".to_string()))
+                    ]
+                ))
+            ))
+        );
     }
 }

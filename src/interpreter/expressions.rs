@@ -9,7 +9,10 @@ use crate::{
 };
 
 use super::{
-    environment::Environment, functions::Function, list::List, statements, RunRes, RuntimeError,
+    environment::Environment,
+    functions::{Closure, Function},
+    list::List,
+    statements, RunRes, RuntimeError,
 };
 
 // An interface between Zote and Rust values
@@ -57,7 +60,7 @@ impl Value {
 pub(super) fn eval(expr: &ExprNode, env: &Rc<Environment>) -> RunRes<Value> {
     let start = expr.start_loc.clone();
     let end = expr.end_loc.clone();
-    match &expr.node {
+    match expr.node.as_ref() {
         Expr::Binary(left, op, right) => {
             eval_binary(eval(left, env)?, op, eval(right, env)?, start, end)
         }
@@ -78,7 +81,7 @@ pub(super) fn eval(expr: &ExprNode, env: &Rc<Environment>) -> RunRes<Value> {
         Expr::Bool(bool) => Ok(Value::Bool(*bool)),
         Expr::String(string) => Ok(Value::String(string.clone())),
         Expr::Block(stmts) => eval_block(stmts, env, start, end),
-        Expr::If(cond, then, other) => eval_if(eval(cond, env)?, then, other.as_deref(), env),
+        Expr::If(cond, then, other) => eval_if(eval(cond, env)?, then, other.as_ref(), env),
         Expr::While(cond, repeat) => eval_while(cond, repeat, env),
         Expr::Break => Err(RuntimeError::Break),
         Expr::Call(callee, args) => eval_call(
@@ -93,10 +96,23 @@ pub(super) fn eval(expr: &ExprNode, env: &Rc<Environment>) -> RunRes<Value> {
         Expr::Return(None) => Err(RuntimeError::Return(Value::Nil)),
         Expr::Nil => Ok(Value::Nil),
         Expr::List(exprs) => eval_list(exprs, env),
+        Expr::Tuple(_exprs) => error(
+            start,
+            end,
+            "Tuples are not part of the language (yet)".to_string(),
+        ),
+        Expr::FunctionDefinition(param, body) => eval_func_definition(param, body, env),
     }
 }
 
-fn eval_list(exprs: &Vec<ExprNode>, env: &Rc<Environment>) -> RunRes<Value> {
+fn eval_func_definition(param: &[String], body: &ExprNode, env: &Rc<Environment>) -> RunRes<Value> {
+    // TODO: Bind in real name of function? Or something for debugging purposes? This will be horrible
+    let id = "Local function".to_string();
+    let closure = Closure::new(id, param.to_vec(), body.clone(), env);
+    Ok(Value::Callable(Function::Closure(closure)))
+}
+
+fn eval_list(exprs: &[ExprNode], env: &Rc<Environment>) -> RunRes<Value> {
     Ok(Value::List(List::new(
         exprs
             .iter()
@@ -195,7 +211,7 @@ fn eval_binary(
     start_loc: CodeLoc,
     end_loc: CodeLoc,
 ) -> RunRes<Value> {
-    match &op.node {
+    match op.node.as_ref() {
         // TODO: implicit conversion from int to float. Now they only work together on comparisions
         BinOper::Add => bin_add(left, right, start_loc, end_loc),
         BinOper::Sub => bin_sub(left, right, start_loc, end_loc),
@@ -369,7 +385,7 @@ fn eval_unary(
     start_loc: CodeLoc,
     end_loc: CodeLoc,
 ) -> RunRes<Value> {
-    match op.node {
+    match op.node.as_ref() {
         UnOper::Sub => match right {
             Value::Int(int) => Ok(Value::Int(-int)),
             Value::Float(float) => Ok(Value::Float(-float)),
@@ -401,7 +417,7 @@ fn eval_logical(
     _start_loc: CodeLoc,
     _end_loc: CodeLoc,
 ) -> RunRes<Value> {
-    let res = match op.node {
+    let res = match op.node.as_ref() {
         LogicalOper::And => left.truthy() && eval(right, env)?.truthy(),
         LogicalOper::Or => left.truthy() || eval(right, env)?.truthy(),
     };

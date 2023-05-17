@@ -3,6 +3,10 @@
 * Add >>= operator which binds just lower than >> but assigns the value of the left to the right.
   * It should preferably just be syntax sugar like >> but how do we handle more complicated lvalues, or declarations?
   * This should be implemented after we implement some lvalue pattern matching.
+  * Could we add a similar one for binding and declaring a new variable? Like >>:? Or should it always declare a new one? Probably best?
+
+* Should we have tuples? They are in place. They are more suitable when using as keys for example. 
+  * Or should we use them in some way for >> instead. So that 1 >> f(2, 3) is the same as (1, 2) >> f(3) or (1,2,3) >> f? 
 
 * Fix the if peek... self.accept(..., "Internal error... ") by adding some match function
 
@@ -24,15 +28,11 @@
 
 * Add cool for each loops.
 
-* Add pipe operator. Then we also need to decide if we want to integrate currying with it in some way... Probably.
-
 * Expand standard library
   * Implement I/O
   * String operations (mainly split)
 
 * Remove need for semicolons after blocks in some cases. Such as an expression statement ending with a block probably.
-
-* Add anonymous functions
 
 * Start work on a real virtual machine interpreter. Could probably be a lot faster than the naive one.
 

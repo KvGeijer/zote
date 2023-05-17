@@ -14,7 +14,6 @@ pub struct Stmts {
 #[derive(Debug, PartialEq, Clone)]
 pub enum Stmt {
     Decl(String, Option<ExprNode>),
-    FuncDecl(String, Vec<String>, ExprNode),
     Expr(ExprNode),
     Invalid,
 }
@@ -45,7 +44,11 @@ impl<'a> Parser<'a> {
             }
         }
 
-        if stmts.stmts.iter().any(|stmt| stmt.node == Stmt::Invalid) {
+        if stmts
+            .stmts
+            .iter()
+            .any(|stmt| stmt.node.as_ref() == &Stmt::Invalid)
+        {
             Err(stmts) // In case we still want to be able so see the ast
         } else {
             Ok(stmts)
@@ -77,7 +80,7 @@ impl<'a> Parser<'a> {
     }
 
     fn fn_decl_stmt(&mut self) -> Option<StmtNode> {
-        // "fn" var "(" parameters? ")" expression ;
+        // "fn" var "(" parameters? ")" "->" expression ;
         let start = self.peek_start_loc().clone();
         self.accept(Token::Fn, "Internal fn_decl_stmt error")?;
         if let Token::Identifier(name) = self.peek() {
@@ -86,6 +89,7 @@ impl<'a> Parser<'a> {
             self.accept(Token::LPar, "Expect '(' before function parameters")?;
             let params = self.parameter_list()?;
             self.accept(Token::RPar, "Expect ')' after function parameters")?;
+            self.accept(Token::RArrow, "Expect '->' before function body")?;
             let body = self.expression()?;
             let end = body.end_loc.clone();
 
@@ -94,11 +98,13 @@ impl<'a> Parser<'a> {
                 Token::Semicolon,
                 "Function decl statement must end with ';'",
             )?;
-            Some(StmtNode::new(
-                Stmt::FuncDecl(name, params, body),
-                start,
-                end,
-            ))
+            let func = ExprNode::new(
+                super::Expr::FunctionDefinition(params, body),
+                start.clone(),
+                end.clone(),
+            );
+
+            Some(StmtNode::new(Stmt::Decl(name, Some(func)), start, end))
         } else {
             self.error("Expect function name after fn");
             None

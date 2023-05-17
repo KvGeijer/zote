@@ -1,4 +1,5 @@
 use clap::Parser;
+use std::process::exit;
 
 use zote::{run_file, run_repl};
 
@@ -12,7 +13,7 @@ fn main() {
     let args = Args::parse();
 
     if let Some(ref file) = args.file {
-        run_file(file);
+        exit(run_file(file));
     } else {
         run_repl();
     }

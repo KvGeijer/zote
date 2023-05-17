@@ -4,7 +4,6 @@ use errors::ErrorReporter;
 use interpreter::InterpreterState;
 use std::fs;
 use std::io::{stdin, stdout, Write};
-use std::process::exit;
 
 mod code_loc;
 mod errors;
@@ -12,20 +11,16 @@ mod interpreter;
 mod parser;
 mod scanner;
 
-pub fn run_file(file: &str) {
+/// Interprets a text file as a Zote script, returning the exit code.
+pub fn run_file(file: &str) -> i32 {
     let script = fs::read_to_string(file).expect("Could not open file.");
-    let mut error_reporter = errors::ErrorReporter::new();
-    let mut state = InterpreterState::new();
-
-    run(&script, &mut error_reporter, &mut state);
-
-    if error_reporter.had_compilation_error {
-        exit(65);
-    } else if error_reporter.had_runtime_error {
-        exit(70);
-    }
+    run_str(&script)
 }
 
+/// Starts the Zote repl.
+///
+/// Each line must be a statement or an expression (in which case its value is printed),
+/// and the state of the program is preserved between lines.
 pub fn run_repl() {
     let reader = stdin();
     let mut line = String::new();
@@ -41,6 +36,22 @@ pub fn run_repl() {
         // Does not preserve program state between calls
         run(&line, &mut error_reporter, &mut state);
         error_reporter.reset();
+    }
+}
+
+/// Interprets the string as if from a file.
+pub fn run_str(code: &str) -> i32 {
+    let mut error_reporter = errors::ErrorReporter::new();
+    let mut state = InterpreterState::new();
+
+    run(code, &mut error_reporter, &mut state);
+
+    if error_reporter.had_compilation_error {
+        65
+    } else if error_reporter.had_runtime_error {
+        70
+    } else {
+        0
     }
 }
 

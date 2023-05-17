@@ -1,0 +1,10 @@
+var i = 0;
+
+while (i = i+1) < 10000 {
+	print("bullshit");
+	print("bullshit");
+	print("bullshit");
+	print("bullshit");
+	print("bullshit");
+	print("bullshit");
+}

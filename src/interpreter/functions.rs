@@ -199,17 +199,18 @@ impl Builtin for Str {
     }
 }
 
+// push(item, list), so we can do item >> push(list)
 struct Push;
 
 impl Builtin for Push {
     fn run(&self, args: Vec<Value>) -> Result<Value, String> {
         match args.into_iter().collect_tuple().unwrap() {
             // Strange if pushing a list to itself. Print crashes :D
-            (Value::List(mut list), value) => {
+            (value, Value::List(mut list)) => {
                 list.push(value);
                 Ok(Value::Nil)
             }
-            (_, _) => Err("First argument to push must be a list".to_string()),
+            (_, _) => Err("Second argument to push must be a list".to_string()),
         }
     }
 

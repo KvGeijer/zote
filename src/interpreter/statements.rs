@@ -155,7 +155,7 @@ mod tests {
         let program = concat!(
             "fn replace_list(list, x) -> { ",
             "    var ret = pop(list);      ",
-            "    push(list, x);            ",
+            "    push(x, list);            ",
             "    ret                       ",
             "};                            ",
             "                              ",

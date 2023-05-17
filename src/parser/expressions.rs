@@ -32,7 +32,7 @@ pub enum Expr {
     Nil,
     List(Vec<ExprNode>),
     Tuple(Vec<ExprNode>),
-    FunctionDefinition(Vec<String>, ExprNode),
+    FunctionDefinition(String, Vec<String>, ExprNode),
 }
 
 #[derive(PartialEq, Eq, Debug, Clone)]
@@ -170,8 +170,14 @@ impl<'a> Parser<'a> {
             self.accept(Token::RArrow, "Internal error at param_group");
             let body = self.expression()?;
             let end = body.end_loc.clone();
+            let name = format!(
+                "lambda/{} at {}:{}",
+                params.len(),
+                start.line(),
+                start.col()
+            );
             Some(ExprNode::new(
-                Expr::FunctionDefinition(params, body),
+                Expr::FunctionDefinition(name, params, body),
                 start,
                 end,
             ))
@@ -770,6 +776,7 @@ mod tests {
         assert_eq!(
             expr,
             fake_node(Expr::FunctionDefinition(
+                "lambda/1 at 0:0".to_string(),
                 vec!["x".to_string()],
                 ExprNode::binary(
                     fake_node(Expr::Int(2)),
@@ -802,6 +809,7 @@ mod tests {
         assert_eq!(
             expr,
             fake_node(Expr::FunctionDefinition(
+                "lambda/2 at 0:0".to_string(),
                 vec!["x".to_string(), "y".to_string()],
                 fake_node(Expr::Call(
                     fake_node(Expr::Var("max".to_string())),

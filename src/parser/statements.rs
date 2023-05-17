@@ -98,8 +98,9 @@ impl<'a> Parser<'a> {
                 Token::Semicolon,
                 "Function decl statement must end with ';'",
             )?;
+            let id = format!("fn {name}/{}", params.len());
             let func = ExprNode::new(
-                super::Expr::FunctionDefinition(params, body),
+                super::Expr::FunctionDefinition(id, params, body),
                 start.clone(),
                 end.clone(),
             );

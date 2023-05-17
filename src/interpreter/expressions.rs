@@ -101,14 +101,17 @@ pub(super) fn eval(expr: &ExprNode, env: &Rc<Environment>) -> RunRes<Value> {
             end,
             "Tuples are not part of the language (yet)".to_string(),
         ),
-        Expr::FunctionDefinition(param, body) => eval_func_definition(param, body, env),
+        Expr::FunctionDefinition(name, param, body) => eval_func_definition(name, param, body, env),
     }
 }
 
-fn eval_func_definition(param: &[String], body: &ExprNode, env: &Rc<Environment>) -> RunRes<Value> {
-    // TODO: Bind in real name of function? Or something for debugging purposes? This will be horrible
-    let id = "Local function".to_string();
-    let closure = Closure::new(id, param.to_vec(), body.clone(), env);
+fn eval_func_definition(
+    id: &str,
+    param: &[String],
+    body: &ExprNode,
+    env: &Rc<Environment>,
+) -> RunRes<Value> {
+    let closure = Closure::new(id.to_string(), param.to_vec(), body.clone(), env);
     Ok(Value::Callable(Function::Closure(closure)))
 }
 

@@ -4,4 +4,4 @@ All information about the language is found at its github page [https://github.c
 
 ## Benchmark monitoring
 
-To keep track of any potential changes in performance of the language this page monitors the benchmarks you can see [this page](https://benchmark-action.github.io/github-action-benchmark/dev/bench/) monitors the [performance benchmarks](./benches). The code for the benchmarks can be found [here](./benches).
+A continuous monitoring of the benchmarks can be seen [here](https://kvgeijer.github.io/zote/dev/bench/). The code for the benchmarks can be found [here](https://github.com/KvGeijer/zote/tree/main/benches).

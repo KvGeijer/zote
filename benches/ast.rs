@@ -1,7 +1,5 @@
 #![feature(test)]
 
-use std::process::Command;
-
 use test::Bencher;
 use zote::run_str;
 

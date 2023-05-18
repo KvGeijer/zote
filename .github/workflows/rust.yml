@@ -30,6 +30,9 @@ jobs:
       run: cargo test --verbose
 
   benchmark:
+    # Only run this job for pushes, as pull requests would cause strange overwrites
+    if: github.event_name == 'push'
+    
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v2
@@ -51,19 +54,3 @@ jobs:
           comment-on-alert: true
           fail-on-alert: true
           alert-comment-cc-users: '@KvGeijer'
-
-      # - name: Store benchmark result - separate results repo
-      #   uses: benchmark-action/github-action-benchmark@v1
-      #   with:
-      #     name: Rust Benchmark
-      #     tool: 'cargo'
-      #     output-file-path: bench-output.txt
-      #     github-token: ${{ secrets.BENCHMARK_ACTION_BOT_TOKEN }}
-      #     auto-push: true
-      #     # Show alert with commit comment on detecting possible performance regression
-      #     alert-threshold: '200%'
-      #     summary-always: true
-      #     comment-on-alert: true
-      #     fail-on-alert: true
-      #     alert-comment-cc-users: '@KvGeijer'
-      #     gh-repository: 'github.com/benchmark-action/github-action-benchmark-results'

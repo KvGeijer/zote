@@ -3,46 +3,24 @@
 use std::process::Command;
 
 use test::Bencher;
+use zote::run_str;
 
 extern crate test;
 
-fn interpret(program: &str) -> String {
-    let output = Command::new("./target/release/zote")
-        .arg(program)
-        .output()
-        .expect("Could not run command!");
-
-    assert!(output.status.success(), "Could not run program!");
-
-    String::from_utf8_lossy(&output.stdout).to_string()
-}
-
-fn build() {
-    let output = Command::new("cargo")
-        .arg("build")
-        .arg("--release")
-        .output()
-        .expect("Could not build interpreter!");
-    assert!(
-        output.status.success(),
-        "Could not successfully build interpreter!"
-    );
-}
-
 #[bench]
 fn fibonachi(bench: &mut Bencher) {
-    build();
-    bench.iter(|| interpret("benches/programs/fib.zote"));
+    let code = include_str!("programs/fib.zote");
+    bench.iter(|| run_str(code));
 }
 
 #[bench]
 fn prints(bench: &mut Bencher) {
-    build();
-    bench.iter(|| interpret("benches/programs/prints.zote"));
+    let code = include_str!("programs/prints.zote");
+    bench.iter(|| run_str(code));
 }
 
 #[bench]
 fn string_manips(bench: &mut Bencher) {
-    build();
-    bench.iter(|| interpret("benches/programs/string_manips.zote"));
+    let code = include_str!("programs/string_manips.zote");
+    bench.iter(|| run_str(code));
 }

@@ -1,5 +1,5 @@
 window.BENCHMARK_DATA = {
-  "lastUpdate": 1684417033635,
+  "lastUpdate": 1684425958773,
   "repoUrl": "https://github.com/KvGeijer/zote",
   "entries": {
     "Rust Benchmark": [
@@ -125,6 +125,48 @@ window.BENCHMARK_DATA = {
             "name": "string_manips",
             "value": 219921984,
             "range": "± 955228",
+            "unit": "ns/iter"
+          }
+        ]
+      },
+      {
+        "commit": {
+          "author": {
+            "email": "kare.kvg@gmail.com",
+            "name": "Kåre von Geijer",
+            "username": "KvGeijer"
+          },
+          "committer": {
+            "email": "kare.kvg@gmail.com",
+            "name": "Kåre von Geijer",
+            "username": "KvGeijer"
+          },
+          "distinct": true,
+          "id": "f909335c6ddc3b9d243790c7a61fd28686a9266d",
+          "message": "Move builtins into its own module\n\nThis might have to be split up later as well...",
+          "timestamp": "2023-05-18T18:02:13+02:00",
+          "tree_id": "9e89d2fb5982b9ba9cbda8ce833e39d390f39c7e",
+          "url": "https://github.com/KvGeijer/zote/commit/f909335c6ddc3b9d243790c7a61fd28686a9266d"
+        },
+        "date": 1684425957887,
+        "tool": "cargo",
+        "benches": [
+          {
+            "name": "fibonachi",
+            "value": 136600605,
+            "range": "± 1181338",
+            "unit": "ns/iter"
+          },
+          {
+            "name": "prints",
+            "value": 23428387,
+            "range": "± 357745",
+            "unit": "ns/iter"
+          },
+          {
+            "name": "string_manips",
+            "value": 244855075,
+            "range": "± 1040628",
             "unit": "ns/iter"
           }
         ]

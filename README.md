@@ -25,3 +25,7 @@ which is also valid Zote (or at least will be once the standard library is large
 In the beginning, I loosely followed the excellent book [Crafting Interpreters](craftinginterpreters.com) (kept the same development order, but tried to change most stuff up). Zote will not have any big innovations but instead combines ideas from [Rust](https://www.rust-lang.org/), [Julia](https://julialang.org/), [Python](https://www.python.org/) and [Noulith](https://github.com/betaveros/noulith), in no particular order (and of course from other languages as well).
 
 Initially, the interpreter will directly interpret the syntax tree, but it would be cool to compile it to bytecode which can be interpreted by a virtual machine. That will however take some work and will be left until the language is rather stable.
+
+## Benchmarks
+
+There are some performance benchmarks [here](./benches), and using GitHub actions, you can track their approximate performance over time [here](https://kvgeijer.github.io/zote/dev/bench/).

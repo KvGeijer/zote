@@ -1,5 +1,5 @@
 window.BENCHMARK_DATA = {
-  "lastUpdate": 1684483629826,
+  "lastUpdate": 1684512964570,
   "repoUrl": "https://github.com/KvGeijer/zote",
   "entries": {
     "Rust Benchmark": [
@@ -209,6 +209,48 @@ window.BENCHMARK_DATA = {
             "name": "string_manips",
             "value": 244164325,
             "range": "± 1115495",
+            "unit": "ns/iter"
+          }
+        ]
+      },
+      {
+        "commit": {
+          "author": {
+            "email": "kare.kvg@gmail.com",
+            "name": "Kåre von Geijer",
+            "username": "KvGeijer"
+          },
+          "committer": {
+            "email": "kare.kvg@gmail.com",
+            "name": "Kåre von Geijer",
+            "username": "KvGeijer"
+          },
+          "distinct": true,
+          "id": "5d7ec89bf46c78b4c91bb0c53f9564f65af62817",
+          "message": "Refactor numerals, add builtins max, read, int\n\nA little bit messy, but the main thing is the numerals refactor, which\nwill hopefully make everything a bit easier from now on.",
+          "timestamp": "2023-05-19T18:11:46+02:00",
+          "tree_id": "20d244c8c5f021947e4e84388239dab72a437634",
+          "url": "https://github.com/KvGeijer/zote/commit/5d7ec89bf46c78b4c91bb0c53f9564f65af62817"
+        },
+        "date": 1684512963744,
+        "tool": "cargo",
+        "benches": [
+          {
+            "name": "fibonachi",
+            "value": 151913794,
+            "range": "± 5809913",
+            "unit": "ns/iter"
+          },
+          {
+            "name": "prints",
+            "value": 24097774,
+            "range": "± 2440468",
+            "unit": "ns/iter"
+          },
+          {
+            "name": "string_manips",
+            "value": 400600903,
+            "range": "± 14014521",
             "unit": "ns/iter"
           }
         ]

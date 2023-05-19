@@ -22,4 +22,6 @@ var serie = [];
 while (i = i + 1) < 20	
 	fib(i) >> push(serie);
 
-print(serie)
+print(serie[0]);
+print(serie);
+print(serie[-1]);

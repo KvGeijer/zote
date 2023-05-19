@@ -14,7 +14,8 @@ pub type LogicalOperNode = AstNode<LogicalOper>;
 
 #[derive(Debug, PartialEq, Clone)]
 pub enum Expr {
-    Call(ExprNode, Vec<ExprNode>), // TODO
+    Call(ExprNode, Vec<ExprNode>),
+    Index(ExprNode, ExprNode),
     Binary(ExprNode, BinOperNode, ExprNode),
     Unary(UnOperNode, ExprNode),
     Logical(ExprNode, LogicalOperNode, ExprNode),
@@ -282,20 +283,32 @@ impl<'a> Parser<'a> {
     }
 
     fn call(&mut self) -> Option<ExprNode> {
-        // call           → primary ( "(" exprs_list ")" )* ;
-        let mut expr = self.primary()?;
-        let start = expr.start_loc.clone();
-        while self.match_token(Token::LPar) {
+        // call           → primary ( call | index )* ;
+        let expr = self.primary()?;
+        self.add_calls(expr)
+    }
+
+    fn add_calls(&mut self, base: ExprNode) -> Option<ExprNode> {
+        // Takes a base expressions, and adds     ( "(" expr_list ")" | "[" expression "]" )*
+
+        let start = base.start_loc.clone();
+        if self.match_token(Token::LPar) {
             let args = self.accept_exprs_list(&Token::RPar)?;
-            self.accept(Token::RPar, "Expect ')' to close call arguments");
+            self.accept(Token::RPar, "Expect ')' to close call arguments")?;
 
             if args.len() >= MAX_ARGS {
                 self.error("Can't have more than {MAX_ARGS} arguments");
             }
             let end = self.peek_last_end_loc()?.clone();
-            expr = ExprNode::new(Expr::Call(expr, args), start.clone(), end);
+            self.add_calls(ExprNode::new(Expr::Call(base, args), start, end))
+        } else if self.match_token(Token::LBrack) {
+            let index = self.expression()?;
+            self.accept(Token::RBrack, "Expect ']' to close indexing")?;
+            let end = self.peek_last_end_loc()?.clone();
+            self.add_calls(ExprNode::new(Expr::Index(base, index), start, end))
+        } else {
+            Some(base)
         }
-        Some(expr)
     }
 
     fn accept_exprs_list(&mut self, terminator: &Token) -> Option<Vec<ExprNode>> {

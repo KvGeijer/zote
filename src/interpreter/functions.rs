@@ -128,17 +128,6 @@ impl Closure {
     }
 }
 
-// macro_rules! define_builtins {
-//     ($env:expr, $($builtin:expr),* $(,)?) => {
-//         $(
-//             $env.define(
-//                 $builtin.name().to_string(),
-//                 Value::Callable(Function::Builtin(Rc::new($builtin)))
-//             );
-//         )*
-//     };
-// }
-
 pub(super) fn define_builtins(env: &Environment) {
     for builtin in builtins::get_builtins() {
         env.define(builtin.name().to_string(), Value::Callable(Function::Builtin(builtin)));    

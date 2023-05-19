@@ -102,6 +102,23 @@ pub(super) fn eval(expr: &ExprNode, env: &Rc<Environment>) -> RunRes<Value> {
             "Tuples are not part of the language (yet)".to_string(),
         ),
         Expr::FunctionDefinition(name, param, body) => eval_func_definition(name, param, body, env),
+        Expr::Index(base, index) => eval_index(base, index, end, env),
+    }
+}
+
+fn eval_index(
+    base: &ExprNode,
+    index: &ExprNode,
+    end: CodeLoc,
+    env: &Rc<Environment>,
+) -> RunRes<Value> {
+    match (eval(base, env)?, eval(index, env)?) {
+        (Value::List(list), Value::Int(at)) => Ok(list.get(at)),
+        _ => error(
+            base.start_loc.clone(),
+            end,
+            "Can only index into a list with an int".to_string(),
+        ),
     }
 }
 

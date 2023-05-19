@@ -52,4 +52,14 @@ impl List {
         string.push(']');
         string
     }
+
+    pub(super) fn get(&self, index: i64) -> Value {
+        let uindex = if index < 0 {
+            index.rem_euclid(self.vec.borrow().len() as i64) as usize
+        } else {
+            index as usize
+        };
+        self.vec.borrow().get(uindex).cloned().unwrap_or(Value::Nil)
+        
+    }
 }

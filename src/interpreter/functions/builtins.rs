@@ -120,3 +120,26 @@ impl Builtin for Pop {
     }
 }
 
+// A bit of a strange one, but try to represent list[i] as a builtin
+struct BracketPair;
+
+impl Builtin for BracketPair {
+    fn run(&self, args: Vec<Value>) -> Result<Value, String> {
+        match args.into_iter().collect_tuple().unwrap() {
+            // Strange if pushing a list to itself. Print crashes :D
+            (Value::List(list), Value::Int(index)) => {
+                Ok(list.get(index))
+            }
+            (_, _) => Err("Second argument to push must be a list".to_string()),
+        }
+    }
+
+    fn arity(&self) -> usize {
+        2
+    }
+
+    fn name(&self) -> &str {
+        "[]"
+    }
+}
+

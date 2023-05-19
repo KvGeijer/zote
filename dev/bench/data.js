@@ -1,5 +1,5 @@
 window.BENCHMARK_DATA = {
-  "lastUpdate": 1684425958773,
+  "lastUpdate": 1684483629826,
   "repoUrl": "https://github.com/KvGeijer/zote",
   "entries": {
     "Rust Benchmark": [
@@ -167,6 +167,48 @@ window.BENCHMARK_DATA = {
             "name": "string_manips",
             "value": 244855075,
             "range": "± 1040628",
+            "unit": "ns/iter"
+          }
+        ]
+      },
+      {
+        "commit": {
+          "author": {
+            "email": "kare.kvg@gmail.com",
+            "name": "Kåre von Geijer",
+            "username": "KvGeijer"
+          },
+          "committer": {
+            "email": "kare.kvg@gmail.com",
+            "name": "Kåre von Geijer",
+            "username": "KvGeijer"
+          },
+          "distinct": true,
+          "id": "ee9850ece47a0380a6a79ea22db1878bcd66b7c2",
+          "message": "Add indexing into lists like `xs[i]`",
+          "timestamp": "2023-05-19T10:03:30+02:00",
+          "tree_id": "d37220b4240436495a1fe34b545dc6a8f569268c",
+          "url": "https://github.com/KvGeijer/zote/commit/ee9850ece47a0380a6a79ea22db1878bcd66b7c2"
+        },
+        "date": 1684483628798,
+        "tool": "cargo",
+        "benches": [
+          {
+            "name": "fibonachi",
+            "value": 147988424,
+            "range": "± 1345207",
+            "unit": "ns/iter"
+          },
+          {
+            "name": "prints",
+            "value": 23399431,
+            "range": "± 325120",
+            "unit": "ns/iter"
+          },
+          {
+            "name": "string_manips",
+            "value": 244164325,
+            "range": "± 1115495",
             "unit": "ns/iter"
           }
         ]

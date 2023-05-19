@@ -1,4 +1,4 @@
-use super::Value;
+use super::{functions::Function, numerical::Numerical, RunRes, Value};
 
 use std::{cell::RefCell, cmp::Ordering, rc::Rc};
 
@@ -15,12 +15,12 @@ impl List {
     }
 
     /// Pushes a value to the list
-    pub(super) fn push(&mut self, value: Value) {
+    pub(super) fn push(&self, value: Value) {
         self.vec.borrow_mut().push(value);
     }
 
     /// Pops a value from the list
-    pub(super) fn pop(&mut self) -> Value {
+    pub(super) fn pop(&self) -> Value {
         match self.vec.borrow_mut().pop() {
             Some(value) => value,
             None => Value::Nil,
@@ -86,5 +86,48 @@ impl List {
             }
         }
         Ok(max)
+    }
+
+    pub(super) fn map(&self, func: &Function) -> RunRes<Value> {
+        let mut mapped = vec![];
+        for value in self.vec.borrow().iter() {
+            // Shoud we do something to the error info?
+            mapped.push(func.call(vec![value.clone()])?);
+        }
+        Ok(mapped.into())
+    }
+
+    pub(super) fn split(&self, delimiter: &Value) -> RunRes<Value> {
+        let mut splitted = vec![];
+        let mut sublist = vec![];
+        for value in self.vec.borrow().iter() {
+            if value == delimiter {
+                splitted.push(sublist.into());
+                sublist = vec![];
+            } else {
+                sublist.push(value.clone());
+            }
+        }
+        if !sublist.is_empty() {
+            splitted.push(sublist.into());
+        }
+        Ok(splitted.into())
+    }
+
+    /// Sums a list with numericals. Errors if any nonnumerical.
+    pub(super) fn sum(&self) -> Result<Value, String> {
+        let mut sum: Numerical = 0.into();
+        for val in self.vec.borrow().iter() {
+            match val {
+                Value::Numerical(num) => sum = sum.add(*num),
+                val => {
+                    return Err(format!(
+                        "List.sum only implemented for numbers, but got {}",
+                        val.type_of()
+                    ));
+                }
+            }
+        }
+        Ok(sum.into())
     }
 }

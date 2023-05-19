@@ -83,12 +83,12 @@ pub struct TokenInfo {
 type Constructor = Box<dyn Fn(&str) -> Token + Sync>;
 lazy_static! {
     static ref PATTERNS: Vec<(Regex, Constructor)> = lex_rules![
-        (r"[\w--\d]\w*", |str| Token::Identifier(str.to_owned())),
+        (r"[\w--\d]\w*", |str| Token::Identifier(str.to_string())),
         // Not optimal that 001 is scanned as 0 0 1
         (r"(([1-9]\d*\.\d+)|(0\.\d+))", |str| Token::Float(str.parse().unwrap())),
         (r"([1-9]\d*|0)", |str| Token::Integer(str.parse().unwrap())),
-        (r#"".*?""#, |str| Token::String(str[1..str.len()-1].to_owned())),
-        (r#"'.*?'"#, |str| Token::String(str[1..str.len()-1].to_owned())),
+        (r#"".*?""#, |str| Token::String(parse_string(&str[1..str.len()-1]))),
+        (r#"'.*?'"#, |str| Token::String(parse_string(&str[1..str.len()-1]))),
         (r"//[^\n]*", |str| Token::Comment(str[2..].to_owned())),
         (r"struct", |_| Token::Struct),
         (r"fn", |_| Token::Fn),
@@ -201,6 +201,14 @@ fn parse_token(code: &str, loc: &mut CodeLoc) -> Option<TokenInfo> {
                 string: cap.to_string(),
             }
         })
+}
+
+// Want to parse escape sequences properly
+fn parse_string(string: &str) -> String {
+    string
+        .replace("\\n", "\n")
+        .replace("\\t", "\t")
+        .replace("\\r", "\r")
 }
 
 #[cfg(test)]

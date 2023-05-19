@@ -157,7 +157,17 @@ fn eval_list(exprs: &[ExprNode], env: &Rc<Environment>) -> RunRes<Value> {
 fn eval_call(callee: Value, args: Vec<Value>, start: CodeLoc, end: CodeLoc) -> RunRes<Value> {
     if let Value::Callable(callable) = callee {
         if args.len() == callable.arity() {
-            callable.call(args, start, end)
+            match callable.call(args) {
+                Err(RuntimeError::Break) => Err(RuntimeError::Error(
+                    start,
+                    end,
+                    "Break encountered outside loop".to_string(),
+                )),
+                Err(RuntimeError::Return(value)) => Ok(value),
+                Err(RuntimeError::ErrorReason(reason)) => error(start, end, reason),
+                // TODO Error traces...
+                otherwise => otherwise,
+            }
         } else {
             error(
                 start,
@@ -462,6 +472,18 @@ impl From<bool> for Value {
     fn from(item: bool) -> Self {
         let num: Numerical = item.into();
         num.into()
+    }
+}
+
+impl From<String> for Value {
+    fn from(item: String) -> Self {
+        Value::String(item)
+    }
+}
+
+impl From<Vec<Value>> for Value {
+    fn from(item: Vec<Value>) -> Self {
+        Value::List(List::new(item.into_iter()))
     }
 }
 

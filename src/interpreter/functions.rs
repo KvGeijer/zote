@@ -1,13 +1,12 @@
-
 use std::{
     cmp::Ordering,
     fmt::{self, Debug, Formatter},
     rc::Rc,
 };
 
-use crate::{code_loc::CodeLoc, parser::ExprNode};
+use crate::parser::ExprNode;
 
-use super::{environment::Environment, expressions, RunRes, RuntimeError, Value};
+use super::{environment::Environment, expressions, RunRes, Value};
 
 use builtins::Builtin;
 
@@ -21,22 +20,10 @@ pub(super) enum Function {
 }
 
 impl Function {
-    pub(super) fn call(&self, args: Vec<Value>, start: CodeLoc, end: CodeLoc) -> RunRes<Value> {
-        let result = match self {
+    pub(super) fn call(&self, args: Vec<Value>) -> RunRes<Value> {
+        match self {
             Function::Closure(closure) => closure.call(args),
-            Function::Builtin(builtin) => builtin
-                .run(args)
-                .map_err(|msg| RuntimeError::Error(start.clone(), end.clone(), msg)),
-        };
-
-        match result {
-            Err(RuntimeError::Break) => Err(RuntimeError::Error(
-                start,
-                end,
-                "Break encountered outside loop".to_string(),
-            )),
-            Err(RuntimeError::Return(value)) => Ok(value),
-            otherwise => otherwise,
+            Function::Builtin(builtin) => builtin.run(args),
         }
     }
 
@@ -72,9 +59,7 @@ impl PartialEq for Function {
     fn eq(&self, other: &Self) -> bool {
         match (self, other) {
             // (Function::Closure(_, _, _), Function::Closure(_, _, _)) => true, // Uncomment this line when you add Closure variant back
-            (Function::Builtin(a), Function::Builtin(b)) => {
-                a.name() == b.name()
-            }
+            (Function::Builtin(a), Function::Builtin(b)) => a.name() == b.name(),
             _ => false,
         }
     }
@@ -130,6 +115,9 @@ impl Closure {
 
 pub(super) fn define_builtins(env: &Environment) {
     for builtin in builtins::get_builtins() {
-        env.define(builtin.name().to_string(), Value::Callable(Function::Builtin(builtin)));    
+        env.define(
+            builtin.name().to_string(),
+            Value::Callable(Function::Builtin(builtin)),
+        );
     }
 }

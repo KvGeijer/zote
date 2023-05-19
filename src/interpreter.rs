@@ -8,6 +8,7 @@ mod environment;
 mod expressions;
 mod functions;
 mod list;
+mod numerical;
 mod statements;
 
 use expressions::Value;

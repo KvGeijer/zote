@@ -1,5 +1,7 @@
 # Improvement ideas for Zote
 
+* Treat Int, Float, Nil and Bool as a Bit enum, allowing more equalities and comaprisons between them
+
 * Should we have tuples? They are in place. They are more suitable when using as keys for example. 
   * Or should we use them in some way for >> instead. So that 1 >> f(2, 3) is the same as (1, 2) >> f(3) or (1,2,3) >> f? 
 

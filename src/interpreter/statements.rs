@@ -80,10 +80,7 @@ mod tests {
             result                          \
             ";
 
-        assert!(matches!(
-            interpret_string(program).unwrap().unwrap(),
-            Value::Int(13)
-        ));
+        assert_eq!(interpret_string(program).unwrap().unwrap(), 13.into());
     }
 
     #[test]
@@ -119,10 +116,7 @@ mod tests {
             "                          ",
             "maybe_nil_ret('Nil')      ",
         );
-        assert!(matches!(
-            interpret_string(program).unwrap().unwrap(),
-            Value::Bool(true)
-        ));
+        assert_eq!(interpret_string(program).unwrap().unwrap(), true.into());
     }
 
     // TODO Move tests into its own file under interpreter...
@@ -147,10 +141,7 @@ mod tests {
             "pop_twice([1,121/11, 3])",
         );
 
-        assert!(matches!(
-            interpret_string(program).unwrap().unwrap(),
-            Value::Int(11)
-        ));
+        assert_eq!(interpret_string(program).unwrap().unwrap(), 11.into());
 
         let program = concat!(
             "fn replace_list(list, x) -> { ",
@@ -176,12 +167,12 @@ mod tests {
         // Why does it comlain about unused?
         let _expected = Value::List(List::new(
             vec![
-                Value::Int(4),
-                Value::Int(42),
-                Value::Int(42),
-                Value::Int(3),
-                Value::Int(2),
-                Value::Int(1),
+                4.into(),
+                42.into(),
+                42.into(),
+                3.into(),
+                2.into(),
+                1.into(),
                 Value::Nil,
                 Value::Nil,
                 Value::Nil,

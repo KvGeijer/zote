@@ -1,5 +1,5 @@
 use itertools::Itertools;
-use std::rc::Rc;
+use std::{fs::read_to_string, rc::Rc};
 
 use crate::interpreter::Value;
 
@@ -21,7 +21,7 @@ macro_rules! box_builtins {
 }
 
 pub(super) fn get_builtins() -> Vec<Rc<dyn Builtin>> {
-    box_builtins![Time, Print, Str, Push, Pop]
+    box_builtins![Time, Print, Str, Push, Pop, Read, Int, Max]
 }
 
 struct Time;
@@ -32,7 +32,7 @@ impl Builtin for Time {
             .duration_since(std::time::UNIX_EPOCH)
             .expect("Time went backwards")
             .as_secs_f64();
-        Ok(Value::Float(now))
+        Ok(now.into())
     }
 
     fn arity(&self) -> usize {
@@ -120,26 +120,67 @@ impl Builtin for Pop {
     }
 }
 
-// A bit of a strange one, but try to represent list[i] as a builtin
-struct BracketPair;
+struct Read;
 
-impl Builtin for BracketPair {
+impl Builtin for Read {
     fn run(&self, args: Vec<Value>) -> Result<Value, String> {
-        match args.into_iter().collect_tuple().unwrap() {
-            // Strange if pushing a list to itself. Print crashes :D
-            (Value::List(list), Value::Int(index)) => {
-                Ok(list.get(index))
-            }
-            (_, _) => Err("Second argument to push must be a list".to_string()),
+        match args.into_iter().next().unwrap() {
+            Value::String(path) => read_to_string(&path)
+                .map(|content| Value::String(content)) // Should we have constructors for these instead?
+                .map_err(|_| format!("Could not read file at {path}")),
+            _ => Err("Argument to pop must be a list".to_string()),
         }
     }
 
     fn arity(&self) -> usize {
-        2
+        1
     }
 
     fn name(&self) -> &str {
-        "[]"
+        "read"
     }
 }
 
+struct Int;
+impl Builtin for Int {
+    fn run(&self, args: Vec<Value>) -> Result<Value, String> {
+        match args.into_iter().next().unwrap() {
+            Value::String(string) => {
+                if let Ok(int) = string.parse::<i64>() {
+                    Ok(int.into())
+                } else {
+                    Err(format!("Cannot parse {string} as integer"))
+                }
+            }
+            Value::Numerical(num) => Ok(num.to_int().into()),
+            Value::Nil => Ok(0.into()),
+            val => Err(format!("Cannot convert {val} to an int")),
+        }
+    }
+
+    fn arity(&self) -> usize {
+        1
+    }
+
+    fn name(&self) -> &str {
+        "int"
+    }
+}
+
+struct Max;
+impl Builtin for Max {
+    fn run(&self, args: Vec<Value>) -> Result<Value, String> {
+        match args.into_iter().next().unwrap() {
+            Value::List(list) => list.max(),
+            _ => Err("So far max is only implemented for lists".to_string()),
+        }
+    }
+
+    fn arity(&self) -> usize {
+        1
+    }
+
+    fn name(&self) -> &str {
+        "max"
+    }
+}

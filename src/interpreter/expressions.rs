@@ -1,4 +1,4 @@
-use std::{fmt, rc::Rc};
+use std::{cmp::Ordering, fmt, rc::Rc};
 
 use crate::{
     code_loc::CodeLoc,
@@ -12,32 +12,29 @@ use super::{
     environment::Environment,
     functions::{Closure, Function},
     list::List,
+    numerical::Numerical,
     statements, RunRes, RuntimeError,
 };
 
 // An interface between Zote and Rust values
 #[derive(PartialEq, Debug, PartialOrd, Clone)]
 pub(super) enum Value {
-    Int(i64),
-    Float(f64),
-    Bool(bool),
+    Numerical(Numerical),
     String(String),
     Callable(Function),
+    List(List),
     Nil,
     Uninitialized,
-    List(List),
 }
 
 impl Value {
     fn truthy(&self) -> bool {
         match self {
-            Value::Bool(bool) => *bool,
-            Value::Int(int) => *int != 0,
-            Value::Float(float) => *float != 0.0,
+            Value::Numerical(num) => num.truthy(),
             Value::String(string) => !string.is_empty(),
             Value::Callable(_) => panic!("Can't convert function to bool"), // TODO: real error, or just warning
             Value::Nil => false,
-            Value::Uninitialized => panic!("Use of uninit value!"),
+            Value::Uninitialized => false,
             Value::List(list) => list.to_bool(),
         }
     }
@@ -45,14 +42,23 @@ impl Value {
     pub fn stringify(&self) -> String {
         // OPT Could we just return &str here?
         match self {
-            Value::Bool(bool) => format!("{bool}"),
-            Value::Int(int) => format!("{int}"),
-            Value::Float(float) => format!("{float}"),
+            Value::Numerical(num) => num.stringify(),
             Value::String(string) => string.to_string(),
             Value::Callable(callable) => callable.name().to_string(),
             Value::Nil => "Nil".to_string(),
             Value::Uninitialized => panic!("Use of uninit value!"),
             Value::List(list) => list.stringify(),
+        }
+    }
+
+    pub fn type_of(&self) -> &'static str {
+        match self {
+            Value::Numerical(num) => num.type_of(),
+            Value::String(_) => "String",
+            Value::Callable(_) => "Function",
+            Value::Nil => "Nil",
+            Value::Uninitialized => "Uninitialized",
+            Value::List(_) => "List",
         }
     }
 }
@@ -76,9 +82,9 @@ pub(super) fn eval(expr: &ExprNode, env: &Rc<Environment>) -> RunRes<Value> {
         Expr::Var(id) => env.get(id).ok_or_else(|| {
             RuntimeError::Error(start, end, format!("Variable '{id}' not declared"))
         }),
-        Expr::Int(int) => Ok(Value::Int(*int)),
-        Expr::Float(float) => Ok(Value::Float(*float)),
-        Expr::Bool(bool) => Ok(Value::Bool(*bool)),
+        Expr::Int(int) => Ok(Value::Numerical(Numerical::Int(*int))),
+        Expr::Float(float) => Ok(Value::Numerical(Numerical::Float(*float))),
+        Expr::Bool(bool) => Ok(Value::Numerical(Numerical::Bool(*bool))),
         Expr::String(string) => Ok(Value::String(string.clone())),
         Expr::Block(stmts) => eval_block(stmts, env, start, end),
         Expr::If(cond, then, other) => eval_if(eval(cond, env)?, then, other.as_ref(), env),
@@ -112,13 +118,19 @@ fn eval_index(
     end: CodeLoc,
     env: &Rc<Environment>,
 ) -> RunRes<Value> {
-    match (eval(base, env)?, eval(index, env)?) {
-        (Value::List(list), Value::Int(at)) => Ok(list.get(at)),
-        _ => error(
+    if let (Value::List(list), Value::Numerical(Numerical::Int(at))) =
+        (eval(base, env)?, eval(index, env)?)
+    {
+        match list.get(at) {
+            Ok(val) => Ok(val),
+            Err(reason) => error(base.start_loc.clone(), end, reason),
+        }
+    } else {
+        error(
             base.start_loc.clone(),
             end,
             "Can only index into a list with an int".to_string(),
-        ),
+        )
     }
 }
 
@@ -232,7 +244,6 @@ fn eval_binary(
     end_loc: CodeLoc,
 ) -> RunRes<Value> {
     match op.node.as_ref() {
-        // TODO: implicit conversion from int to float. Now they only work together on comparisions
         BinOper::Add => bin_add(left, right, start_loc, end_loc),
         BinOper::Sub => bin_sub(left, right, start_loc, end_loc),
         BinOper::Mult => bin_mult(left, right, start_loc, end_loc),
@@ -250,183 +261,153 @@ fn eval_binary(
 
 fn bin_add(left: Value, right: Value, start_loc: CodeLoc, end_loc: CodeLoc) -> RunRes<Value> {
     match (left, right) {
-        (Value::Float(x), Value::Float(y)) => Ok(Value::Float(x + y)),
-        (Value::Int(x), Value::Int(y)) => Ok(Value::Int(x + y)),
+        (Value::Numerical(x), Value::Numerical(y)) => Ok(Value::Numerical(x.add(y))),
         (Value::String(x), Value::String(y)) => Ok(Value::String(x + &y)),
-        _other => error(
+        (left, right) => error(
             start_loc,
             end_loc,
-            "Addition operands must be two numbers or two strings".to_string(),
+            format!("Cannot add {} and {}", left.stringify(), right.stringify()),
         ),
     }
 }
 
 fn bin_sub(left: Value, right: Value, start_loc: CodeLoc, end_loc: CodeLoc) -> RunRes<Value> {
     match (left, right) {
-        (Value::Float(x), Value::Float(y)) => Ok(Value::Float(x - y)),
-        (Value::Int(x), Value::Int(y)) => Ok(Value::Int(x - y)),
-        _other => error(
+        (Value::Numerical(x), Value::Numerical(y)) => Ok(Value::Numerical(x.sub(y))),
+        (left, right) => error(
             start_loc,
             end_loc,
-            "Subtraction operands must be two numbers".to_string(),
+            format!(
+                "Cannot subtract {} from {}",
+                right.stringify(),
+                left.stringify()
+            ),
         ),
     }
 }
 
 fn bin_mult(left: Value, right: Value, start_loc: CodeLoc, end_loc: CodeLoc) -> RunRes<Value> {
     match (left, right) {
-        (Value::Float(x), Value::Float(y)) => Ok(Value::Float(x * y)),
-        (Value::Int(x), Value::Int(y)) => Ok(Value::Int(x * y)),
-        _other => error(
+        (Value::Numerical(x), Value::Numerical(y)) => Ok(Value::Numerical(x.mult(y))),
+        (left, right) => error(
             start_loc,
             end_loc,
-            "Multiplication operands must be two numbers".to_string(),
+            format!(
+                "Cannot multiply {} and {}",
+                left.stringify(),
+                right.stringify()
+            ),
         ),
     }
 }
 
 fn bin_div(left: Value, right: Value, start_loc: CodeLoc, end_loc: CodeLoc) -> RunRes<Value> {
     match (left, right) {
-        (Value::Float(x), Value::Float(y)) => Ok(Value::Float(x / y)),
-        (Value::Int(x), Value::Int(y)) => Ok(Value::Int(x / y)),
-        _other => error(
+        (Value::Numerical(x), Value::Numerical(y)) => match x.div(y) {
+            Ok(num) => Ok(Value::Numerical(num)),
+            Err(reason) => error(start_loc, end_loc, reason),
+        },
+        (left, right) => error(
             start_loc,
             end_loc,
-            "Division operands must be two numbers".to_string(),
+            format!(
+                "Cannot divide {} by {}",
+                left.stringify(),
+                right.stringify()
+            ),
         ),
     }
 }
 
 fn bin_mod(left: Value, right: Value, start_loc: CodeLoc, end_loc: CodeLoc) -> RunRes<Value> {
     match (left, right) {
-        (Value::Float(x), Value::Float(y)) => Ok(Value::Float(x.rem_euclid(y))),
-        (Value::Int(x), Value::Int(y)) => Ok(Value::Int(x.rem_euclid(y))),
-        _other => error(
-            start_loc,
-            end_loc,
-            "Modulo operands must be two numbers".to_string(),
-        ),
+        (Value::Numerical(x), Value::Numerical(y)) => Ok(Value::Numerical(x.modulo(y))),
+        _other => error(start_loc, end_loc, format!("Modulo only works for numbers")),
     }
 }
 
 fn bin_pow(left: Value, right: Value, start_loc: CodeLoc, end_loc: CodeLoc) -> RunRes<Value> {
     match (left, right) {
-        (Value::Float(x), Value::Float(y)) => Ok(Value::Float(x.powf(y))),
-        (Value::Int(x), Value::Int(y)) if y >= 0 => Ok(Value::Int({
-            let safe_x: u32 = x.abs().try_into().expect("Overflow in pow base");
-            let safe_y: u32 = y.try_into().expect("Overflow in pow exponent");
-            let pow = safe_x.pow(safe_y) as i64;
-            if x >= 0 {
-                pow
-            } else {
-                -pow
-            }
-        })),
-        (Value::Int(x), Value::Int(y)) => Ok(Value::Float((x as f64).powf(y as f64))),
+        (Value::Numerical(x), Value::Numerical(y)) => Ok(Value::Numerical(x.pow(y))),
         _other => error(
             start_loc,
             end_loc,
-            "Division operands must be two numbers".to_string(),
+            format!("Can only take powers of numbers"),
         ),
     }
 }
 
-fn bin_eq(left: Value, right: Value, _start_loc: CodeLoc, _end_loc: CodeLoc) -> RunRes<Value> {
-    match (left, right) {
-        (Value::Float(x), Value::Int(y)) => Ok(Value::Bool(x == y as f64)),
-        (Value::Int(x), Value::Float(y)) => Ok(Value::Bool(x as f64 == y)),
-        (x, y) => Ok(Value::Bool(x == y)),
-    }
+fn bin_eq(left: Value, right: Value, _start: CodeLoc, _end: CodeLoc) -> RunRes<Value> {
+    Ok(Value::Numerical(Numerical::Bool(left == right)))
 }
 
-fn bin_neq(left: Value, right: Value, _start_loc: CodeLoc, _end_loc: CodeLoc) -> RunRes<Value> {
-    match (left, right) {
-        (Value::Float(x), Value::Int(y)) => Ok(Value::Bool(x != y as f64)),
-        (Value::Int(x), Value::Float(y)) => Ok(Value::Bool(x as f64 != y)),
-        (x, y) => Ok(Value::Bool(x != y)),
-    }
+fn bin_neq(left: Value, right: Value, _start: CodeLoc, _end: CodeLoc) -> RunRes<Value> {
+    Ok(Value::Numerical(Numerical::Bool(left != right)))
 }
 
-fn bin_lt(left: Value, right: Value, start_loc: CodeLoc, end_loc: CodeLoc) -> RunRes<Value> {
-    match (left, right) {
-        (Value::Float(x), Value::Int(y)) => Ok(Value::Bool(x < y as f64)),
-        (Value::Int(x), Value::Float(y)) => Ok(Value::Bool((x as f64) < y)),
-        (x, y) if same_type(&x, &y) => Ok(Value::Bool(x < y)),
-        (x, y) => error(
-            start_loc,
-            end_loc,
-            format!("Cannot compare {} and {}", x, y),
+fn bin_lt(left: Value, right: Value, start: CodeLoc, end: CodeLoc) -> RunRes<Value> {
+    match left.partial_cmp(&right) {
+        Some(order) => Ok(Value::Numerical(Numerical::Bool(order == Ordering::Less))),
+        None => error(
+            start,
+            end,
+            format!("Cannot compare {} with {}", left.type_of(), right.type_of()),
         ),
     }
 }
 
-fn bin_leq(left: Value, right: Value, start_loc: CodeLoc, end_loc: CodeLoc) -> RunRes<Value> {
-    match (left, right) {
-        (Value::Float(x), Value::Int(y)) => Ok(Value::Bool(x <= y as f64)),
-        (Value::Int(x), Value::Float(y)) => Ok(Value::Bool((x as f64) <= y)),
-        (x, y) if same_type(&x, &y) => Ok(Value::Bool(x <= y)),
-        (x, y) => error(
-            start_loc,
-            end_loc,
-            format!("Cannot compare {} and {}", x, y),
+fn bin_leq(left: Value, right: Value, start: CodeLoc, end: CodeLoc) -> RunRes<Value> {
+    match left.partial_cmp(&right) {
+        Some(order) => Ok(Value::Numerical(Numerical::Bool(
+            order != Ordering::Greater,
+        ))),
+        None => error(
+            start,
+            end,
+            format!("Cannot compare {} with {}", left.type_of(), right.type_of()),
         ),
     }
 }
 
-fn bin_gt(left: Value, right: Value, start_loc: CodeLoc, end_loc: CodeLoc) -> RunRes<Value> {
-    match (left, right) {
-        (Value::Float(x), Value::Int(y)) => Ok(Value::Bool(x > y as f64)),
-        (Value::Int(x), Value::Float(y)) => Ok(Value::Bool((x as f64) > y)),
-        (x, y) if same_type(&x, &y) => Ok(Value::Bool(x > y)),
-        (x, y) => error(
-            start_loc,
-            end_loc,
-            format!("Cannot compare {} and {}", x, y),
+fn bin_gt(left: Value, right: Value, start: CodeLoc, end: CodeLoc) -> RunRes<Value> {
+    match left.partial_cmp(&right) {
+        Some(order) => Ok(Value::Numerical(Numerical::Bool(
+            order == Ordering::Greater,
+        ))),
+        None => error(
+            start,
+            end,
+            format!("Cannot compare {} with {}", left.type_of(), right.type_of()),
         ),
     }
 }
 
-fn bin_geq(left: Value, right: Value, start_loc: CodeLoc, end_loc: CodeLoc) -> RunRes<Value> {
-    match (left, right) {
-        (Value::Float(x), Value::Int(y)) => Ok(Value::Bool(x >= y as f64)),
-        (Value::Int(x), Value::Float(y)) => Ok(Value::Bool((x as f64) >= y)),
-        (x, y) if same_type(&x, &y) => Ok(Value::Bool(x >= y)),
-        (x, y) => error(
-            start_loc,
-            end_loc,
-            format!("Cannot compare {} and {}", x, y),
+fn bin_geq(left: Value, right: Value, start: CodeLoc, end: CodeLoc) -> RunRes<Value> {
+    match left.partial_cmp(&right) {
+        Some(order) => Ok(Value::Numerical(Numerical::Bool(order != Ordering::Less))),
+        None => error(
+            start,
+            end,
+            format!("Cannot compare {} with {}", left.type_of(), right.type_of()),
         ),
     }
 }
 
-fn eval_unary(
-    op: &UnOperNode,
-    right: Value,
-    start_loc: CodeLoc,
-    end_loc: CodeLoc,
-) -> RunRes<Value> {
+fn eval_unary(op: &UnOperNode, right: Value, start: CodeLoc, end: CodeLoc) -> RunRes<Value> {
     match op.node.as_ref() {
         UnOper::Sub => match right {
-            Value::Int(int) => Ok(Value::Int(-int)),
-            Value::Float(float) => Ok(Value::Float(-float)),
+            Value::Numerical(num) => match num.un_sub() {
+                Ok(num) => Ok(Value::Numerical(num)),
+                Err(reason) => error(start, end, reason),
+            },
             _other => error(
-                start_loc,
-                end_loc,
+                start,
+                end,
                 "Unary subtraction only works for a number".to_string(),
             ),
         },
-        UnOper::Not => Ok(Value::Bool(!right.truthy())),
+        UnOper::Not => Ok(Value::Numerical(Numerical::Bool(!right.truthy()))),
     }
-}
-
-fn same_type(left: &Value, right: &Value) -> bool {
-    matches!(
-        (left, right),
-        (Value::Float(_), Value::Float(_))
-            | (Value::Int(_), Value::Int(_))
-            | (Value::String(_), Value::String(_))
-            | (Value::Bool(_), Value::Bool(_))
-    )
 }
 
 fn eval_logical(
@@ -441,7 +422,7 @@ fn eval_logical(
         LogicalOper::And => left.truthy() && eval(right, env)?.truthy(),
         LogicalOper::Or => left.truthy() || eval(right, env)?.truthy(),
     };
-    Ok(Value::Bool(res))
+    Ok(Value::Numerical(Numerical::Bool(res)))
 }
 
 // Simple print with the value wrapped in its type, for informative prints
@@ -449,15 +430,38 @@ fn eval_logical(
 impl fmt::Display for Value {
     fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
         match self {
-            Value::Bool(bool) => write!(f, "Bool({bool})"),
-            Value::Int(int) => write!(f, "Int({int})"),
-            Value::Float(float) => write!(f, "Float({float})"),
-            Value::String(string) => write!(f, "String({string})"),
             Value::Callable(callable) => write!(f, "fn {}/{}", callable.name(), callable.arity()),
             Value::Nil => write!(f, "Nil"),
             Value::Uninitialized => panic!("Use of uninit value!"),
-            Value::List(list) => write!(f, "{}", list.stringify()),
+            value => write!(f, "{}({})", value.type_of(), value.stringify()),
         }
+    }
+}
+
+impl From<Numerical> for Value {
+    fn from(item: Numerical) -> Self {
+        Value::Numerical(item)
+    }
+}
+
+impl From<i64> for Value {
+    fn from(item: i64) -> Self {
+        let num: Numerical = item.into();
+        num.into()
+    }
+}
+
+impl From<f64> for Value {
+    fn from(item: f64) -> Self {
+        let num: Numerical = item.into();
+        num.into()
+    }
+}
+
+impl From<bool> for Value {
+    fn from(item: bool) -> Self {
+        let num: Numerical = item.into();
+        num.into()
     }
 }
 
@@ -484,14 +488,14 @@ mod tests {
     fn basic_int_math() {
         let program = "1 + 6 / 4 + 20 * -2 / 1";
         let val = interpret_expression_string(program).unwrap();
-        assert!(matches!(val, Value::Int(-38)));
+        assert!(matches!(val, Value::Numerical(Numerical::Int(-38))));
     }
 
     #[test]
     fn more_int_math() {
-        let program = "5^6 == 15625 and -5^6 == -15625 and 7 % 4 == 3 and -7 % 4 == 1";
+        let program = "5^7 == 78125 and -5^7 == -78125 and 7 % 4 == 3 and -7 % 4 == 1";
         let val = interpret_expression_string(program).unwrap();
-        assert!(matches!(val, Value::Bool(true)));
+        assert_eq!(val, true.into());
     }
 
     #[test]
@@ -499,35 +503,35 @@ mod tests {
         // Not the prettiest, but easy to find if one fails, rather than having one big string.
         let program = "2.5*3125.0 > 2.499*3125.0";
         let val = interpret_expression_string(program).unwrap();
-        assert!(matches!(val, Value::Bool(true)));
+        assert!(matches!(val, Value::Numerical(Numerical::Bool(true))));
 
         let program = "0.0 == 0.0";
         let val = interpret_expression_string(program).unwrap();
-        assert!(matches!(val, Value::Bool(true)));
+        assert!(matches!(val, Value::Numerical(Numerical::Bool(true))));
 
         let program = "2.2/5.1 - 3.5*5.0 < -17.0";
         let val = interpret_expression_string(program).unwrap();
-        assert!(matches!(val, Value::Bool(true)));
+        assert!(matches!(val, Value::Numerical(Numerical::Bool(true))));
 
         let program = "!(1.1>=1.100001)";
         let val = interpret_expression_string(program).unwrap();
-        assert!(matches!(val, Value::Bool(true)));
+        assert!(matches!(val, Value::Numerical(Numerical::Bool(true))));
 
         let program = "!(2.2 != 2.2)";
         let val = interpret_expression_string(program).unwrap();
-        assert!(matches!(val, Value::Bool(true)));
+        assert!(matches!(val, Value::Numerical(Numerical::Bool(true))));
 
         let program = "1.1 <= 1.01*1.11";
         let val = interpret_expression_string(program).unwrap();
-        assert!(matches!(val, Value::Bool(true)));
+        assert!(matches!(val, Value::Numerical(Numerical::Bool(true))));
 
         let program = "2.000000001 % 0.1 < 0.00001";
         let val = interpret_expression_string(program).unwrap();
-        assert!(matches!(val, Value::Bool(true)));
+        assert!(matches!(val, Value::Numerical(Numerical::Bool(true))));
 
         let program = "2.2^-2.2 >= 0.176";
         let val = interpret_expression_string(program).unwrap();
-        assert!(matches!(val, Value::Bool(true)));
+        assert!(matches!(val, Value::Numerical(Numerical::Bool(true))));
     }
 
     #[test]
@@ -535,7 +539,7 @@ mod tests {
         let program = "true or time('invalid argument count') and \
                        !(false and time('again the same...'))";
         let val = interpret_expression_string(program).unwrap();
-        assert!(matches!(val, Value::Bool(true)));
+        assert!(matches!(val, Value::Numerical(Numerical::Bool(true))));
     }
 
     #[test]

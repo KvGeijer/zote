@@ -1,5 +1,5 @@
 window.BENCHMARK_DATA = {
-  "lastUpdate": 1684512964570,
+  "lastUpdate": 1684579453320,
   "repoUrl": "https://github.com/KvGeijer/zote",
   "entries": {
     "Rust Benchmark": [
@@ -251,6 +251,54 @@ window.BENCHMARK_DATA = {
             "name": "string_manips",
             "value": 400600903,
             "range": "± 14014521",
+            "unit": "ns/iter"
+          }
+        ]
+      },
+      {
+        "commit": {
+          "author": {
+            "email": "kare.kvg@gmail.com",
+            "name": "Kåre von Geijer",
+            "username": "KvGeijer"
+          },
+          "committer": {
+            "email": "kare.kvg@gmail.com",
+            "name": "Kåre von Geijer",
+            "username": "KvGeijer"
+          },
+          "distinct": true,
+          "id": "6b768915a460ba877ceb6872be3d15fe91dc3d32",
+          "message": "Add slicing and sorting, and solve first aoc day!!\n\nFuture commits will be more separated. The slicing is quite messy and\ncould maybe be moved to some iterator module. Especially if we want it\nfor other thigs such as tuples. The sorting is really nice.",
+          "timestamp": "2023-05-20T12:39:40+02:00",
+          "tree_id": "87afa1ebcf0a6e5c665b0a9b7907abacbbb096a8",
+          "url": "https://github.com/KvGeijer/zote/commit/6b768915a460ba877ceb6872be3d15fe91dc3d32"
+        },
+        "date": 1684579452947,
+        "tool": "cargo",
+        "benches": [
+          {
+            "name": "aoc_2022_1",
+            "value": 1050265,
+            "range": "± 17276",
+            "unit": "ns/iter"
+          },
+          {
+            "name": "fibonachi",
+            "value": 118820593,
+            "range": "± 2636598",
+            "unit": "ns/iter"
+          },
+          {
+            "name": "prints",
+            "value": 17926635,
+            "range": "± 235454",
+            "unit": "ns/iter"
+          },
+          {
+            "name": "string_manips",
+            "value": 181685950,
+            "range": "± 833911",
             "unit": "ns/iter"
           }
         ]

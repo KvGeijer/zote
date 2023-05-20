@@ -15,7 +15,7 @@ pub type LogicalOperNode = AstNode<LogicalOper>;
 #[derive(Debug, PartialEq, Clone)]
 pub enum Expr {
     Call(ExprNode, Vec<ExprNode>),
-    Index(ExprNode, ExprNode),
+    Index(ExprNode, Index),
     Binary(ExprNode, BinOperNode, ExprNode),
     Unary(UnOperNode, ExprNode),
     Logical(ExprNode, LogicalOperNode, ExprNode),
@@ -34,6 +34,22 @@ pub enum Expr {
     List(Vec<ExprNode>),
     Tuple(Vec<ExprNode>),
     FunctionDefinition(String, Vec<String>, ExprNode),
+}
+
+#[derive(Debug, Clone, PartialEq)]
+pub enum Index {
+    At(ExprNode),
+    Slice {
+        start: Option<ExprNode>,
+        stop: Option<ExprNode>,
+        step: Option<ExprNode>,
+    },
+}
+
+impl Index {
+    fn slice(start: Option<ExprNode>, stop: Option<ExprNode>, step: Option<ExprNode>) -> Self {
+        Self::Slice { start, stop, step }
+    }
 }
 
 #[derive(PartialEq, Eq, Debug, Clone)]
@@ -289,7 +305,7 @@ impl<'a> Parser<'a> {
     }
 
     fn add_calls(&mut self, base: ExprNode) -> Option<ExprNode> {
-        // Takes a base expressions, and adds     ( "(" expr_list ")" | "[" expression "]" )*
+        // Takes a base expressions, and adds     ( "(" expr_list ")" | "[" indexing "]" )*
 
         let start = base.start_loc.clone();
         if self.match_token(Token::LPar) {
@@ -302,13 +318,55 @@ impl<'a> Parser<'a> {
             let end = self.peek_last_end_loc()?.clone();
             self.add_calls(ExprNode::new(Expr::Call(base, args), start, end))
         } else if self.match_token(Token::LBrack) {
-            let index = self.expression()?;
-            self.accept(Token::RBrack, "Expect ']' to close indexing")?;
+            let index = self.accept_indexing()?;
             let end = self.peek_last_end_loc()?.clone();
             self.add_calls(ExprNode::new(Expr::Index(base, index), start, end))
         } else {
             Some(base)
         }
+    }
+
+    // Note: Does capture ending ], but not the starting [
+    fn accept_indexing(&mut self) -> Option<Index> {
+        // indexing     -> ( expression | expression? ":" (expression? ( ":" expression? )? )? ) "]"
+
+        let start = if !self.match_token(Token::Colon) {
+            let start = self.expression()?;
+            if !self.match_token(Token::Colon) {
+                // A single at index
+                self.accept(Token::RBrack, "Expect ']' to close out indexing")?;
+                return Some(Index::At(start));
+            } else {
+                Some(start)
+            }
+        } else {
+            None
+        };
+
+        if self.match_token(Token::RBrack) {
+            return Some(Index::slice(start, None, None));
+        }
+
+        let stop = if !self.match_token(Token::Colon) {
+            let stop = self.expression()?;
+            if !self.match_token(Token::Colon) {
+                self.accept(Token::RBrack, "Expect ']' to close out indexing")?;
+                return Some(Index::slice(start, Some(stop), None));
+            }
+            Some(stop)
+        } else {
+            None
+        };
+
+        let step = if !self.match_token(Token::RBrack) {
+            let step = self.expression()?;
+            self.accept(Token::RBrack, "Expect ']' to close out indexing")?;
+            Some(step)
+        } else {
+            None
+        };
+
+        return Some(Index::slice(start, stop, step));
     }
 
     fn accept_exprs_list(&mut self, terminator: &Token) -> Option<Vec<ExprNode>> {

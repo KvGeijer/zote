@@ -1,9 +1,10 @@
-use std::{cmp::Ordering, fmt, rc::Rc};
+use std::{cmp::Ordering, fmt, iter::Take, rc::Rc};
 
 use crate::{
     code_loc::CodeLoc,
+    interpreter::list::slice_iter,
     parser::{
-        BinOper, BinOperNode, Expr, ExprNode, LogicalOper, LogicalOperNode, Stmts, UnOper,
+        BinOper, BinOperNode, Expr, ExprNode, Index, LogicalOper, LogicalOperNode, Stmts, UnOper,
         UnOperNode,
     },
 };
@@ -17,7 +18,7 @@ use super::{
 };
 
 // An interface between Zote and Rust values
-#[derive(PartialEq, Debug, PartialOrd, Clone)]
+#[derive(PartialEq, Debug, Clone)]
 pub(super) enum Value {
     Numerical(Numerical),
     String(String),
@@ -112,25 +113,112 @@ pub(super) fn eval(expr: &ExprNode, env: &Rc<Environment>) -> RunRes<Value> {
     }
 }
 
+fn up_err<T>(result: Result<T, String>, start: CodeLoc, end: CodeLoc) -> RunRes<T> {
+    match result {
+        Err(reason) => error(start, end, reason),
+        Ok(val) => Ok(val),
+    }
+}
+
+// Is this the most beautiful function ever?!?
 fn eval_index(
     base: &ExprNode,
-    index: &ExprNode,
+    index: &Index,
     end: CodeLoc,
     env: &Rc<Environment>,
 ) -> RunRes<Value> {
-    if let (Value::List(list), Value::Numerical(Numerical::Int(at))) =
-        (eval(base, env)?, eval(index, env)?)
-    {
-        match list.get(at) {
-            Ok(val) => Ok(val),
-            Err(reason) => error(base.start_loc.clone(), end, reason),
+    let start_loc = base.start_loc.clone();
+    match index {
+        Index::At(at) => match eval(base, env)? {
+            Value::List(list) => up_err(list.get(eval(at, env)?), start_loc, end),
+            Value::String(string) => {
+                if let Value::Numerical(num) = eval(at, env)? {
+                    let maybe_indexed = string
+                        .chars()
+                        .nth(num.to_rint() as usize)
+                        .map(|char| char.to_string().into());
+                    up_err(
+                        maybe_indexed.ok_or(format!(
+                            "Index {} out of bound for string of length {}",
+                            num.to_rint(),
+                            string.len()
+                        )),
+                        start_loc,
+                        end,
+                    )
+                } else {
+                    error(
+                        start_loc,
+                        end,
+                        "Can only index into a string with a numerical".to_string(),
+                    )
+                }
+            }
+            other => error(
+                start_loc,
+                end,
+                format!("Cannot index into a {}", other.type_of()),
+            ),
+        },
+        Index::Slice { start, stop, step } => {
+            let start = match start.as_ref().map(|expr| eval(expr, env)) {
+                Some(Ok(Value::Numerical(num))) => Some(num.to_rint()),
+                None => None,
+                Some(Err(err)) => return Err(err),
+                Some(_other) => {
+                    return error(
+                        start_loc,
+                        end,
+                        "Start of slice must be a numerical".to_string(),
+                    )
+                }
+            };
+
+            let stop = match stop.as_ref().map(|expr| eval(expr, env)) {
+                Some(Ok(Value::Numerical(num))) => Some(num.to_rint()),
+                None => None,
+                Some(Err(err)) => return Err(err),
+                Some(_other) => {
+                    return error(
+                        start_loc,
+                        end,
+                        "Stop of slice must be a numerical".to_string(),
+                    )
+                }
+            };
+
+            let step = match step.as_ref().map(|expr| eval(expr, env)) {
+                Some(Ok(Value::Numerical(num))) => Some(num.to_rint()),
+                None => None,
+                Some(Err(err)) => return Err(err),
+                Some(_other) => {
+                    return error(
+                        start_loc,
+                        end,
+                        "Step of slice must be a numerical".to_string(),
+                    )
+                }
+            };
+
+            match eval(base, env)? {
+                Value::List(list) => up_err(list.slice(start, stop, step), start_loc, end),
+                Value::String(string) => {
+                    let len = string.chars().count();
+                    let sliced: String = up_err::<Take<_>>(
+                        slice_iter(string.chars().into_iter(), start, stop, step, len),
+                        start_loc,
+                        end,
+                    )?
+                    .collect();
+                    Ok(sliced.into())
+                }
+                other => error(
+                    start_loc,
+                    end,
+                    format!("Cannot slice a {}", other.type_of()),
+                ),
+            }
         }
-    } else {
-        error(
-            base.start_loc.clone(),
-            end,
-            "Can only index into a list with an int".to_string(),
-        )
     }
 }
 
@@ -184,7 +272,7 @@ fn eval_call(callee: Value, args: Vec<Value>, start: CodeLoc, end: CodeLoc) -> R
     }
 }
 
-fn error(start: CodeLoc, end: CodeLoc, message: String) -> RunRes<Value> {
+fn error<T>(start: CodeLoc, end: CodeLoc, message: String) -> RunRes<T> {
     Err(RuntimeError::Error(start, end, message))
 }
 
@@ -444,6 +532,16 @@ impl fmt::Display for Value {
             Value::Nil => write!(f, "Nil"),
             Value::Uninitialized => panic!("Use of uninit value!"),
             value => write!(f, "{}({})", value.type_of(), value.stringify()),
+        }
+    }
+}
+
+impl PartialOrd for Value {
+    fn partial_cmp(&self, other: &Self) -> Option<std::cmp::Ordering> {
+        match (self, other) {
+            (Value::Numerical(x), Value::Numerical(y)) => x.partial_cmp(y),
+            (Value::String(x), Value::String(y)) => x.partial_cmp(y),
+            _ => None,
         }
     }
 }

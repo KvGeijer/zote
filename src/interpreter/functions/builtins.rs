@@ -21,7 +21,7 @@ macro_rules! box_builtins {
 }
 
 pub(super) fn get_builtins() -> Vec<Rc<dyn Builtin>> {
-    box_builtins![Time, Print, Str, Push, Pop, Read, Int, Max, Map, Split, Sum]
+    box_builtins![Time, Print, Str, Push, Pop, Read, Int, Max, Map, Split, Sum, Sort]
 }
 
 struct Time;
@@ -269,5 +269,28 @@ impl Builtin for Sum {
 
     fn name(&self) -> &str {
         "sum"
+    }
+}
+
+struct Sort;
+impl Builtin for Sort {
+    fn run(&self, args: Vec<Value>) -> RunRes<Value> {
+        match args.into_iter().next().unwrap() {
+            Value::List(list) => list
+                .sort()
+                .map_err(|reason| RuntimeError::ErrorReason(reason)),
+            arg => Err(RuntimeError::ErrorReason(format!(
+                "Expected a list as argument to sort, but got {}",
+                arg.type_of(),
+            ))),
+        }
+    }
+
+    fn arity(&self) -> usize {
+        1
+    }
+
+    fn name(&self) -> &str {
+        "sort"
     }
 }

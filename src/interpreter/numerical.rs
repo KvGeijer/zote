@@ -52,12 +52,16 @@ impl Numerical {
     }
 
     pub fn to_int(self) -> Numerical {
-        Numerical::Int(match self {
+        Numerical::Int(self.to_rint())
+    }
+
+    pub fn to_rint(self) -> i64 {
+        match self {
             Numerical::Bool(true) => 1,
             Numerical::Bool(false) => 0,
             Numerical::Int(int) => int,
             Numerical::Float(float) => float as i64,
-        })
+        }
     }
 
     pub fn add(self, other: Numerical) -> Numerical {

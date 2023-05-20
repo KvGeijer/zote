@@ -22,38 +22,8 @@ fn fibonachi() {
     )
 }
 
-// #[test]
-// fn float_comparisons() {
-//     // Not the prettiest, but easy to find if one fails, rather than having one big string.
-//     let program = "2.5*3125.0 > 2.499*3125.0";
-//     run_str(program);
-//     assert!(matches!(val, Value::Bool(true)));
-
-//     let program = "0.0 == 0.0";
-//     run_str(program);
-//     assert!(matches!(val, Value::Bool(true)));
-
-//     let program = "2.2/5.1 - 3.5*5.0 < -17.0";
-//     run_str(program);
-//     assert!(matches!(val, Value::Bool(true)));
-
-//     let program = "!(1.1>=1.100001)";
-//     run_str(program);
-//     assert!(matches!(val, Value::Bool(true)));
-
-//     let program = "!(2.2 != 2.2)";
-//     run_str(program);
-//     assert!(matches!(val, Value::Bool(true)));
-
-//     let program = "1.1 <= 1.01*1.11";
-//     run_str(program);
-//     assert!(matches!(val, Value::Bool(true)));
-
-//     let program = "2.000000001 % 0.1 < 0.00001";
-//     run_str(program);
-//     assert!(matches!(val, Value::Bool(true)));
-
-//     let program = "2.2^-2.2 >= 0.176";
-//     run_str(program);
-//     assert!(matches!(val, Value::Bool(true)));
-// }
+#[test]
+fn aoc_2022_1() {
+    let output = interpret("tests/programs/aoc-2022-1.zote");
+    assert_eq!(output, "68923\n200044\n");
+}

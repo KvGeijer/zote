@@ -25,6 +25,6 @@ fn string_manips(bench: &mut Bencher) {
 
 #[bench]
 fn aoc_2022_1(bench: &mut Bencher) {
-    let code = include_str!("programs/aoc-2022-1.zote");
+    let code = include_str!("../aoc-2022/day01.zote");
     bench.iter(|| run_str(code));
 }

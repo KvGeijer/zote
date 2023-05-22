@@ -1,9 +1,0 @@
-read("./benches/programs/data/aoc-2022-1.txt")
-	>> split("\n") 
-	>> split("") 
-	>> map(elf -> elf >> map(int) >> sum)
-	>> sort
-	>>: elfs;
-
-elfs[0] >> print;
-elfs[0:3] >> sum >> print;

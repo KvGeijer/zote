@@ -1,4 +1,6 @@
-read("./benches/programs/data/aoc-2022-1.txt")
+while true 1;
+
+read("aoc-2022/inputs/01.txt")
 	>> split("\n") 
 	>> split("") 
 	>> map(elf -> elf >> map(int) >> sum)

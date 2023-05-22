@@ -24,6 +24,6 @@ fn fibonachi() {
 
 #[test]
 fn aoc_2022_1() {
-    let output = interpret("tests/programs/aoc-2022-1.zote");
+    let output = interpret("aoc-2022/day01.zote");
     assert_eq!(output, "68923\n200044\n");
 }

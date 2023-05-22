@@ -1,5 +1,5 @@
 window.BENCHMARK_DATA = {
-  "lastUpdate": 1684579453320,
+  "lastUpdate": 1684757368541,
   "repoUrl": "https://github.com/KvGeijer/zote",
   "entries": {
     "Rust Benchmark": [
@@ -299,6 +299,60 @@ window.BENCHMARK_DATA = {
             "name": "string_manips",
             "value": 181685950,
             "range": "± 833911",
+            "unit": "ns/iter"
+          }
+        ]
+      },
+      {
+        "commit": {
+          "author": {
+            "email": "kare.kvg@gmail.com",
+            "name": "Kåre von Geijer",
+            "username": "KvGeijer"
+          },
+          "committer": {
+            "email": "kare.kvg@gmail.com",
+            "name": "Kåre von Geijer",
+            "username": "KvGeijer"
+          },
+          "distinct": true,
+          "id": "d97426f177de9f55b415baeb812c60345f8a1fee",
+          "message": "Add aoc 2022 day 2\n\nNot the prettiest solution, here are some wanted features:\n* Pattern matching against constants\n* Pattern matching against iterables as lvalues\n* Converting a string/char to ascii int\n* Easier maps:\n  * I want map(x -> x >> ...) to just be something like\n    map(>> ...) or map(| ...) or similar.\n* Maybe a way to pipe into any position of the argument?\n  * Like `func >>1 map(data)` = `map(data, func)`? Easy fix...",
+          "timestamp": "2023-05-22T14:01:13+02:00",
+          "tree_id": "efe3f374b1c94bf60ca8f0afe4aee377efc65a2b",
+          "url": "https://github.com/KvGeijer/zote/commit/d97426f177de9f55b415baeb812c60345f8a1fee"
+        },
+        "date": 1684757367781,
+        "tool": "cargo",
+        "benches": [
+          {
+            "name": "aoc_2022_1",
+            "value": 922022,
+            "range": "± 13331",
+            "unit": "ns/iter"
+          },
+          {
+            "name": "aoc_2022_2",
+            "value": 18947943,
+            "range": "± 174386",
+            "unit": "ns/iter"
+          },
+          {
+            "name": "fibonachi",
+            "value": 121574844,
+            "range": "± 1902339",
+            "unit": "ns/iter"
+          },
+          {
+            "name": "prints",
+            "value": 17855765,
+            "range": "± 283243",
+            "unit": "ns/iter"
+          },
+          {
+            "name": "string_manips",
+            "value": 182072975,
+            "range": "± 533676",
             "unit": "ns/iter"
           }
         ]

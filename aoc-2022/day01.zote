@@ -1,5 +1,3 @@
-while true 1;
-
 read("aoc-2022/inputs/01.txt")
 	>> split("\n") 
 	>> split("") 

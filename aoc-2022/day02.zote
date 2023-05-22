@@ -1,0 +1,31 @@
+fn to_int(char) -> {
+	if      char == 'A' 0 
+	else if char == 'B' 1 
+	else if char == 'C' 2 
+	else if char == 'X' 0 
+	else if char == 'Y' 1 
+	else if char == 'Z' 2
+};
+
+fn score1(line) -> {
+	line[0] >> to_int >>: opp; 
+	line[2] >> to_int >>: you; 
+
+	you + 1 + ((you - opp + 1) % 3) * 3
+};
+
+fn score2(line) -> {
+	line[0] >> to_int >>: opp; 
+	line[2] >> to_int >>: res; 
+
+	res*3 + (opp + res - 1) % 3 + 1
+};
+
+[score1, score2] >> map(score -> 
+	read("aoc-2022/inputs/02.txt") 
+		>> split("\n") 
+		>> map(score) 
+		>> sum 
+		>> print
+	);
+	

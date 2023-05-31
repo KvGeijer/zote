@@ -1,5 +1,5 @@
 window.BENCHMARK_DATA = {
-  "lastUpdate": 1684757368541,
+  "lastUpdate": 1685569479710,
   "repoUrl": "https://github.com/KvGeijer/zote",
   "entries": {
     "Rust Benchmark": [
@@ -353,6 +353,60 @@ window.BENCHMARK_DATA = {
             "name": "string_manips",
             "value": 182072975,
             "range": "± 533676",
+            "unit": "ns/iter"
+          }
+        ]
+      },
+      {
+        "commit": {
+          "author": {
+            "email": "kare.kvg@gmail.com",
+            "name": "Kåre von Geijer",
+            "username": "KvGeijer"
+          },
+          "committer": {
+            "email": "kare.kvg@gmail.com",
+            "name": "Kåre von Geijer",
+            "username": "KvGeijer"
+          },
+          "distinct": true,
+          "id": "8dcd3fdfcd4b8af51d4b9c41f958edcea34405ed",
+          "message": "Add proper lvalues for assignments.\n\nFunctionally we can assign to indexes in lists. The code should now be\nrefactored so that we get iterators and can assign to slices as well.\nAlso, the eval_indexing sucks and should be refactored. The whole\ninterpreter is becoming too large (expressions file)",
+          "timestamp": "2023-05-31T23:39:39+02:00",
+          "tree_id": "0e69dc4425d57a192272ef0a7f9cc8455a6cfbdc",
+          "url": "https://github.com/KvGeijer/zote/commit/8dcd3fdfcd4b8af51d4b9c41f958edcea34405ed"
+        },
+        "date": 1685569479321,
+        "tool": "cargo",
+        "benches": [
+          {
+            "name": "aoc_2022_1",
+            "value": 1041813,
+            "range": "± 14480",
+            "unit": "ns/iter"
+          },
+          {
+            "name": "aoc_2022_2",
+            "value": 20548472,
+            "range": "± 55668",
+            "unit": "ns/iter"
+          },
+          {
+            "name": "fibonachi",
+            "value": 155981097,
+            "range": "± 1908102",
+            "unit": "ns/iter"
+          },
+          {
+            "name": "prints",
+            "value": 17453007,
+            "range": "± 283015",
+            "unit": "ns/iter"
+          },
+          {
+            "name": "string_manips",
+            "value": 182129215,
+            "range": "± 507665",
             "unit": "ns/iter"
           }
         ]

@@ -1,4 +1,4 @@
-use super::{functions::Function, numerical::Numerical, RunRes, Value};
+use super::{expressions::IndexValue, functions::Function, numerical::Numerical, RunRes, Value};
 
 use std::{
     cell::RefCell,
@@ -171,6 +171,35 @@ impl List {
                 .collect::<Vec<Value>>()
                 .into(),
         )
+    }
+
+    pub(super) fn assign_into(&self, value: Value, index: IndexValue) -> Result<Value, String> {
+        // A bit annoying to handle slicing...
+        match index {
+            IndexValue::At(Value::Numerical(ind)) => {
+                let mut vec = self.vec.borrow_mut();
+                let len = vec.len();
+                let uind = index_wrap(ind.to_rint(), len);
+                *vec.get_mut(uind).ok_or_else(|| {
+                    format!("Index {} out of bounds for list of len {}", uind, len)
+                })? = value.clone();
+                Ok(value)
+            }
+            IndexValue::At(val) => Err(format!("Cannot index into list with a {}", val.type_of())),
+            IndexValue::Slice { start, stop, step } => {
+                todo!("Not yet implemented slice assignment for lists")
+                // let vec = self.vec.borrow_mut();
+                // let vec_len = vec.len();
+                // if slice_len(start, stop, step) != value.iter_len() {}
+
+                // for (lvalue, rvalue) in
+                //     slice_iter(vec.iter_mut(), start, stop, step, vec_len).zip(value.iter())
+                // {
+                //     *lvalue = rvalue;
+                // }
+                // self.vec.borrow_mut().get_mut(ind) = value;
+            }
+        }
     }
 }
 

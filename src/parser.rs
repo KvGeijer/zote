@@ -6,7 +6,8 @@ mod generics;
 mod statements;
 
 pub use expressions::{
-    BinOper, BinOperNode, Expr, ExprNode, Index, LogicalOper, LogicalOperNode, UnOper, UnOperNode,
+    BinOper, BinOperNode, Expr, ExprNode, Index, LValue, LogicalOper, LogicalOperNode, UnOper,
+    UnOperNode,
 };
 pub use statements::{Stmt, StmtNode, Stmts};
 

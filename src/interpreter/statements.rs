@@ -1,11 +1,14 @@
 use std::rc::Rc;
 
-use crate::parser::{ExprNode, Stmt, StmtNode, Stmts};
+use crate::{
+    code_loc::CodeLoc,
+    parser::{ExprNode, LValue, Stmt, StmtNode, Stmts},
+};
 
 use super::{
     environment::Environment,
     expressions::{self, Value},
-    RunRes,
+    RunRes, RuntimeError,
 };
 
 pub(super) fn eval_statements(statements: &Stmts, env: &Rc<Environment>) -> RunRes<Option<Value>> {
@@ -27,20 +30,33 @@ pub(super) fn eval_statements(statements: &Stmts, env: &Rc<Environment>) -> RunR
 }
 
 fn eval(stmt: &StmtNode, env: &Rc<Environment>) -> RunRes<Option<Value>> {
-    match stmt.node.as_ref() {
-        Stmt::Decl(id, expr) => decl(id, expr, env).map(|_| None),
+    let StmtNode {
+        start_loc,
+        end_loc,
+        box node,
+    } = stmt;
+    match node {
+        Stmt::Decl(id, expr) => decl(id, expr, env, *start_loc, *end_loc).map(|_| None),
         Stmt::Expr(expr) => expressions::eval(expr, env).map(Some),
         Stmt::Invalid => panic!("Tried to interpret an invalid statement!"),
     }
 }
 
-fn decl(id: &str, expr: &Option<ExprNode>, env: &Rc<Environment>) -> RunRes<()> {
-    let value = if let Some(expr) = expr {
-        expressions::eval(expr, env)?
-    } else {
-        Value::Uninitialized
+fn decl(
+    lvalue: &LValue,
+    expr: &Option<ExprNode>,
+    env: &Rc<Environment>,
+    start: CodeLoc,
+    end: CodeLoc,
+) -> RunRes<()> {
+    lvalue
+        .declare(env)
+        .map_err(|reason| RuntimeError::Error(start, end, reason))?;
+    if let Some(expr) = expr {
+        let rvalue = expressions::eval(expr, env)?;
+        lvalue.assign(rvalue, env)?;
+        // .map_err(|reason| RuntimeError::Error(start, end, reason))?;
     };
-    env.define(id.to_owned(), value);
     Ok(())
 }
 
@@ -92,29 +108,30 @@ mod tests {
         ));
 
         let program = concat!(
-            "fn maybe_nil_ret(x) -> {",
-            "    if x == Nil         ",
-            "        return          ",
-            "    else                ",
-            "        return true     ",
-            "};                      ",
-            "                        ",
-            "maybe_nil_ret(Nil)      ",
+            "fn maybe_nil_ret(x) -> {\n",
+            "    if x == Nil         \n",
+            "        return          \n",
+            "    else                \n",
+            "        return true     \n",
+            "};                      \n",
+            "                        \n",
+            "maybe_nil_ret(Nil)      \n",
         );
         assert!(matches!(
             interpret_string(program).unwrap().unwrap(),
             Value::Nil
         ));
+        println!("RATARTART");
 
         let program = concat!(
-            "var maybe_nil_ret = x -> {",
-            "    if x == Nil           ",
-            "        return            ",
-            "    else                  ",
-            "        return true       ",
-            "};                        ",
-            "                          ",
-            "maybe_nil_ret('Nil')      ",
+            "var maybe_nil_ret = x -> {\n",
+            "    if x == Nil           \n",
+            "        return            \n",
+            "    else                  \n",
+            "        return true       \n",
+            "};                        \n",
+            "                          \n",
+            "maybe_nil_ret('Nil')      \n",
         );
         assert_eq!(interpret_string(program).unwrap().unwrap(), true.into());
     }

@@ -67,17 +67,17 @@ impl<'a> Parser<'a> {
         }
     }
 
-    pub fn match_identifier(&mut self) -> Option<String> {
-        if matches!(self.peek(), Token::Identifier(_)) {
-            if let Token::Identifier(id) = self.take() {
-                Some(id.clone())
-            } else {
-                panic!("Internal error at match_token");
-            }
-        } else {
-            None
-        }
-    }
+    // pub fn match_identifier(&mut self) -> Option<String> {
+    //     if matches!(self.peek(), Token::Identifier(_)) {
+    //         if let Token::Identifier(id) = self.take() {
+    //             Some(id.clone())
+    //         } else {
+    //             panic!("Internal error at match_token");
+    //         }
+    //     } else {
+    //         None
+    //     }
+    // }
 
     pub fn at_end(&self) -> bool {
         self.current == self.tokens.len() - 1

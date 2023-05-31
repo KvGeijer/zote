@@ -19,7 +19,7 @@ pub enum Expr {
     Binary(ExprNode, BinOperNode, ExprNode),
     Unary(UnOperNode, ExprNode),
     Logical(ExprNode, LogicalOperNode, ExprNode),
-    Assign(String, ExprNode),
+    Assign(LValue, ExprNode),
     Var(String),
     Int(i64),
     Float(f64),
@@ -34,6 +34,14 @@ pub enum Expr {
     List(Vec<ExprNode>),
     Tuple(Vec<ExprNode>),
     FunctionDefinition(String, Vec<String>, ExprNode),
+}
+
+// TODO: Add pattern matching
+#[derive(Debug, PartialEq, Clone)]
+pub enum LValue {
+    Index(ExprNode, Index), // So far, the only interior mutability in zote
+    Var(String),
+    // Underscore, // Might want to add later, but for now they are just normal variables
 }
 
 #[derive(Debug, Clone, PartialEq)]
@@ -96,23 +104,26 @@ impl<'a> Parser<'a> {
     }
 
     fn assignment(&mut self) -> Option<ExprNode> {
-        // assignment     → IDENTIFIER "=" assignment | equality ;
+        // assignment     → lvalue "=" assignment | equality ;
         // TODO At least assign to tuples
         let expr = self.pipe()?;
         if self.match_token(Token::Eq) {
-            if let AstNode {
+            let ExprNode {
                 start_loc,
                 end_loc: _,
-                node: box Expr::Var(id),
-            } = expr
-            {
-                let rvalue = self.assignment()?;
-                let end = rvalue.end_loc.clone();
-                let assign = Expr::Assign(id, rvalue);
-                Some(ExprNode::new(assign, start_loc, end))
-            } else {
-                self.error("Invalid lvalue");
-                None
+                box node,
+            } = expr;
+            match node.to_lvalue() {
+                Ok(lvalue) => {
+                    let rvalue = self.assignment()?;
+                    let end = rvalue.end_loc.clone();
+                    let assign = Expr::Assign(lvalue, rvalue);
+                    Some(ExprNode::new(assign, start_loc, end))
+                }
+                Err(reason) => {
+                    self.error(&reason);
+                    None
+                }
             }
         } else {
             Some(expr)
@@ -565,6 +576,41 @@ impl ExprNode {
         let end_loc = right.end_loc.clone();
         let expr = Expr::Logical(left, op, right);
         AstNode::new(expr, start_loc, end_loc)
+    }
+}
+
+impl Expr {
+    pub fn to_lvalue(self) -> Result<LValue, String> {
+        match self {
+            Expr::Index(expr_node, index) => Ok(LValue::Index(expr_node, index)),
+            Expr::Var(id) => Ok(LValue::Var(id)),
+            other => Err(format!("Cannot convert {} to an lvalue.", other.type_of())), // TODO, no debug print
+        }
+    }
+
+    fn type_of(&self) -> &str {
+        match self {
+            Expr::Call(_, _) => "call",
+            Expr::Index(_, _) => "index",
+            Expr::Binary(_, _, _) => "binary",
+            Expr::Unary(_, _) => "unary",
+            Expr::Logical(_, _, _) => "logical",
+            Expr::Assign(_, _) => "assign",
+            Expr::Var(_) => "var",
+            Expr::Int(_) => "int",
+            Expr::Float(_) => "float",
+            Expr::Bool(_) => "bool",
+            Expr::String(_) => "string",
+            Expr::Block(_) => "block",
+            Expr::If(_, _, _) => "if",
+            Expr::While(_, _) => "while",
+            Expr::Break => "break",
+            Expr::Return(_) => "return",
+            Expr::Nil => "nil",
+            Expr::List(_) => "list",
+            Expr::Tuple(_) => "tuple",
+            Expr::FunctionDefinition(_, _, _) => "func_def",
+        }
     }
 }
 

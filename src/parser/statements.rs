@@ -1,6 +1,6 @@
 use either::Either;
 
-use super::{expressions::MAX_ARGS, AstNode, ExprNode, Parser};
+use super::{expressions::MAX_ARGS, AstNode, ExprNode, LValue, Parser};
 use crate::scanner::Token;
 
 pub type StmtNode = AstNode<Stmt>;
@@ -13,7 +13,7 @@ pub struct Stmts {
 
 #[derive(Debug, PartialEq, Clone)]
 pub enum Stmt {
-    Decl(String, Option<ExprNode>),
+    Decl(LValue, Option<ExprNode>),
     Expr(ExprNode),
     Invalid,
 }
@@ -105,7 +105,11 @@ impl<'a> Parser<'a> {
                 end.clone(),
             );
 
-            Some(StmtNode::new(Stmt::Decl(name, Some(func)), start, end))
+            Some(StmtNode::new(
+                Stmt::Decl(LValue::Var(name), Some(func)),
+                start,
+                end,
+            ))
         } else {
             self.error("Expect function name after fn");
             None
@@ -142,25 +146,26 @@ impl<'a> Parser<'a> {
 
     fn decl_stmt(&mut self) -> Option<StmtNode> {
         // TODO Add declaring multiple in a row and/or tuple based init
-        // varDecl        → "var" IDENTIFIER ( "=" expression )? ";" ;
+        // varDecl        → "var" expression ";" ;
+        let start = self.peek_start_loc().clone();
         self.accept(Token::Var, "Expect 'var' at start of declaration");
-        if let Token::Identifier(id) = self.peek().clone() {
-            let start = self.peek_start_loc().clone();
-            self.take();
-            let expr = if self.match_token(Token::Eq) {
-                // Also assign it a value
-                let expr = self.expression()?;
-                Some(expr)
-            } else {
-                // Really None?
-                None
-            };
-            let end = self.peek_end_loc().clone();
-            self.accept(Token::Semicolon, "Decl statement must end with ';'")?;
-            Some(StmtNode::new(Stmt::Decl(id, expr), start, end))
-        } else {
-            self.error("A declaration statement must start with an id");
-            None
+        let box node = self.expression()?.node; // We can't separate lvalues and assignmen here :/
+        let end = self.peek_end_loc().clone();
+        match node {
+            super::Expr::Assign(lvalue, rvalue) => {
+                self.accept(Token::Semicolon, "Decl statement must end with ';'")?;
+                Some(StmtNode::new(Stmt::Decl(lvalue, Some(rvalue)), start, end))
+            }
+            other => match other.to_lvalue() {
+                Ok(lvalue) => {
+                    self.accept(Token::Semicolon, "Decl statement must end with ';'")?;
+                    Some(StmtNode::new(Stmt::Decl(lvalue, None), start, end))
+                }
+                Err(reason) => {
+                    self.error(&reason);
+                    None
+                }
+            },
         }
     }
 
@@ -172,14 +177,17 @@ impl<'a> Parser<'a> {
 
         // This first case is to desugar >>: to a declaration statement, could be combined in some way
         if self.match_token(Token::PipeColon) {
-            if let Some(id) = self.match_identifier() {
-                let end = self.peek_end_loc().clone();
-                self.accept(Token::Semicolon, "Expect ';' after expression statement")?;
-                let decl_stmt = StmtNode::new(Stmt::Decl(id, Some(expr)), start, end);
-                Some(Either::Left(decl_stmt))
-            } else {
-                self.error("Expect >>: to pipe into a single variable (TODO pattern matching)");
-                None
+            match self.expression()?.node.to_lvalue() {
+                Ok(lvalue) => {
+                    let end = self.peek_end_loc().clone();
+                    self.accept(Token::Semicolon, "Expect ';' after expression statement")?;
+                    let decl_stmt = StmtNode::new(Stmt::Decl(lvalue, Some(expr)), start, end);
+                    Some(Either::Left(decl_stmt))
+                }
+                Err(reason) => {
+                    self.error(&reason);
+                    None
+                }
             }
         } else if !allow_expr || self.peek() == &Token::Semicolon {
             let end = self.peek_end_loc().clone();

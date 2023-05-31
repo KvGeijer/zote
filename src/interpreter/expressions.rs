@@ -4,8 +4,8 @@ use crate::{
     code_loc::CodeLoc,
     interpreter::list::slice_iter,
     parser::{
-        BinOper, BinOperNode, Expr, ExprNode, Index, LogicalOper, LogicalOperNode, Stmts, UnOper,
-        UnOperNode,
+        BinOper, BinOperNode, Expr, ExprNode, Index, LValue, LogicalOper, LogicalOperNode, Stmts,
+        UnOper, UnOperNode,
     },
 };
 
@@ -64,6 +64,16 @@ impl Value {
     }
 }
 
+#[derive(Debug)]
+pub(super) enum IndexValue {
+    At(Value),
+    Slice {
+        start: Option<Value>,
+        stop: Option<Value>,
+        step: Option<Value>,
+    },
+}
+
 pub(super) fn eval(expr: &ExprNode, env: &Rc<Environment>) -> RunRes<Value> {
     let start = expr.start_loc.clone();
     let end = expr.end_loc.clone();
@@ -109,7 +119,7 @@ pub(super) fn eval(expr: &ExprNode, env: &Rc<Environment>) -> RunRes<Value> {
             "Tuples are not part of the language (yet)".to_string(),
         ),
         Expr::FunctionDefinition(name, param, body) => eval_func_definition(name, param, body, env),
-        Expr::Index(base, index) => eval_index(base, index, end, env),
+        Expr::Index(base, index) => eval_indexing(base, index, end, env),
     }
 }
 
@@ -121,7 +131,7 @@ fn up_err<T>(result: Result<T, String>, start: CodeLoc, end: CodeLoc) -> RunRes<
 }
 
 // Is this the most beautiful function ever?!?
-fn eval_index(
+fn eval_indexing(
     base: &ExprNode,
     index: &Index,
     end: CodeLoc,
@@ -321,17 +331,15 @@ fn eval_block(
 }
 
 fn eval_assign(
-    lvalue: &str,
+    lvalue: &LValue,
     rvalue: Value,
     env: &Rc<Environment>,
-    start: CodeLoc,
-    end: CodeLoc,
+    _start: CodeLoc,
+    _end: CodeLoc,
 ) -> RunRes<Value> {
-    if env.assign(lvalue, rvalue.clone()).is_some() {
-        Ok(rvalue)
-    } else {
-        error(start, end, format!("Variable '{lvalue}' not declared"))
-    }
+    lvalue.assign(rvalue, env)
+    // TODO: Add to error trace!
+    // .map_err(|reason| RuntimeError::Error(start, end, reason))
 }
 
 fn eval_binary(
@@ -505,6 +513,67 @@ fn eval_unary(op: &UnOperNode, right: Value, start: CodeLoc, end: CodeLoc) -> Ru
             ),
         },
         UnOper::Not => Ok(Value::Numerical(Numerical::Bool(!right.truthy()))),
+    }
+}
+
+impl LValue {
+    pub(super) fn declare(&self, env: &Rc<Environment>) -> Result<Value, String> {
+        match self {
+            LValue::Var(id) => {
+                env.define(id.to_string(), Value::Uninitialized);
+                Ok(Value::Uninitialized)
+            }
+            LValue::Index(_expr, _index) => {
+                Err("Cannot include an indexing in a declaration".to_string())
+            }
+        }
+    }
+
+    pub(super) fn assign(&self, rvalue: Value, env: &Rc<Environment>) -> RunRes<Value> {
+        match self {
+            LValue::Var(id) => {
+                if env.assign(id, rvalue.clone()).is_some() {
+                    Ok(rvalue)
+                } else {
+                    Err(RuntimeError::ErrorReason(format!(
+                        "Variable '{id}' not declared"
+                    )))
+                }
+            }
+            LValue::Index(callee_expr, index_expr) => {
+                let index = eval_index(index_expr, env)?;
+                match eval(callee_expr, env)? {
+                    Value::List(list) => list
+                        .assign_into(rvalue, index)
+                        .map_err(|reason| RuntimeError::ErrorReason(reason)),
+                    other => Err(RuntimeError::ErrorReason(format!(
+                        "Cannot index into {other} for assignment"
+                    ))),
+                }
+            }
+        }
+    }
+}
+
+fn eval_index(index: &Index, env: &Rc<Environment>) -> RunRes<IndexValue> {
+    match index {
+        Index::At(expr) => Ok(IndexValue::At(eval(expr, env)?)),
+        Index::Slice { start, stop, step } => {
+            fn eval_opt_ind(
+                ind: &Option<ExprNode>,
+                env: &Rc<Environment>,
+            ) -> RunRes<Option<Value>> {
+                match ind {
+                    Some(expr) => Ok(Some(eval(expr, env)?)),
+                    None => Ok(None),
+                }
+            }
+            Ok(IndexValue::Slice {
+                start: eval_opt_ind(start, env)?,
+                stop: eval_opt_ind(stop, env)?,
+                step: eval_opt_ind(step, env)?,
+            })
+        }
     }
 }
 

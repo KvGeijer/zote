@@ -11,7 +11,7 @@ use super::{
     RunRes, RuntimeError,
 };
 
-pub(super) fn eval_statements(statements: &Stmts, env: &Rc<Environment>) -> RunRes<Option<Value>> {
+pub fn eval_statements(statements: &Stmts, env: &Rc<Environment>) -> RunRes<Option<Value>> {
     let mut output = None;
     for stmt in statements.stmts.iter() {
         match eval(stmt, env)? {
@@ -65,7 +65,6 @@ mod tests {
     use super::*;
     use crate::errors::ErrorReporter;
     use crate::interpreter::functions::define_builtins;
-    use crate::interpreter::list::List;
     use crate::parser::parse;
     use crate::scanner::tokenize;
 
@@ -168,6 +167,7 @@ mod tests {
             "};                            ",
             "                              ",
             "var list = [1,2,3,4];         ",
+            "list[3] = 44;                 ",
             "[                             ",
             "    replace_list(list, 42),   ",
             "    replace_list(list, 42),   ",
@@ -182,20 +182,18 @@ mod tests {
         );
 
         // Why does it comlain about unused?
-        let _expected = Value::List(List::new(
-            vec![
-                4.into(),
-                42.into(),
-                42.into(),
-                3.into(),
-                2.into(),
-                1.into(),
-                Value::Nil,
-                Value::Nil,
-                Value::Nil,
-            ]
-            .into_iter(),
-        ));
+        let _expected: Value = vec![
+            44.into(),
+            42.into(),
+            42.into(),
+            3.into(),
+            2.into(),
+            1.into(),
+            Value::Nil,
+            Value::Nil,
+            Value::Nil,
+        ]
+        .into();
 
         assert!(matches!(
             interpret_string(program).unwrap().unwrap(),

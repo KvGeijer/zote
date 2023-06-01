@@ -1,17 +1,19 @@
 use std::rc::Rc;
 
-use crate::{code_loc::CodeLoc, errors::ErrorReporter, parser::Stmts};
+use crate::{errors::ErrorReporter, parser::Stmts};
 
 use environment::Environment;
 
+mod collections;
 mod environment;
 mod expressions;
 mod functions;
-mod list;
 mod numerical;
+mod runtime_error;
 mod statements;
 
 use expressions::Value;
+use runtime_error::{RunRes, RuntimeError};
 
 pub struct InterpreterState {
     env: Rc<Environment>,
@@ -48,13 +50,4 @@ pub fn interpret(program: &Stmts, error_reporter: &mut ErrorReporter, env: &mut 
             v.stringify()
         )),
     }
-}
-
-type RunRes<T> = Result<T, RuntimeError>;
-#[derive(Debug)]
-enum RuntimeError {
-    Error(CodeLoc, CodeLoc, String),
-    ErrorReason(String), // Should combine this with Error to create a call stack starting with one of these, then just codelocs and extra info at each proper call
-    Break, // Maybe include code loc for error messages? Or just handle that with static analysis?
-    Return(Value),
 }

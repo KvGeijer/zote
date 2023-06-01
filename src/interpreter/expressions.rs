@@ -1,8 +1,7 @@
-use std::{cmp::Ordering, fmt, iter::Take, rc::Rc};
+use std::{cmp::Ordering, fmt, rc::Rc};
 
 use crate::{
     code_loc::CodeLoc,
-    interpreter::list::slice_iter,
     parser::{
         BinOper, BinOperNode, Expr, ExprNode, Index, LValue, LogicalOper, LogicalOperNode, Stmts,
         UnOper, UnOperNode,
@@ -10,20 +9,19 @@ use crate::{
 };
 
 use super::{
+    collections::{eval_index, Collection},
     environment::Environment,
     functions::{Closure, Function},
-    list::List,
     numerical::Numerical,
     statements, RunRes, RuntimeError,
 };
 
 // An interface between Zote and Rust values
 #[derive(PartialEq, Debug, Clone)]
-pub(super) enum Value {
+pub enum Value {
     Numerical(Numerical),
-    String(String),
+    Collection(Collection),
     Callable(Function),
-    List(List),
     Nil,
     Uninitialized,
 }
@@ -32,11 +30,10 @@ impl Value {
     fn truthy(&self) -> bool {
         match self {
             Value::Numerical(num) => num.truthy(),
-            Value::String(string) => !string.is_empty(),
+            Value::Collection(collection) => !collection.is_empty(),
             Value::Callable(_) => panic!("Can't convert function to bool"), // TODO: real error, or just warning
             Value::Nil => false,
             Value::Uninitialized => false,
-            Value::List(list) => list.to_bool(),
         }
     }
 
@@ -44,39 +41,28 @@ impl Value {
         // OPT Could we just return &str here?
         match self {
             Value::Numerical(num) => num.stringify(),
-            Value::String(string) => string.to_string(),
+            Value::Collection(collection) => collection.stringify(),
             Value::Callable(callable) => callable.name().to_string(),
             Value::Nil => "Nil".to_string(),
             Value::Uninitialized => panic!("Use of uninit value!"),
-            Value::List(list) => list.stringify(),
         }
     }
 
+    // TODO: If this should be used in the code, it should be an enum
     pub fn type_of(&self) -> &'static str {
         match self {
             Value::Numerical(num) => num.type_of(),
-            Value::String(_) => "String",
+            Value::Collection(collection) => collection.type_of(),
             Value::Callable(_) => "Function",
             Value::Nil => "Nil",
             Value::Uninitialized => "Uninitialized",
-            Value::List(_) => "List",
         }
     }
 }
 
-#[derive(Debug)]
-pub(super) enum IndexValue {
-    At(Value),
-    Slice {
-        start: Option<Value>,
-        stop: Option<Value>,
-        step: Option<Value>,
-    },
-}
-
-pub(super) fn eval(expr: &ExprNode, env: &Rc<Environment>) -> RunRes<Value> {
-    let start = expr.start_loc.clone();
-    let end = expr.end_loc.clone();
+pub fn eval(expr: &ExprNode, env: &Rc<Environment>) -> RunRes<Value> {
+    let start = expr.start_loc;
+    let end = expr.end_loc;
     match expr.node.as_ref() {
         Expr::Binary(left, op, right) => {
             eval_binary(eval(left, env)?, op, eval(right, env)?, start, end)
@@ -96,7 +82,7 @@ pub(super) fn eval(expr: &ExprNode, env: &Rc<Environment>) -> RunRes<Value> {
         Expr::Int(int) => Ok(Value::Numerical(Numerical::Int(*int))),
         Expr::Float(float) => Ok(Value::Numerical(Numerical::Float(*float))),
         Expr::Bool(bool) => Ok(Value::Numerical(Numerical::Bool(*bool))),
-        Expr::String(string) => Ok(Value::String(string.clone())),
+        Expr::String(string) => Ok(string.clone().into()),
         Expr::Block(stmts) => eval_block(stmts, env, start, end),
         Expr::If(cond, then, other) => eval_if(eval(cond, env)?, then, other.as_ref(), env),
         Expr::While(cond, repeat) => eval_while(cond, repeat, env),
@@ -119,116 +105,36 @@ pub(super) fn eval(expr: &ExprNode, env: &Rc<Environment>) -> RunRes<Value> {
             "Tuples are not part of the language (yet)".to_string(),
         ),
         Expr::FunctionDefinition(name, param, body) => eval_func_definition(name, param, body, env),
-        Expr::Index(base, index) => eval_indexing(base, index, end, env),
+        Expr::Index(base, index) => eval_index_expr(base, index, end, env),
     }
 }
 
-fn up_err<T>(result: Result<T, String>, start: CodeLoc, end: CodeLoc) -> RunRes<T> {
-    match result {
-        Err(reason) => error(start, end, reason),
-        Ok(val) => Ok(val),
-    }
-}
+// fn up_err<T>(result: Result<T, String>, start: CodeLoc, end: CodeLoc) -> RunRes<T> {
+//     match result {
+//         Err(reason) => error(start, end, reason),
+//         Ok(val) => Ok(val),
+//     }
+// }
 
 // Is this the most beautiful function ever?!?
-fn eval_indexing(
+fn eval_index_expr(
     base: &ExprNode,
-    index: &Index,
+    index_expr: &Index,
     end: CodeLoc,
     env: &Rc<Environment>,
 ) -> RunRes<Value> {
-    let start_loc = base.start_loc.clone();
-    match index {
-        Index::At(at) => match eval(base, env)? {
-            Value::List(list) => up_err(list.get(eval(at, env)?), start_loc, end),
-            Value::String(string) => {
-                if let Value::Numerical(num) = eval(at, env)? {
-                    let maybe_indexed = string
-                        .chars()
-                        .nth(num.to_rint() as usize)
-                        .map(|char| char.to_string().into());
-                    up_err(
-                        maybe_indexed.ok_or(format!(
-                            "Index {} out of bound for string of length {}",
-                            num.to_rint(),
-                            string.len()
-                        )),
-                        start_loc,
-                        end,
-                    )
-                } else {
-                    error(
-                        start_loc,
-                        end,
-                        "Can only index into a string with a numerical".to_string(),
-                    )
-                }
-            }
-            other => error(
-                start_loc,
-                end,
-                format!("Cannot index into a {}", other.type_of()),
-            ),
-        },
-        Index::Slice { start, stop, step } => {
-            let start = match start.as_ref().map(|expr| eval(expr, env)) {
-                Some(Ok(Value::Numerical(num))) => Some(num.to_rint()),
-                None => None,
-                Some(Err(err)) => return Err(err),
-                Some(_other) => {
-                    return error(
-                        start_loc,
-                        end,
-                        "Start of slice must be a numerical".to_string(),
-                    )
-                }
-            };
-
-            let stop = match stop.as_ref().map(|expr| eval(expr, env)) {
-                Some(Ok(Value::Numerical(num))) => Some(num.to_rint()),
-                None => None,
-                Some(Err(err)) => return Err(err),
-                Some(_other) => {
-                    return error(
-                        start_loc,
-                        end,
-                        "Stop of slice must be a numerical".to_string(),
-                    )
-                }
-            };
-
-            let step = match step.as_ref().map(|expr| eval(expr, env)) {
-                Some(Ok(Value::Numerical(num))) => Some(num.to_rint()),
-                None => None,
-                Some(Err(err)) => return Err(err),
-                Some(_other) => {
-                    return error(
-                        start_loc,
-                        end,
-                        "Step of slice must be a numerical".to_string(),
-                    )
-                }
-            };
-
-            match eval(base, env)? {
-                Value::List(list) => up_err(list.slice(start, stop, step), start_loc, end),
-                Value::String(string) => {
-                    let len = string.chars().count();
-                    let sliced: String = up_err::<Take<_>>(
-                        slice_iter(string.chars().into_iter(), start, stop, step, len),
-                        start_loc,
-                        end,
-                    )?
-                    .collect();
-                    Ok(sliced.into())
-                }
-                other => error(
-                    start_loc,
-                    end,
-                    format!("Cannot slice a {}", other.type_of()),
-                ),
-            }
-        }
+    let start = base.start_loc;
+    let index = eval_index(index_expr, env)?;
+    let into_value = eval(base, env)?;
+    match into_value {
+        Value::Collection(collection) => collection
+            .get(index)
+            .map_err(|reason| RuntimeError::Error(start, end, reason)),
+        other => error(
+            start,
+            end,
+            format!("Cannot index into a {}", other.type_of()),
+        ),
     }
 }
 
@@ -243,13 +149,11 @@ fn eval_func_definition(
 }
 
 fn eval_list(exprs: &[ExprNode], env: &Rc<Environment>) -> RunRes<Value> {
-    Ok(Value::List(List::new(
-        exprs
-            .iter()
-            .map(|expr| eval(expr, env))
-            .collect::<Result<Vec<_>, _>>()?
-            .into_iter(), // Not beautiful collecting and then making back to iterator
-    )))
+    Ok(exprs
+        .iter()
+        .map(|expr| eval(expr, env))
+        .collect::<Result<Vec<_>, _>>()?
+        .into())
 }
 
 fn eval_call(callee: Value, args: Vec<Value>, start: CodeLoc, end: CodeLoc) -> RunRes<Value> {
@@ -368,7 +272,7 @@ fn eval_binary(
 fn bin_add(left: Value, right: Value, start_loc: CodeLoc, end_loc: CodeLoc) -> RunRes<Value> {
     match (left, right) {
         (Value::Numerical(x), Value::Numerical(y)) => Ok(Value::Numerical(x.add(y))),
-        (Value::String(x), Value::String(y)) => Ok(Value::String(x + &y)),
+        // (Value::String(x), Value::String(y)) => Ok(Value::String(x + &y)),
         (left, right) => error(
             start_loc,
             end_loc,
@@ -428,7 +332,11 @@ fn bin_div(left: Value, right: Value, start_loc: CodeLoc, end_loc: CodeLoc) -> R
 fn bin_mod(left: Value, right: Value, start_loc: CodeLoc, end_loc: CodeLoc) -> RunRes<Value> {
     match (left, right) {
         (Value::Numerical(x), Value::Numerical(y)) => Ok(Value::Numerical(x.modulo(y))),
-        _other => error(start_loc, end_loc, format!("Modulo only works for numbers")),
+        _other => error(
+            start_loc,
+            end_loc,
+            "Modulo only works for numbers".to_string(),
+        ),
     }
 }
 
@@ -438,7 +346,7 @@ fn bin_pow(left: Value, right: Value, start_loc: CodeLoc, end_loc: CodeLoc) -> R
         _other => error(
             start_loc,
             end_loc,
-            format!("Can only take powers of numbers"),
+            "Can only take powers of numbers".to_string(),
         ),
     }
 }
@@ -517,7 +425,7 @@ fn eval_unary(op: &UnOperNode, right: Value, start: CodeLoc, end: CodeLoc) -> Ru
 }
 
 impl LValue {
-    pub(super) fn declare(&self, env: &Rc<Environment>) -> Result<Value, String> {
+    pub fn declare(&self, env: &Rc<Environment>) -> Result<Value, String> {
         match self {
             LValue::Var(id) => {
                 env.define(id.to_string(), Value::Uninitialized);
@@ -529,7 +437,7 @@ impl LValue {
         }
     }
 
-    pub(super) fn assign(&self, rvalue: Value, env: &Rc<Environment>) -> RunRes<Value> {
+    pub fn assign(&self, rvalue: Value, env: &Rc<Environment>) -> RunRes<Value> {
         match self {
             LValue::Var(id) => {
                 if env.assign(id, rvalue.clone()).is_some() {
@@ -542,37 +450,17 @@ impl LValue {
             }
             LValue::Index(callee_expr, index_expr) => {
                 let index = eval_index(index_expr, env)?;
-                match eval(callee_expr, env)? {
-                    Value::List(list) => list
+                let base = eval(callee_expr, env)?;
+                match base {
+                    Value::Collection(collection) => collection
                         .assign_into(rvalue, index)
-                        .map_err(|reason| RuntimeError::ErrorReason(reason)),
+                        .map_err(RuntimeError::ErrorReason),
                     other => Err(RuntimeError::ErrorReason(format!(
-                        "Cannot index into {other} for assignment"
+                        "Cannot index into {} for assignment",
+                        other.type_of()
                     ))),
                 }
             }
-        }
-    }
-}
-
-fn eval_index(index: &Index, env: &Rc<Environment>) -> RunRes<IndexValue> {
-    match index {
-        Index::At(expr) => Ok(IndexValue::At(eval(expr, env)?)),
-        Index::Slice { start, stop, step } => {
-            fn eval_opt_ind(
-                ind: &Option<ExprNode>,
-                env: &Rc<Environment>,
-            ) -> RunRes<Option<Value>> {
-                match ind {
-                    Some(expr) => Ok(Some(eval(expr, env)?)),
-                    None => Ok(None),
-                }
-            }
-            Ok(IndexValue::Slice {
-                start: eval_opt_ind(start, env)?,
-                stop: eval_opt_ind(stop, env)?,
-                step: eval_opt_ind(step, env)?,
-            })
         }
     }
 }
@@ -609,7 +497,7 @@ impl PartialOrd for Value {
     fn partial_cmp(&self, other: &Self) -> Option<std::cmp::Ordering> {
         match (self, other) {
             (Value::Numerical(x), Value::Numerical(y)) => x.partial_cmp(y),
-            (Value::String(x), Value::String(y)) => x.partial_cmp(y),
+            (Value::Collection(x), Value::Collection(y)) => x.partial_cmp(y),
             _ => None,
         }
     }
@@ -644,13 +532,13 @@ impl From<bool> for Value {
 
 impl From<String> for Value {
     fn from(item: String) -> Self {
-        Value::String(item)
+        Value::Collection(Collection::new_string(item))
     }
 }
 
 impl From<Vec<Value>> for Value {
-    fn from(item: Vec<Value>) -> Self {
-        Value::List(List::new(item.into_iter()))
+    fn from(values: Vec<Value>) -> Self {
+        Value::Collection(Collection::new_list(values))
     }
 }
 

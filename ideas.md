@@ -1,5 +1,6 @@
 # Improvement ideas for Zote
 
+* Add tests for benches, so we at least can run them without error.
 
 * Should we have tuples? They are in place. They are more suitable when using as keys for example. 
   * Or should we use them in some way for >> instead. So that 1 >> f(2, 3) is the same as (1, 2) >> f(3) or (1,2,3) >> f? 

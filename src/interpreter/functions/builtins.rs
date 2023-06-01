@@ -1,10 +1,9 @@
 use itertools::Itertools;
 use std::{fs::read_to_string, rc::Rc};
 
-use crate::interpreter::{RunRes, RuntimeError, Value};
+use crate::interpreter::{collections::Collection, RunRes, RuntimeError, Value};
 
-// Could make Function a struct, hiding Builtin, getting rid of ugly path
-pub(in super::super) trait Builtin {
+pub trait Builtin {
     fn run(&self, args: Vec<Value>) -> RunRes<Value>;
     fn arity(&self) -> usize;
     fn name(&self) -> &str;
@@ -20,7 +19,7 @@ macro_rules! box_builtins {
     };
 }
 
-pub(super) fn get_builtins() -> Vec<Rc<dyn Builtin>> {
+pub fn get_builtins() -> Vec<Rc<dyn Builtin>> {
     box_builtins![Time, Print, Str, Push, Pop, Read, Int, Max, Map, Split, Sum, Sort]
 }
 
@@ -65,7 +64,7 @@ struct Str;
 
 impl Builtin for Str {
     fn run(&self, args: Vec<Value>) -> RunRes<Value> {
-        Ok(Value::String(args[0].stringify()))
+        Ok(args[0].stringify().into())
     }
 
     fn arity(&self) -> usize {
@@ -83,7 +82,7 @@ impl Builtin for Push {
     fn run(&self, args: Vec<Value>) -> RunRes<Value> {
         match args.into_iter().collect_tuple().unwrap() {
             // Strange if pushing a list to itself. Print crashes :D
-            (value, Value::List(list)) => {
+            (value, Value::Collection(Collection::List(list))) => {
                 list.push(value);
                 Ok(Value::Nil)
             }
@@ -107,7 +106,7 @@ struct Pop;
 impl Builtin for Pop {
     fn run(&self, args: Vec<Value>) -> RunRes<Value> {
         match args.into_iter().next().unwrap() {
-            Value::List(list) => Ok(list.pop()),
+            Value::Collection(Collection::List(list)) => Ok(list.pop()),
             _ => Err(RuntimeError::ErrorReason(
                 "Argument to pop must be a list".to_string(),
             )),
@@ -123,16 +122,17 @@ impl Builtin for Pop {
     }
 }
 
+/// Reads the file at the given path into a string
 struct Read;
 
 impl Builtin for Read {
     fn run(&self, args: Vec<Value>) -> RunRes<Value> {
         match args.into_iter().next().unwrap() {
-            Value::String(path) => read_to_string(&path)
-                .map(|content| Value::String(content)) // Should we have constructors for these instead?
+            Value::Collection(Collection::String(path)) => read_to_string(&path)
+                .map(|content| content.into())
                 .map_err(|_| RuntimeError::ErrorReason(format!("Could not read file at {path}"))),
             _ => Err(RuntimeError::ErrorReason(
-                "Argument to pop must be a list".to_string(),
+                "Argument to read must be a string".to_string(),
             )),
         }
     }
@@ -150,7 +150,7 @@ struct Int;
 impl Builtin for Int {
     fn run(&self, args: Vec<Value>) -> RunRes<Value> {
         match args.into_iter().next().unwrap() {
-            Value::String(string) => {
+            Value::Collection(Collection::String(string)) => {
                 if let Ok(int) = string.parse::<i64>() {
                     Ok(int.into())
                 } else {
@@ -180,9 +180,9 @@ struct Max;
 impl Builtin for Max {
     fn run(&self, args: Vec<Value>) -> RunRes<Value> {
         match args.into_iter().next().unwrap() {
-            Value::List(list) => list
-                .max()
-                .map_err(|reason| RuntimeError::ErrorReason(reason)),
+            Value::Collection(Collection::List(list)) => {
+                list.max().map_err(RuntimeError::ErrorReason)
+            }
             _ => Err(RuntimeError::ErrorReason(
                 "So far max is only implemented for lists".to_string(),
             )),
@@ -202,14 +202,17 @@ struct Split;
 impl Builtin for Split {
     fn run(&self, args: Vec<Value>) -> RunRes<Value> {
         match args.into_iter().collect_tuple().unwrap() {
-            (Value::String(string), Value::String(delimiter)) => {
+            (
+                Value::Collection(Collection::String(string)),
+                Value::Collection(Collection::String(delimiter)),
+            ) => {
                 let splitted: Vec<Value> = string
                     .split(&delimiter)
                     .map(|str| str.to_string().into())
                     .collect();
                 Ok(splitted.into())
             }
-            (Value::List(list), value) => list.split(&value),
+            (Value::Collection(Collection::List(list)), value) => list.split(&value),
             (left, right) => Err(RuntimeError::ErrorReason(format!(
                 "Arguments {} and {} are not valid for split",
                 left.type_of(),
@@ -231,7 +234,7 @@ struct Map;
 impl Builtin for Map {
     fn run(&self, args: Vec<Value>) -> RunRes<Value> {
         match args.into_iter().collect_tuple().unwrap() {
-            (Value::List(list), Value::Callable(func)) => list.map(&func),
+            (Value::Collection(Collection::List(list)), Value::Callable(func)) => list.map(&func),
             (left, right) => Err(RuntimeError::ErrorReason(format!(
                 "Expected a list and a function as arguments to map, but got {} and {}",
                 left.type_of(),
@@ -253,9 +256,9 @@ struct Sum;
 impl Builtin for Sum {
     fn run(&self, args: Vec<Value>) -> RunRes<Value> {
         match args.into_iter().next().unwrap() {
-            Value::List(list) => list
-                .sum()
-                .map_err(|reason| RuntimeError::ErrorReason(reason)),
+            Value::Collection(Collection::List(list)) => {
+                list.sum().map_err(RuntimeError::ErrorReason)
+            }
             arg => Err(RuntimeError::ErrorReason(format!(
                 "Expected a list as argument to sum, but got {}",
                 arg.type_of(),
@@ -276,9 +279,9 @@ struct Sort;
 impl Builtin for Sort {
     fn run(&self, args: Vec<Value>) -> RunRes<Value> {
         match args.into_iter().next().unwrap() {
-            Value::List(list) => list
-                .sort()
-                .map_err(|reason| RuntimeError::ErrorReason(reason)),
+            Value::Collection(Collection::List(list)) => {
+                list.sort().map_err(RuntimeError::ErrorReason)
+            }
             arg => Err(RuntimeError::ErrorReason(format!(
                 "Expected a list as argument to sort, but got {}",
                 arg.type_of(),

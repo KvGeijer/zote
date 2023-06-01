@@ -1,31 +1,29 @@
-use super::{expressions::IndexValue, functions::Function, numerical::Numerical, RunRes, Value};
-
-use std::{
-    cell::RefCell,
-    cmp::Ordering,
-    iter::{Skip, StepBy, Take},
-    rc::Rc,
+use super::{
+    super::{functions::Function, numerical::Numerical, RunRes, Value},
+    index_wrap, slice_iter, IndexValue, SliceValue,
 };
 
+use std::{cell::RefCell, cmp::Ordering, rc::Rc};
+
 #[derive(Clone, Debug, PartialEq, PartialOrd)]
-pub(super) struct List {
+pub struct List {
     vec: Rc<RefCell<Vec<Value>>>,
 }
 
 impl List {
-    pub(super) fn new<T: Iterator<Item = Value>>(values: T) -> Self {
+    pub fn new(values: Vec<Value>) -> Self {
         Self {
-            vec: Rc::new(RefCell::new(Vec::from_iter(values))),
+            vec: Rc::new(RefCell::new(values)),
         }
     }
 
     /// Pushes a value to the list
-    pub(super) fn push(&self, value: Value) {
+    pub fn push(&self, value: Value) {
         self.vec.borrow_mut().push(value);
     }
 
     /// Pops a value from the list
-    pub(super) fn pop(&self) -> Value {
+    pub fn pop(&self) -> Value {
         match self.vec.borrow_mut().pop() {
             Some(value) => value,
             None => Value::Nil,
@@ -33,17 +31,17 @@ impl List {
     }
 
     /// Checks if the list is empty
-    pub(super) fn is_empty(&self) -> Value {
+    pub fn is_empty(&self) -> bool {
         // Should this be added as a zote function? What name?
-        self.vec.borrow().is_empty().into()
+        self.vec.borrow().is_empty()
     }
 
-    /// Converts list to bool, which just checks if empty
-    pub(super) fn to_bool(&self) -> bool {
-        self.is_empty() == false.into()
-    }
+    // /// Converts list to bool, which just checks if empty
+    // pub fn to_bool(&self) -> bool {
+    //     self.is_empty() == false.into()
+    // }
 
-    pub(super) fn stringify(&self) -> String {
+    pub fn stringify(&self) -> String {
         let mut string = String::from("[");
         let mut first = true;
         for value in self.vec.borrow().iter() {
@@ -58,7 +56,7 @@ impl List {
         string
     }
 
-    pub(super) fn get(&self, at: Value) -> Result<Value, String> {
+    pub fn get(&self, at: Value) -> Result<Value, String> {
         let index = if let Value::Numerical(Numerical::Int(index)) = at {
             index
         } else {
@@ -80,7 +78,7 @@ impl List {
     }
 
     /// Returns the max of the list, or Nil if empty
-    pub(super) fn max(&self) -> Result<Value, String> {
+    pub fn max(&self) -> Result<Value, String> {
         let vec = self.vec.borrow();
         let mut iter = vec.iter();
         let mut max = iter.next().cloned().unwrap_or(Value::Nil);
@@ -96,7 +94,7 @@ impl List {
         Ok(max)
     }
 
-    pub(super) fn map(&self, func: &Function) -> RunRes<Value> {
+    pub fn map(&self, func: &Function) -> RunRes<Value> {
         let mut mapped = vec![];
         for value in self.vec.borrow().iter() {
             // Shoud we do something to the error info?
@@ -105,7 +103,7 @@ impl List {
         Ok(mapped.into())
     }
 
-    pub(super) fn split(&self, delimiter: &Value) -> RunRes<Value> {
+    pub fn split(&self, delimiter: &Value) -> RunRes<Value> {
         let mut splitted = vec![];
         let mut sublist = vec![];
         for value in self.vec.borrow().iter() {
@@ -123,7 +121,7 @@ impl List {
     }
 
     /// Sums a list with numericals. Errors if any nonnumerical.
-    pub(super) fn sum(&self) -> Result<Value, String> {
+    pub fn sum(&self) -> Result<Value, String> {
         let mut sum: Numerical = 0.into();
         for val in self.vec.borrow().iter() {
             match val {
@@ -140,7 +138,7 @@ impl List {
     }
 
     /// Sorts a list in descending order, using natural ordering of Value. Errors if two items not comparable
-    pub(super) fn sort(&self) -> Result<Value, String> {
+    pub fn sort(&self) -> Result<Value, String> {
         let mut success = Ok(());
         let mut vec = self.vec.borrow().clone();
 
@@ -159,21 +157,14 @@ impl List {
         success.map(|_| vec.into())
     }
 
-    pub(super) fn slice(
-        &self,
-        start: Option<i64>,
-        stop: Option<i64>,
-        step: Option<i64>,
-    ) -> Result<Value, String> {
+    pub fn slice(&self, slice: SliceValue) -> Result<Value, String> {
         let vec = self.vec.borrow();
-        Ok(
-            slice_iter(vec.iter().cloned(), start, stop, step, vec.len())?
-                .collect::<Vec<Value>>()
-                .into(),
-        )
+        Ok(slice_iter(vec.iter().cloned(), slice, vec.len())?
+            .collect::<Vec<Value>>()
+            .into())
     }
 
-    pub(super) fn assign_into(&self, value: Value, index: IndexValue) -> Result<Value, String> {
+    pub fn assign_into(&self, value: Value, index: IndexValue) -> Result<Value, String> {
         // A bit annoying to handle slicing...
         match index {
             IndexValue::At(Value::Numerical(ind)) => {
@@ -186,7 +177,7 @@ impl List {
                 Ok(value)
             }
             IndexValue::At(val) => Err(format!("Cannot index into list with a {}", val.type_of())),
-            IndexValue::Slice { start, stop, step } => {
+            IndexValue::Slice(_slice) => {
                 todo!("Not yet implemented slice assignment for lists")
                 // let vec = self.vec.borrow_mut();
                 // let vec_len = vec.len();
@@ -200,36 +191,5 @@ impl List {
                 // self.vec.borrow_mut().get_mut(ind) = value;
             }
         }
-    }
-}
-
-fn index_wrap(index: i64, len: usize) -> usize {
-    if index < 0 {
-        index.rem_euclid(len as i64) as usize
-    } else {
-        index as usize
-    }
-}
-
-// move somewhere else
-pub fn slice_iter<T, I: Iterator<Item = T>>(
-    iter: I,
-    start: Option<i64>,
-    stop: Option<i64>,
-    step: Option<i64>,
-    len: usize,
-) -> Result<Take<StepBy<Skip<I>>>, String> {
-    let start = index_wrap(start.unwrap_or(0), len);
-    let stop = index_wrap(stop.unwrap_or(len as i64), len);
-    let step = step.unwrap_or(1);
-    if step < 0 {
-        Err("Negatice steps in slices not implemented".to_string())
-    } else {
-        let steps = if stop > start {
-            ((stop - start) + (step - 1) as usize) / step as usize
-        } else {
-            0
-        };
-        Ok(iter.skip(start).step_by(step as usize).take(steps))
     }
 }

@@ -13,28 +13,28 @@ use builtins::Builtin;
 mod builtins;
 
 #[derive(Clone)]
-pub(super) enum Function {
+pub enum Function {
     // Closure(),
     Closure(Closure),
     Builtin(Rc<dyn Builtin>),
 }
 
 impl Function {
-    pub(super) fn call(&self, args: Vec<Value>) -> RunRes<Value> {
+    pub fn call(&self, args: Vec<Value>) -> RunRes<Value> {
         match self {
             Function::Closure(closure) => closure.call(args),
             Function::Builtin(builtin) => builtin.run(args),
         }
     }
 
-    pub(super) fn arity(&self) -> usize {
+    pub fn arity(&self) -> usize {
         match self {
             Function::Closure(closure) => closure.arity(),
             Function::Builtin(builtin) => builtin.arity(),
         }
     }
 
-    pub(super) fn name(&self) -> &str {
+    pub fn name(&self) -> &str {
         match self {
             Function::Closure(closure) => closure.name(),
             Function::Builtin(builtin) => builtin.name(),
@@ -74,7 +74,7 @@ impl PartialOrd for Function {
 }
 
 #[derive(Clone)]
-pub(super) struct Closure {
+pub struct Closure {
     id: String, // Maybe not ideal to have
     params: Vec<String>,
     body: ExprNode, // Should we have this as a borrow instead maybe? Probably just a hassle
@@ -82,12 +82,7 @@ pub(super) struct Closure {
 }
 
 impl Closure {
-    pub(super) fn new(
-        id: String,
-        params: Vec<String>,
-        body: ExprNode,
-        env: &Rc<Environment>,
-    ) -> Self {
+    pub fn new(id: String, params: Vec<String>, body: ExprNode, env: &Rc<Environment>) -> Self {
         Self {
             id,
             params,
@@ -113,7 +108,7 @@ impl Closure {
     }
 }
 
-pub(super) fn define_builtins(env: &Environment) {
+pub fn define_builtins(env: &Environment) {
     for builtin in builtins::get_builtins() {
         env.define(
             builtin.name().to_string(),

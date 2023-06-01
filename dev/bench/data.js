@@ -1,5 +1,5 @@
 window.BENCHMARK_DATA = {
-  "lastUpdate": 1685569479710,
+  "lastUpdate": 1685609026715,
   "repoUrl": "https://github.com/KvGeijer/zote",
   "entries": {
     "Rust Benchmark": [
@@ -407,6 +407,60 @@ window.BENCHMARK_DATA = {
             "name": "string_manips",
             "value": 182129215,
             "range": "± 507665",
+            "unit": "ns/iter"
+          }
+        ]
+      },
+      {
+        "commit": {
+          "author": {
+            "email": "kare.kvg@gmail.com",
+            "name": "Kåre von Geijer",
+            "username": "KvGeijer"
+          },
+          "committer": {
+            "email": "kare.kvg@gmail.com",
+            "name": "Kåre von Geijer",
+            "username": "KvGeijer"
+          },
+          "distinct": true,
+          "id": "5861199606b6a04499188c025b1ae0bc870a0e68",
+          "message": "Add lvalue matching (against var and list[ind])\n\nSlices not yet implemented. Also cannot assign to strings",
+          "timestamp": "2023-06-01T10:41:05+02:00",
+          "tree_id": "e84f14c593295637e88140e327ac8990c1344bc9",
+          "url": "https://github.com/KvGeijer/zote/commit/5861199606b6a04499188c025b1ae0bc870a0e68"
+        },
+        "date": 1685609025762,
+        "tool": "cargo",
+        "benches": [
+          {
+            "name": "aoc_2022_1",
+            "value": 1074366,
+            "range": "± 36793",
+            "unit": "ns/iter"
+          },
+          {
+            "name": "aoc_2022_2",
+            "value": 18181992,
+            "range": "± 61272",
+            "unit": "ns/iter"
+          },
+          {
+            "name": "fibonachi",
+            "value": 149782814,
+            "range": "± 1726941",
+            "unit": "ns/iter"
+          },
+          {
+            "name": "prints",
+            "value": 20000622,
+            "range": "± 219968",
+            "unit": "ns/iter"
+          },
+          {
+            "name": "string_manips",
+            "value": 217553,
+            "range": "± 1568",
             "unit": "ns/iter"
           }
         ]

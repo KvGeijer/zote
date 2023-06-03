@@ -1,5 +1,5 @@
 window.BENCHMARK_DATA = {
-  "lastUpdate": 1685609026715,
+  "lastUpdate": 1685791886964,
   "repoUrl": "https://github.com/KvGeijer/zote",
   "entries": {
     "Rust Benchmark": [
@@ -461,6 +461,60 @@ window.BENCHMARK_DATA = {
             "name": "string_manips",
             "value": 217553,
             "range": "± 1568",
+            "unit": "ns/iter"
+          }
+        ]
+      },
+      {
+        "commit": {
+          "author": {
+            "email": "kare.kvg@gmail.com",
+            "name": "Kåre von Geijer",
+            "username": "KvGeijer"
+          },
+          "committer": {
+            "email": "kare.kvg@gmail.com",
+            "name": "Kåre von Geijer",
+            "username": "KvGeijer"
+          },
+          "distinct": true,
+          "id": "4c62a8a0e32dbe0999e6c3e6766b2a73adfd817c",
+          "message": "Refactor out Value to a module\n\nIn preparation for mote interfaces on values, such as iterables.",
+          "timestamp": "2023-06-03T13:28:51+02:00",
+          "tree_id": "ab2eb0498f53788bd58cd6a1ff93181b36b87b30",
+          "url": "https://github.com/KvGeijer/zote/commit/4c62a8a0e32dbe0999e6c3e6766b2a73adfd817c"
+        },
+        "date": 1685791886220,
+        "tool": "cargo",
+        "benches": [
+          {
+            "name": "aoc_2022_1",
+            "value": 1028247,
+            "range": "± 42587",
+            "unit": "ns/iter"
+          },
+          {
+            "name": "aoc_2022_2",
+            "value": 20599501,
+            "range": "± 111640",
+            "unit": "ns/iter"
+          },
+          {
+            "name": "fibonachi",
+            "value": 155146533,
+            "range": "± 2122640",
+            "unit": "ns/iter"
+          },
+          {
+            "name": "prints",
+            "value": 18150809,
+            "range": "± 480853",
+            "unit": "ns/iter"
+          },
+          {
+            "name": "string_manips",
+            "value": 244993,
+            "range": "± 1624",
             "unit": "ns/iter"
           }
         ]

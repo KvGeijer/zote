@@ -5,11 +5,7 @@ use crate::{
     parser::{ExprNode, LValue, Stmt, StmtNode, Stmts},
 };
 
-use super::{
-    environment::Environment,
-    expressions::{self, Value},
-    RunRes, RuntimeError,
-};
+use super::{environment::Environment, expressions, value::Value, RunRes, RuntimeError};
 
 pub fn eval_statements(statements: &Stmts, env: &Rc<Environment>) -> RunRes<Option<Value>> {
     let mut output = None;

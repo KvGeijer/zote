@@ -11,9 +11,11 @@ mod functions;
 mod numerical;
 mod runtime_error;
 mod statements;
+mod value;
 
-use expressions::Value;
 use runtime_error::{RunRes, RuntimeError};
+
+use value::Value;
 
 pub struct InterpreterState {
     env: Rc<Environment>,

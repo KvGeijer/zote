@@ -8,12 +8,7 @@ use crate::{
     parser::{ExprNode, Index},
 };
 
-use super::{
-    environment::Environment,
-    expressions::{self, Value},
-    numerical::Numerical,
-    RunRes,
-};
+use super::{environment::Environment, expressions, numerical::Numerical, value::Value, RunRes};
 
 pub use list::List;
 

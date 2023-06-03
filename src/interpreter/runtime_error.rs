@@ -1,6 +1,6 @@
 use crate::code_loc::CodeLoc;
 
-use super::expressions::Value;
+use super::value::Value;
 
 pub type RunRes<T> = Result<T, RuntimeError>;
 #[derive(Debug)]

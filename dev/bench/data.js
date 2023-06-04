@@ -1,5 +1,5 @@
 window.BENCHMARK_DATA = {
-  "lastUpdate": 1685879861182,
+  "lastUpdate": 1685880146482,
   "repoUrl": "https://github.com/KvGeijer/zote",
   "entries": {
     "Rust Benchmark": [
@@ -623,6 +623,60 @@ window.BENCHMARK_DATA = {
             "name": "string_manips",
             "value": 245643,
             "range": "± 1330",
+            "unit": "ns/iter"
+          }
+        ]
+      },
+      {
+        "commit": {
+          "author": {
+            "email": "kare.kvg@gmail.com",
+            "name": "Kåre von Geijer",
+            "username": "KvGeijer"
+          },
+          "committer": {
+            "email": "kare.kvg@gmail.com",
+            "name": "Kåre von Geijer",
+            "username": "KvGeijer"
+          },
+          "distinct": true,
+          "id": "bd7cc2bb9bc8c85d81367698772800bdd2c2ded0",
+          "message": "Add idea note about tighening indexing grammar",
+          "timestamp": "2023-06-04T13:59:15+02:00",
+          "tree_id": "ca73c2245e6f87a5ca6c63ffa99f08fe5fe21ed9",
+          "url": "https://github.com/KvGeijer/zote/commit/bd7cc2bb9bc8c85d81367698772800bdd2c2ded0"
+        },
+        "date": 1685880145319,
+        "tool": "cargo",
+        "benches": [
+          {
+            "name": "aoc_2022_1",
+            "value": 1272016,
+            "range": "± 179198",
+            "unit": "ns/iter"
+          },
+          {
+            "name": "aoc_2022_2",
+            "value": 25824757,
+            "range": "± 2483322",
+            "unit": "ns/iter"
+          },
+          {
+            "name": "fibonachi",
+            "value": 206400608,
+            "range": "± 18357543",
+            "unit": "ns/iter"
+          },
+          {
+            "name": "prints",
+            "value": 26245383,
+            "range": "± 2218131",
+            "unit": "ns/iter"
+          },
+          {
+            "name": "string_manips",
+            "value": 283664,
+            "range": "± 61067",
             "unit": "ns/iter"
           }
         ]

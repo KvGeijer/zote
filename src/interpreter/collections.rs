@@ -1,6 +1,7 @@
 use std::{
     iter::{Skip, StepBy, Take},
     rc::Rc,
+    vec,
 };
 
 use crate::{
@@ -82,6 +83,17 @@ impl Collection {
             }
         }
     }
+
+    pub fn to_iter(self) -> vec::IntoIter<Value> {
+        match self {
+            Collection::List(list) => list.to_iter(),
+            Collection::String(string) => string
+                .chars()
+                .map(|char| char.to_string().into())
+                .collect::<Vec<Value>>()
+                .into_iter(),
+        }
+    }
 }
 
 impl PartialOrd for Collection {
@@ -94,13 +106,13 @@ impl PartialOrd for Collection {
     }
 }
 
-#[derive(Debug)]
+#[derive(Debug, Clone)]
 pub enum IndexValue {
     At(Value),
     Slice(SliceValue),
 }
 
-#[derive(Debug)]
+#[derive(Debug, Clone)]
 pub struct SliceValue {
     start: Option<Numerical>,
     stop: Option<Numerical>,
@@ -159,11 +171,19 @@ pub fn slice_iter<T, I: Iterator<Item = T>>(
     if step < 0 {
         RunError::error("Negatice steps in slices not implemented".to_string())
     } else {
-        let steps = if stop > start {
-            ((stop - start) + (step - 1) as usize) / step as usize
-        } else {
-            0
-        };
+        let steps = slice_len(start, stop, step)?;
         Ok(iter.skip(start).step_by(step as usize).take(steps))
+    }
+}
+
+fn slice_len(start: usize, stop: usize, step: i64) -> RunRes<usize> {
+    if step < 0 {
+        RunError::error("Negatice steps in slices not implemented".to_string())
+    } else {
+        if stop > start {
+            Ok(((stop - start) + (step - 1) as usize) / step as usize)
+        } else {
+            Ok(0)
+        }
     }
 }

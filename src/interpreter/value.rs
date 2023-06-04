@@ -1,6 +1,11 @@
-use std::fmt;
+use std::{fmt, vec};
 
-use super::{collections::Collection, functions::Function, numerical::Numerical};
+use super::{
+    collections::Collection,
+    functions::Function,
+    numerical::Numerical,
+    runtime_error::{RunError, RunRes},
+};
 
 // An interface between Zote and Rust values
 #[derive(PartialEq, Debug, Clone)]
@@ -42,6 +47,13 @@ impl Value {
             Value::Callable(_) => "Function",
             Value::Nil => "Nil",
             Value::Uninitialized => "Uninitialized",
+        }
+    }
+
+    pub fn to_iter(self) -> RunRes<vec::IntoIter<Value>> {
+        match self {
+            Value::Collection(collection) => Ok(collection.to_iter()),
+            other => RunError::error(format!("Cannot convert {} to an iterator", other.type_of())),
         }
     }
 }

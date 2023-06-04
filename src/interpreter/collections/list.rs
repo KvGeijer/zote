@@ -5,7 +5,7 @@ use super::{
     index_wrap, slice_iter, IndexValue, SliceValue,
 };
 
-use std::{cell::RefCell, cmp::Ordering, rc::Rc};
+use std::{cell::RefCell, cmp::Ordering, rc::Rc, vec};
 
 #[derive(Clone, Debug, PartialEq, PartialOrd)]
 pub struct List {
@@ -187,19 +187,31 @@ impl List {
             IndexValue::At(val) => {
                 RunError::error(format!("Cannot index into list with a {}", val.type_of()))
             }
-            IndexValue::Slice(_slice) => {
-                todo!("Not yet implemented slice assignment for lists")
-                // let vec = self.vec.borrow_mut();
-                // let vec_len = vec.len();
-                // if slice_len(start, stop, step) != value.iter_len() {}
+            IndexValue::Slice(slice) => {
+                let mut vec = self.vec.borrow_mut();
+                let vec_len = vec.len();
+                let assign_slice_len = slice_iter(0.., slice.clone(), vec_len)?.count();
+                let rvalue_iter = value.clone().to_iter()?;
 
-                // for (lvalue, rvalue) in
-                //     slice_iter(vec.iter_mut(), start, stop, step, vec_len).zip(value.iter())
-                // {
-                //     *lvalue = rvalue;
-                // }
-                // self.vec.borrow_mut().get_mut(ind) = value;
+                if assign_slice_len != rvalue_iter.as_slice().len() {
+                    return RunError::error(format!(
+                        "Cannot assign into a slice of len {} with an iterator of length {}",
+                        assign_slice_len,
+                        rvalue_iter.as_slice().len(),
+                    ));
+                }
+
+                for (lvalue, rvalue) in slice_iter(vec.iter_mut(), slice, vec_len)?.zip(rvalue_iter)
+                {
+                    *lvalue = rvalue;
+                }
+                Ok(value)
             }
         }
+    }
+
+    pub fn to_iter(&self) -> vec::IntoIter<Value> {
+        // How does this work with mutability?
+        self.vec.borrow().clone().into_iter()
     }
 }

@@ -1,5 +1,7 @@
 # Improvement ideas for Zote
 
+* Tighten up grammar to improve inconsistencies such as "if true [1]", as that will seem as an indexing into true
+
 * Add different error types
 
 * Add tests for benches, so we at least can run them without error.

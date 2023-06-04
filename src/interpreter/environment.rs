@@ -1,4 +1,7 @@
-use super::value::Value;
+use super::{
+    runtime_error::{RunError, RunRes},
+    value::Value,
+};
 use std::{cell::RefCell, collections::HashMap, rc::Rc};
 
 // Initially wanted to use mutable references for next and not have to use a RefCell. But it does not work.
@@ -27,25 +30,25 @@ impl Environment {
         self.values.borrow_mut().insert(name, value);
     }
 
-    pub fn get(&self, name: &str) -> Option<Value> {
+    pub fn get(&self, name: &str) -> RunRes<Value> {
         // Feels quite bad to clone so much if we use strings
         if let Some(value) = self.values.borrow().get(name) {
-            Some(value.clone())
+            Ok(value.clone())
         } else if let Some(next) = &self.next {
             next.get(name)
         } else {
-            None
+            RunError::error(format!("Variable \"{}\" not declared", name))
         }
     }
 
-    pub fn assign(&self, name: &str, value: Value) -> Option<()> {
+    pub fn assign(&self, name: &str, value: Value) -> RunRes<Value> {
         if let Some(current) = self.values.borrow_mut().get_mut(name) {
-            *current = value;
-            Some(())
+            *current = value.clone();
+            Ok(value)
         } else if let Some(next) = &self.next {
             next.assign(name, value)
         } else {
-            None
+            RunError::error(format!("Variable \"{}\" not declared", name))
         }
     }
 }

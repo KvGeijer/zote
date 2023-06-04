@@ -1,7 +1,7 @@
 use itertools::Itertools;
 use std::{fs::read_to_string, rc::Rc};
 
-use crate::interpreter::{collections::Collection, RunRes, RuntimeError, Value};
+use crate::interpreter::{collections::Collection, RunError, RunRes, Value};
 
 pub trait Builtin {
     fn run(&self, args: Vec<Value>) -> RunRes<Value>;
@@ -86,9 +86,7 @@ impl Builtin for Push {
                 list.push(value);
                 Ok(Value::Nil)
             }
-            (_, _) => Err(RuntimeError::ErrorReason(
-                "Second argument to push must be a list".to_string(),
-            )),
+            (_, _) => RunError::error("Second argument to push must be a list".to_string()),
         }
     }
 
@@ -107,9 +105,7 @@ impl Builtin for Pop {
     fn run(&self, args: Vec<Value>) -> RunRes<Value> {
         match args.into_iter().next().unwrap() {
             Value::Collection(Collection::List(list)) => Ok(list.pop()),
-            _ => Err(RuntimeError::ErrorReason(
-                "Argument to pop must be a list".to_string(),
-            )),
+            _ => RunError::error("Argument to pop must be a list".to_string()),
         }
     }
 
@@ -130,10 +126,8 @@ impl Builtin for Read {
         match args.into_iter().next().unwrap() {
             Value::Collection(Collection::String(path)) => read_to_string(&path)
                 .map(|content| content.into())
-                .map_err(|_| RuntimeError::ErrorReason(format!("Could not read file at {path}"))),
-            _ => Err(RuntimeError::ErrorReason(
-                "Argument to read must be a string".to_string(),
-            )),
+                .map_err(|_| RunError::bare_error(format!("Could not read file at {path}"))),
+            _ => RunError::error("Argument to read must be a string".to_string()),
         }
     }
 
@@ -154,16 +148,12 @@ impl Builtin for Int {
                 if let Ok(int) = string.parse::<i64>() {
                     Ok(int.into())
                 } else {
-                    Err(RuntimeError::ErrorReason(format!(
-                        "Cannot parse {string} as integer"
-                    )))
+                    RunError::error(format!("Cannot parse {string} as integer"))
                 }
             }
             Value::Numerical(num) => Ok(num.to_int().into()),
             Value::Nil => Ok(0.into()),
-            val => Err(RuntimeError::ErrorReason(format!(
-                "Cannot convert {val} to an int"
-            ))),
+            val => RunError::error(format!("Cannot convert {val} to an int")),
         }
     }
 
@@ -180,12 +170,8 @@ struct Max;
 impl Builtin for Max {
     fn run(&self, args: Vec<Value>) -> RunRes<Value> {
         match args.into_iter().next().unwrap() {
-            Value::Collection(Collection::List(list)) => {
-                list.max().map_err(RuntimeError::ErrorReason)
-            }
-            _ => Err(RuntimeError::ErrorReason(
-                "So far max is only implemented for lists".to_string(),
-            )),
+            Value::Collection(Collection::List(list)) => list.max(),
+            _ => RunError::error("So far max is only implemented for lists".to_string()),
         }
     }
 
@@ -213,11 +199,11 @@ impl Builtin for Split {
                 Ok(splitted.into())
             }
             (Value::Collection(Collection::List(list)), value) => list.split(&value),
-            (left, right) => Err(RuntimeError::ErrorReason(format!(
+            (left, right) => RunError::error(format!(
                 "Arguments {} and {} are not valid for split",
                 left.type_of(),
                 right.type_of()
-            ))),
+            )),
         }
     }
 
@@ -235,11 +221,11 @@ impl Builtin for Map {
     fn run(&self, args: Vec<Value>) -> RunRes<Value> {
         match args.into_iter().collect_tuple().unwrap() {
             (Value::Collection(Collection::List(list)), Value::Callable(func)) => list.map(&func),
-            (left, right) => Err(RuntimeError::ErrorReason(format!(
+            (left, right) => RunError::error(format!(
                 "Expected a list and a function as arguments to map, but got {} and {}",
                 left.type_of(),
                 right.type_of()
-            ))),
+            )),
         }
     }
 
@@ -256,13 +242,11 @@ struct Sum;
 impl Builtin for Sum {
     fn run(&self, args: Vec<Value>) -> RunRes<Value> {
         match args.into_iter().next().unwrap() {
-            Value::Collection(Collection::List(list)) => {
-                list.sum().map_err(RuntimeError::ErrorReason)
-            }
-            arg => Err(RuntimeError::ErrorReason(format!(
+            Value::Collection(Collection::List(list)) => list.sum(),
+            arg => RunError::error(format!(
                 "Expected a list as argument to sum, but got {}",
                 arg.type_of(),
-            ))),
+            )),
         }
     }
 
@@ -279,13 +263,11 @@ struct Sort;
 impl Builtin for Sort {
     fn run(&self, args: Vec<Value>) -> RunRes<Value> {
         match args.into_iter().next().unwrap() {
-            Value::Collection(Collection::List(list)) => {
-                list.sort().map_err(RuntimeError::ErrorReason)
-            }
-            arg => Err(RuntimeError::ErrorReason(format!(
+            Value::Collection(Collection::List(list)) => list.sort(),
+            arg => RunError::error(format!(
                 "Expected a list as argument to sort, but got {}",
                 arg.type_of(),
-            ))),
+            )),
         }
     }
 

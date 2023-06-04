@@ -1,11 +1,10 @@
 use std::rc::Rc;
 
-use crate::{
-    code_loc::CodeLoc,
-    parser::{ExprNode, LValue, Stmt, StmtNode, Stmts},
-};
+use crate::parser::{ExprNode, LValue, Stmt, StmtNode, Stmts};
 
-use super::{environment::Environment, expressions, value::Value, RunRes, RuntimeError};
+use super::{
+    environment::Environment, expressions, runtime_error::RunResTrait, value::Value, RunRes,
+};
 
 pub fn eval_statements(statements: &Stmts, env: &Rc<Environment>) -> RunRes<Option<Value>> {
     let mut output = None;
@@ -32,26 +31,18 @@ fn eval(stmt: &StmtNode, env: &Rc<Environment>) -> RunRes<Option<Value>> {
         box node,
     } = stmt;
     match node {
-        Stmt::Decl(id, expr) => decl(id, expr, env, *start_loc, *end_loc).map(|_| None),
+        Stmt::Decl(id, expr) => decl(id, expr, env).map(|_| None),
         Stmt::Expr(expr) => expressions::eval(expr, env).map(Some),
         Stmt::Invalid => panic!("Tried to interpret an invalid statement!"),
     }
+    .add_loc(*start_loc, *end_loc) // OPT: How slow are these polymorphic wrappers?
 }
 
-fn decl(
-    lvalue: &LValue,
-    expr: &Option<ExprNode>,
-    env: &Rc<Environment>,
-    start: CodeLoc,
-    end: CodeLoc,
-) -> RunRes<()> {
-    lvalue
-        .declare(env)
-        .map_err(|reason| RuntimeError::Error(start, end, reason))?;
+fn decl(lvalue: &LValue, expr: &Option<ExprNode>, env: &Rc<Environment>) -> RunRes<()> {
+    lvalue.declare(env)?;
     if let Some(expr) = expr {
         let rvalue = expressions::eval(expr, env)?;
         lvalue.assign(rvalue, env)?;
-        // .map_err(|reason| RuntimeError::Error(start, end, reason))?;
     };
     Ok(())
 }

@@ -4,7 +4,7 @@ use std::{
 };
 
 use crate::{
-    interpreter::RuntimeError,
+    interpreter::RunError,
     parser::{ExprNode, Index},
 };
 
@@ -50,14 +50,16 @@ impl Collection {
         Self::List(List::new(values))
     }
 
-    pub fn assign_into(&self, rvalue: Value, index: IndexValue) -> Result<Value, String> {
+    pub fn assign_into(&self, rvalue: Value, index: IndexValue) -> RunRes<Value> {
         match self {
             Collection::List(list) => list.assign_into(rvalue, index),
-            Collection::String(_) => Err("Assigning into string not implemented".to_string()),
+            Collection::String(_) => {
+                RunError::error("Assigning into string not implemented".to_string())
+            }
         }
     }
 
-    pub fn get(&self, index: IndexValue) -> Result<Value, String> {
+    pub fn get(&self, index: IndexValue) -> RunRes<Value> {
         match (self, index) {
             (Collection::List(list), IndexValue::At(at)) => list.get(at),
             (Collection::List(list), IndexValue::Slice(slice)) => list.slice(slice),
@@ -65,13 +67,13 @@ impl Collection {
                 .chars()
                 .nth(num.to_rint() as usize)
                 .map(|char| char.to_string().into())
-                .ok_or(format!(
+                .ok_or(RunError::bare_error(format!(
                     "Index {} out of bound for sting of len {}",
                     num.to_rint(),
                     string.len()
-                )),
+                ))),
             (Collection::String(_), IndexValue::At(other)) => {
-                Err(format!("Cannot index into string with {}", other.type_of()))
+                RunError::error(format!("Cannot index into string with {}", other.type_of()))
             }
             (Collection::String(string), IndexValue::Slice(slice)) => {
                 let len = string.chars().count();
@@ -126,10 +128,10 @@ fn eval_opt_ind(ind: &Option<ExprNode>, env: &Rc<Environment>) -> RunRes<Option<
     match ind {
         Some(expr) => match expressions::eval(expr, env)? {
             Value::Numerical(num) => Ok(Some(num)),
-            other => Err(RuntimeError::ErrorReason(format!(
-                "Expected slice index to be numerical, got {}",
+            other => RunError::error(format!(
+                "Expects slice index to be numerical, got {}",
                 other.type_of()
-            ))),
+            )),
         },
         None => Ok(None),
     }
@@ -150,12 +152,12 @@ pub fn slice_iter<T, I: Iterator<Item = T>>(
     iter: I,
     SliceValue { start, stop, step }: SliceValue,
     len: usize,
-) -> Result<Take<StepBy<Skip<I>>>, String> {
+) -> RunRes<Take<StepBy<Skip<I>>>> {
     let start = index_wrap(start.map(|num| num.to_rint()).unwrap_or(0), len);
     let stop = index_wrap(stop.map(|num| num.to_rint()).unwrap_or(len as i64), len);
     let step = step.map(|num| num.to_rint()).unwrap_or(1);
     if step < 0 {
-        Err("Negatice steps in slices not implemented".to_string())
+        RunError::error("Negatice steps in slices not implemented".to_string())
     } else {
         let steps = if stop > start {
             ((stop - start) + (step - 1) as usize) / step as usize

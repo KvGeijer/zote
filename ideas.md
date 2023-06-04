@@ -1,5 +1,7 @@
 # Improvement ideas for Zote
 
+* Add different error types
+
 * Add tests for benches, so we at least can run them without error.
 
 * Should we have tuples? They are in place. They are more suitable when using as keys for example. 

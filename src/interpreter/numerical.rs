@@ -1,5 +1,7 @@
 use core::cmp::max;
 
+use super::runtime_error::{RunError, RunRes};
+
 #[derive(Debug, Clone, Copy)]
 pub enum Numerical {
     Int(i64),
@@ -88,9 +90,9 @@ impl Numerical {
         }
     }
 
-    pub fn div(self, other: Numerical) -> Result<Numerical, String> {
+    pub fn div(self, other: Numerical) -> RunRes<Numerical> {
         match math_promote(&self, &other) {
-            (_, Numerical::Int(0)) => Err("Cannot divide int by 0".to_string()),
+            (_, Numerical::Int(0)) => RunError::error("Cannot divide int by 0".to_string()),
             (Numerical::Int(x), Numerical::Int(y)) => Ok(Numerical::Int(x / y)),
             (Numerical::Float(x), Numerical::Float(y)) => Ok(Numerical::Float(x / y)),
             _ => panic!("Internal error with math_promote"),
@@ -122,11 +124,11 @@ impl Numerical {
         }
     }
 
-    pub fn un_sub(self) -> Result<Numerical, String> {
+    pub fn un_sub(self) -> RunRes<Numerical> {
         match self {
             Numerical::Int(int) => Ok(Numerical::Int(-int)),
             Numerical::Float(float) => Ok(Numerical::Float(-float)),
-            Numerical::Bool(_) => Err("Cannot negate a bool".to_string()),
+            Numerical::Bool(_) => RunError::error("Cannot negate a bool".to_string()),
         }
     }
 }

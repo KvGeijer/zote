@@ -19,15 +19,9 @@ impl ErrorReporter {
         self.had_runtime_error = false;
     }
 
-    pub fn runtime_error(&mut self, start: &CodeLoc, end: &CodeLoc, message: &str) {
+    pub fn runtime_error(&mut self, message: &str) {
         self.had_runtime_error = true;
-        eprintln!(
-            "ERROR [{}:{} - {}:{}] {message}",
-            start.line(),
-            start.col(),
-            end.line(),
-            end.col()
-        )
+        eprintln!("{message}");
     }
 
     // Should be expanded and changed when more is clear

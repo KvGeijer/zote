@@ -1,3 +1,5 @@
+use crate::interpreter::runtime_error::RunError;
+
 use super::{
     super::{functions::Function, numerical::Numerical, RunRes, Value},
     index_wrap, slice_iter, IndexValue, SliceValue,
@@ -56,11 +58,11 @@ impl List {
         string
     }
 
-    pub fn get(&self, at: Value) -> Result<Value, String> {
+    pub fn get(&self, at: Value) -> RunRes<Value> {
         let index = if let Value::Numerical(Numerical::Int(index)) = at {
             index
         } else {
-            return Err(format!(
+            return RunError::error(format!(
                 "Can only index into a list with an integer, but got {}",
                 at.type_of()
             ));
@@ -70,7 +72,7 @@ impl List {
 
         match vec.get(index_wrap(index, vec.len())).cloned() {
             Some(value) => Ok(value),
-            None => Err(format!(
+            None => RunError::error(format!(
                 "Index {index} not valid for length {} list",
                 vec.len()
             )),
@@ -78,7 +80,7 @@ impl List {
     }
 
     /// Returns the max of the list, or Nil if empty
-    pub fn max(&self) -> Result<Value, String> {
+    pub fn max(&self) -> RunRes<Value> {
         let vec = self.vec.borrow();
         let mut iter = vec.iter();
         let mut max = iter.next().cloned().unwrap_or(Value::Nil);
@@ -86,7 +88,11 @@ impl List {
             match max.partial_cmp(val) {
                 Some(Ordering::Less) => max = val.clone(),
                 None => {
-                    return Err("Cannot compare {} with {}. For finding max in a list.".to_string())
+                    return RunError::error(format!(
+                        "Cannot compare {} with {}. For finding max in a list.",
+                        max.type_of(),
+                        val.type_of(),
+                    ))
                 }
                 _ => (),
             }
@@ -121,13 +127,13 @@ impl List {
     }
 
     /// Sums a list with numericals. Errors if any nonnumerical.
-    pub fn sum(&self) -> Result<Value, String> {
+    pub fn sum(&self) -> RunRes<Value> {
         let mut sum: Numerical = 0.into();
         for val in self.vec.borrow().iter() {
             match val {
                 Value::Numerical(num) => sum = sum.add(*num),
                 val => {
-                    return Err(format!(
+                    return RunError::error(format!(
                         "List.sum only implemented for numbers, but got {}",
                         val.type_of()
                     ));
@@ -138,15 +144,14 @@ impl List {
     }
 
     /// Sorts a list in descending order, using natural ordering of Value. Errors if two items not comparable
-    pub fn sort(&self) -> Result<Value, String> {
+    pub fn sort(&self) -> RunRes<Value> {
         let mut success = Ok(());
         let mut vec = self.vec.borrow().clone();
 
         vec.sort_by(|a, b| match a.partial_cmp(b) {
             Some(order) => order.reverse(),
             None => {
-                println!("Error!");
-                success = Err(format!(
+                success = RunError::error(format!(
                     "Cannot sort a vector containing both {} and {}",
                     a.type_of(),
                     b.type_of()
@@ -157,14 +162,14 @@ impl List {
         success.map(|_| vec.into())
     }
 
-    pub fn slice(&self, slice: SliceValue) -> Result<Value, String> {
+    pub fn slice(&self, slice: SliceValue) -> RunRes<Value> {
         let vec = self.vec.borrow();
         Ok(slice_iter(vec.iter().cloned(), slice, vec.len())?
             .collect::<Vec<Value>>()
             .into())
     }
 
-    pub fn assign_into(&self, value: Value, index: IndexValue) -> Result<Value, String> {
+    pub fn assign_into(&self, value: Value, index: IndexValue) -> RunRes<Value> {
         // A bit annoying to handle slicing...
         match index {
             IndexValue::At(Value::Numerical(ind)) => {
@@ -172,11 +177,16 @@ impl List {
                 let len = vec.len();
                 let uind = index_wrap(ind.to_rint(), len);
                 *vec.get_mut(uind).ok_or_else(|| {
-                    format!("Index {} out of bounds for list of len {}", uind, len)
+                    RunError::bare_error(format!(
+                        "Index {} out of bounds for list of len {}",
+                        uind, len,
+                    ))
                 })? = value.clone();
                 Ok(value)
             }
-            IndexValue::At(val) => Err(format!("Cannot index into list with a {}", val.type_of())),
+            IndexValue::At(val) => {
+                RunError::error(format!("Cannot index into list with a {}", val.type_of()))
+            }
             IndexValue::Slice(_slice) => {
                 todo!("Not yet implemented slice assignment for lists")
                 // let vec = self.vec.borrow_mut();

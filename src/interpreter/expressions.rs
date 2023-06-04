@@ -13,86 +13,53 @@ use super::{
     environment::Environment,
     functions::{Closure, Function},
     numerical::Numerical,
+    runtime_error::{RunError, RunRes, RunResTrait},
     statements,
     value::Value,
-    RunRes, RuntimeError,
 };
 
 pub fn eval(expr: &ExprNode, env: &Rc<Environment>) -> RunRes<Value> {
-    let start = expr.start_loc;
-    let end = expr.end_loc;
     match expr.node.as_ref() {
-        Expr::Binary(left, op, right) => {
-            eval_binary(eval(left, env)?, op, eval(right, env)?, start, end)
-        }
-        Expr::Logical(left, op, right) => {
-            eval_logical(eval(left, env)?, op, right, env, start, end)
-        }
-
-        Expr::Unary(op, right) => eval_unary(op, eval(right, env)?, start, end),
-        Expr::Assign(lvalue, expr) => {
-            let val = eval(expr, env)?;
-            eval_assign(lvalue, val, env, start, end)
-        }
-        Expr::Var(id) => env.get(id).ok_or_else(|| {
-            RuntimeError::Error(start, end, format!("Variable '{id}' not declared"))
-        }),
+        Expr::Binary(left, op, right) => eval_binary(eval(left, env)?, op, eval(right, env)?),
+        Expr::Logical(left, op, right) => eval_logical(eval(left, env)?, op, right, env),
+        Expr::Unary(op, right) => eval_unary(op, eval(right, env)?),
+        Expr::Assign(lvalue, expr) => eval_assign(lvalue, eval(expr, env)?, env),
+        Expr::Var(id) => env.get(id),
         Expr::Int(int) => Ok(Value::Numerical(Numerical::Int(*int))),
         Expr::Float(float) => Ok(Value::Numerical(Numerical::Float(*float))),
         Expr::Bool(bool) => Ok(Value::Numerical(Numerical::Bool(*bool))),
         Expr::String(string) => Ok(string.clone().into()),
-        Expr::Block(stmts) => eval_block(stmts, env, start, end),
+        Expr::Block(stmts) => eval_block(stmts, env),
         Expr::If(cond, then, other) => eval_if(eval(cond, env)?, then, other.as_ref(), env),
         Expr::While(cond, repeat) => eval_while(cond, repeat, env),
-        Expr::Break => Err(RuntimeError::Break),
+        Expr::Break => Err(RunError::Break),
         Expr::Call(callee, args) => eval_call(
             eval(callee, env)?,
             args.iter()
                 .map(|arg| eval(arg, env))
                 .collect::<Result<Vec<_>, _>>()?,
-            start,
-            end,
+            expr.start_loc,
+            expr.end_loc,
         ),
-        Expr::Return(Some(expr)) => Err(RuntimeError::Return(eval(expr, env)?)),
-        Expr::Return(None) => Err(RuntimeError::Return(Value::Nil)),
+        Expr::Return(Some(expr)) => Err(RunError::Return(eval(expr, env)?)),
+        Expr::Return(None) => Err(RunError::Return(Value::Nil)),
         Expr::Nil => Ok(Value::Nil),
         Expr::List(exprs) => eval_list(exprs, env),
-        Expr::Tuple(_exprs) => error(
-            start,
-            end,
-            "Tuples are not part of the language (yet)".to_string(),
-        ),
+        Expr::Tuple(_exprs) => {
+            RunError::error("Tuples are not part of the language (yet)".to_string())
+        }
         Expr::FunctionDefinition(name, param, body) => eval_func_definition(name, param, body, env),
-        Expr::Index(base, index) => eval_index_expr(base, index, end, env),
+        Expr::Index(base, index) => eval_index_expr(base, index, env),
     }
+    .add_loc(expr.start_loc, expr.end_loc)
 }
 
-// fn up_err<T>(result: Result<T, String>, start: CodeLoc, end: CodeLoc) -> RunRes<T> {
-//     match result {
-//         Err(reason) => error(start, end, reason),
-//         Ok(val) => Ok(val),
-//     }
-// }
-
-// Is this the most beautiful function ever?!?
-fn eval_index_expr(
-    base: &ExprNode,
-    index_expr: &Index,
-    end: CodeLoc,
-    env: &Rc<Environment>,
-) -> RunRes<Value> {
-    let start = base.start_loc;
+fn eval_index_expr(base: &ExprNode, index_expr: &Index, env: &Rc<Environment>) -> RunRes<Value> {
     let index = eval_index(index_expr, env)?;
     let into_value = eval(base, env)?;
     match into_value {
-        Value::Collection(collection) => collection
-            .get(index)
-            .map_err(|reason| RuntimeError::Error(start, end, reason)),
-        other => error(
-            start,
-            end,
-            format!("Cannot index into a {}", other.type_of()),
-        ),
+        Value::Collection(collection) => collection.get(index),
+        other => RunError::error(format!("Cannot index into a {}", other.type_of())),
     }
 }
 
@@ -118,34 +85,28 @@ fn eval_call(callee: Value, args: Vec<Value>, start: CodeLoc, end: CodeLoc) -> R
     if let Value::Callable(callable) = callee {
         if args.len() == callable.arity() {
             match callable.call(args) {
-                Err(RuntimeError::Break) => Err(RuntimeError::Error(
-                    start,
-                    end,
-                    "Break encountered outside loop".to_string(),
-                )),
-                Err(RuntimeError::Return(value)) => Ok(value),
-                Err(RuntimeError::ErrorReason(reason)) => error(start, end, reason),
-                // TODO Error traces...
+                Err(RunError::Break) => error("Break encountered outside loop".to_string()),
+                Err(RunError::Return(value)) => Ok(value),
                 otherwise => otherwise,
             }
+            .add_trace(callable.name().to_string(), start, end)
         } else {
-            error(
-                start,
-                end,
-                format!(
-                    "Expected {} arguments but got {}.",
-                    callable.arity(),
-                    args.len()
-                ),
-            )
+            error(format!(
+                "Expected {} arguments but got {}.",
+                callable.arity(),
+                args.len()
+            ))
         }
     } else {
-        error(start, end, "Can only call functions".to_string())
+        error(format!(
+            "Can only call functions, but got {}",
+            callee.type_of()
+        ))
     }
 }
 
-fn error<T>(start: CodeLoc, end: CodeLoc, message: String) -> RunRes<T> {
-    Err(RuntimeError::Error(start, end, message))
+fn error<T>(message: String) -> RunRes<T> {
+    RunError::error(message)
 }
 
 fn def_block_return() -> Value {
@@ -155,7 +116,7 @@ fn def_block_return() -> Value {
 fn eval_while(cond: &ExprNode, repeat: &ExprNode, env: &Rc<Environment>) -> RunRes<Value> {
     while eval(cond, env)?.truthy() {
         match eval(repeat, env) {
-            Err(RuntimeError::Break) => break,
+            Err(RunError::Break) => break,
             otherwise => otherwise?,
         };
     }
@@ -178,13 +139,7 @@ fn eval_if(
     }
 }
 
-fn eval_block(
-    stmts: &Stmts,
-    env: &Rc<Environment>,
-    _start_loc: CodeLoc,
-    _end_loc: CodeLoc,
-) -> RunRes<Value> {
-    // Not super pretty, would maybe be better with rusts use of no colon if we return
+fn eval_block(stmts: &Stmts, env: &Rc<Environment>) -> RunRes<Value> {
     let nested_env = Environment::nest(env);
     match statements::eval_statements(stmts, &nested_env)? {
         Some(val) => Ok(val),
@@ -192,231 +147,177 @@ fn eval_block(
     }
 }
 
-fn eval_assign(
-    lvalue: &LValue,
-    rvalue: Value,
-    env: &Rc<Environment>,
-    _start: CodeLoc,
-    _end: CodeLoc,
-) -> RunRes<Value> {
+fn eval_assign(lvalue: &LValue, rvalue: Value, env: &Rc<Environment>) -> RunRes<Value> {
     lvalue.assign(rvalue, env)
-    // TODO: Add to error trace!
-    // .map_err(|reason| RuntimeError::Error(start, end, reason))
 }
 
-fn eval_binary(
-    left: Value,
-    op: &BinOperNode,
-    right: Value,
-    start_loc: CodeLoc,
-    end_loc: CodeLoc,
-) -> RunRes<Value> {
+fn eval_binary(left: Value, op: &BinOperNode, right: Value) -> RunRes<Value> {
     match op.node.as_ref() {
-        BinOper::Add => bin_add(left, right, start_loc, end_loc),
-        BinOper::Sub => bin_sub(left, right, start_loc, end_loc),
-        BinOper::Mult => bin_mult(left, right, start_loc, end_loc),
-        BinOper::Div => bin_div(left, right, start_loc, end_loc),
-        BinOper::Mod => bin_mod(left, right, start_loc, end_loc),
-        BinOper::Pow => bin_pow(left, right, start_loc, end_loc),
-        BinOper::Eq => bin_eq(left, right, start_loc, end_loc),
-        BinOper::Neq => bin_neq(left, right, start_loc, end_loc),
-        BinOper::Lt => bin_lt(left, right, start_loc, end_loc),
-        BinOper::Leq => bin_leq(left, right, start_loc, end_loc),
-        BinOper::Gt => bin_gt(left, right, start_loc, end_loc),
-        BinOper::Geq => bin_geq(left, right, start_loc, end_loc),
+        BinOper::Add => bin_add(left, right),
+        BinOper::Sub => bin_sub(left, right),
+        BinOper::Mult => bin_mult(left, right),
+        BinOper::Div => bin_div(left, right),
+        BinOper::Mod => bin_mod(left, right),
+        BinOper::Pow => bin_pow(left, right),
+        BinOper::Eq => bin_eq(left, right),
+        BinOper::Neq => bin_neq(left, right),
+        BinOper::Lt => bin_lt(left, right),
+        BinOper::Leq => bin_leq(left, right),
+        BinOper::Gt => bin_gt(left, right),
+        BinOper::Geq => bin_geq(left, right),
     }
 }
 
-fn bin_add(left: Value, right: Value, start_loc: CodeLoc, end_loc: CodeLoc) -> RunRes<Value> {
+fn bin_add(left: Value, right: Value) -> RunRes<Value> {
     match (left, right) {
         (Value::Numerical(x), Value::Numerical(y)) => Ok(Value::Numerical(x.add(y))),
         // (Value::String(x), Value::String(y)) => Ok(Value::String(x + &y)),
-        (left, right) => error(
-            start_loc,
-            end_loc,
-            format!("Cannot add {} and {}", left.stringify(), right.stringify()),
-        ),
+        (left, right) => error(format!(
+            "Cannot add {} and {}",
+            left.type_of(),
+            right.type_of()
+        )),
     }
 }
 
-fn bin_sub(left: Value, right: Value, start_loc: CodeLoc, end_loc: CodeLoc) -> RunRes<Value> {
+fn bin_sub(left: Value, right: Value) -> RunRes<Value> {
     match (left, right) {
         (Value::Numerical(x), Value::Numerical(y)) => Ok(Value::Numerical(x.sub(y))),
-        (left, right) => error(
-            start_loc,
-            end_loc,
-            format!(
-                "Cannot subtract {} from {}",
-                right.stringify(),
-                left.stringify()
-            ),
-        ),
+        (left, right) => error(format!(
+            "Cannot subtract {} from {}",
+            right.type_of(),
+            left.type_of()
+        )),
     }
 }
 
-fn bin_mult(left: Value, right: Value, start_loc: CodeLoc, end_loc: CodeLoc) -> RunRes<Value> {
+fn bin_mult(left: Value, right: Value) -> RunRes<Value> {
     match (left, right) {
         (Value::Numerical(x), Value::Numerical(y)) => Ok(Value::Numerical(x.mult(y))),
-        (left, right) => error(
-            start_loc,
-            end_loc,
-            format!(
-                "Cannot multiply {} and {}",
-                left.stringify(),
-                right.stringify()
-            ),
-        ),
+        (left, right) => error(format!(
+            "Cannot multiply {} and {}",
+            left.type_of(),
+            right.type_of()
+        )),
     }
 }
 
-fn bin_div(left: Value, right: Value, start_loc: CodeLoc, end_loc: CodeLoc) -> RunRes<Value> {
+fn bin_div(left: Value, right: Value) -> RunRes<Value> {
     match (left, right) {
-        (Value::Numerical(x), Value::Numerical(y)) => match x.div(y) {
-            Ok(num) => Ok(Value::Numerical(num)),
-            Err(reason) => error(start_loc, end_loc, reason),
-        },
-        (left, right) => error(
-            start_loc,
-            end_loc,
-            format!(
-                "Cannot divide {} by {}",
-                left.stringify(),
-                right.stringify()
-            ),
-        ),
+        (Value::Numerical(x), Value::Numerical(y)) => Ok(x.div(y)?.into()),
+        (left, right) => error(format!(
+            "Cannot divide {} by {}",
+            left.type_of(),
+            right.type_of()
+        )),
     }
 }
 
-fn bin_mod(left: Value, right: Value, start_loc: CodeLoc, end_loc: CodeLoc) -> RunRes<Value> {
+fn bin_mod(left: Value, right: Value) -> RunRes<Value> {
     match (left, right) {
         (Value::Numerical(x), Value::Numerical(y)) => Ok(Value::Numerical(x.modulo(y))),
-        _other => error(
-            start_loc,
-            end_loc,
-            "Modulo only works for numbers".to_string(),
-        ),
+        _other => error("Modulo only works for numbers".to_string()),
     }
 }
 
-fn bin_pow(left: Value, right: Value, start_loc: CodeLoc, end_loc: CodeLoc) -> RunRes<Value> {
+fn bin_pow(left: Value, right: Value) -> RunRes<Value> {
     match (left, right) {
         (Value::Numerical(x), Value::Numerical(y)) => Ok(Value::Numerical(x.pow(y))),
-        _other => error(
-            start_loc,
-            end_loc,
-            "Can only take powers of numbers".to_string(),
-        ),
+        _other => error("Can only take powers of numbers".to_string()),
     }
 }
 
-fn bin_eq(left: Value, right: Value, _start: CodeLoc, _end: CodeLoc) -> RunRes<Value> {
+fn bin_eq(left: Value, right: Value) -> RunRes<Value> {
     Ok(Value::Numerical(Numerical::Bool(left == right)))
 }
 
-fn bin_neq(left: Value, right: Value, _start: CodeLoc, _end: CodeLoc) -> RunRes<Value> {
+fn bin_neq(left: Value, right: Value) -> RunRes<Value> {
     Ok(Value::Numerical(Numerical::Bool(left != right)))
 }
 
-fn bin_lt(left: Value, right: Value, start: CodeLoc, end: CodeLoc) -> RunRes<Value> {
+fn bin_lt(left: Value, right: Value) -> RunRes<Value> {
     match left.partial_cmp(&right) {
         Some(order) => Ok(Value::Numerical(Numerical::Bool(order == Ordering::Less))),
-        None => error(
-            start,
-            end,
-            format!("Cannot compare {} with {}", left.type_of(), right.type_of()),
-        ),
+        None => error(format!(
+            "Cannot compare {} with {}",
+            left.type_of(),
+            right.type_of()
+        )),
     }
 }
 
-fn bin_leq(left: Value, right: Value, start: CodeLoc, end: CodeLoc) -> RunRes<Value> {
+fn bin_leq(left: Value, right: Value) -> RunRes<Value> {
     match left.partial_cmp(&right) {
         Some(order) => Ok(Value::Numerical(Numerical::Bool(
             order != Ordering::Greater,
         ))),
-        None => error(
-            start,
-            end,
-            format!("Cannot compare {} with {}", left.type_of(), right.type_of()),
-        ),
+        None => error(format!(
+            "Cannot compare {} with {}",
+            left.type_of(),
+            right.type_of()
+        )),
     }
 }
 
-fn bin_gt(left: Value, right: Value, start: CodeLoc, end: CodeLoc) -> RunRes<Value> {
+fn bin_gt(left: Value, right: Value) -> RunRes<Value> {
     match left.partial_cmp(&right) {
         Some(order) => Ok(Value::Numerical(Numerical::Bool(
             order == Ordering::Greater,
         ))),
-        None => error(
-            start,
-            end,
-            format!("Cannot compare {} with {}", left.type_of(), right.type_of()),
-        ),
+        None => error(format!(
+            "Cannot compare {} with {}",
+            left.type_of(),
+            right.type_of()
+        )),
     }
 }
 
-fn bin_geq(left: Value, right: Value, start: CodeLoc, end: CodeLoc) -> RunRes<Value> {
+fn bin_geq(left: Value, right: Value) -> RunRes<Value> {
     match left.partial_cmp(&right) {
         Some(order) => Ok(Value::Numerical(Numerical::Bool(order != Ordering::Less))),
-        None => error(
-            start,
-            end,
-            format!("Cannot compare {} with {}", left.type_of(), right.type_of()),
-        ),
+        None => error(format!(
+            "Cannot compare {} with {}",
+            left.type_of(),
+            right.type_of()
+        )),
     }
 }
 
-fn eval_unary(op: &UnOperNode, right: Value, start: CodeLoc, end: CodeLoc) -> RunRes<Value> {
+fn eval_unary(op: &UnOperNode, right: Value) -> RunRes<Value> {
     match op.node.as_ref() {
         UnOper::Sub => match right {
-            Value::Numerical(num) => match num.un_sub() {
-                Ok(num) => Ok(Value::Numerical(num)),
-                Err(reason) => error(start, end, reason),
-            },
-            _other => error(
-                start,
-                end,
-                "Unary subtraction only works for a number".to_string(),
-            ),
+            Value::Numerical(num) => Ok(num.un_sub()?.into()),
+            _other => error("Unary subtraction only works for a number".to_string()),
         },
         UnOper::Not => Ok(Value::Numerical(Numerical::Bool(!right.truthy()))),
     }
 }
 
 impl LValue {
-    pub fn declare(&self, env: &Rc<Environment>) -> Result<Value, String> {
+    pub fn declare(&self, env: &Rc<Environment>) -> RunRes<Value> {
         match self {
             LValue::Var(id) => {
                 env.define(id.to_string(), Value::Uninitialized);
                 Ok(Value::Uninitialized)
             }
             LValue::Index(_expr, _index) => {
-                Err("Cannot include an indexing in a declaration".to_string())
+                RunError::error("Cannot include an indexing in a declaration".to_string())
             }
         }
     }
 
     pub fn assign(&self, rvalue: Value, env: &Rc<Environment>) -> RunRes<Value> {
         match self {
-            LValue::Var(id) => {
-                if env.assign(id, rvalue.clone()).is_some() {
-                    Ok(rvalue)
-                } else {
-                    Err(RuntimeError::ErrorReason(format!(
-                        "Variable '{id}' not declared"
-                    )))
-                }
-            }
+            LValue::Var(id) => env.assign(id, rvalue),
             LValue::Index(callee_expr, index_expr) => {
                 let index = eval_index(index_expr, env)?;
                 let base = eval(callee_expr, env)?;
                 match base {
-                    Value::Collection(collection) => collection
-                        .assign_into(rvalue, index)
-                        .map_err(RuntimeError::ErrorReason),
-                    other => Err(RuntimeError::ErrorReason(format!(
+                    Value::Collection(collection) => collection.assign_into(rvalue, index),
+                    other => error(format!(
                         "Cannot index into {} for assignment",
                         other.type_of()
-                    ))),
+                    )),
                 }
             }
         }
@@ -428,8 +329,6 @@ fn eval_logical(
     op: &LogicalOperNode,
     right: &ExprNode,
     env: &Rc<Environment>,
-    _start_loc: CodeLoc,
-    _end_loc: CodeLoc,
 ) -> RunRes<Value> {
     let res = match op.node.as_ref() {
         LogicalOper::And => left.truthy() && eval(right, env)?.truthy(),

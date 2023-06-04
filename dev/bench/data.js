@@ -1,5 +1,5 @@
 window.BENCHMARK_DATA = {
-  "lastUpdate": 1685883334679,
+  "lastUpdate": 1685883971646,
   "repoUrl": "https://github.com/KvGeijer/zote",
   "entries": {
     "Rust Benchmark": [
@@ -731,6 +731,60 @@ window.BENCHMARK_DATA = {
             "name": "string_manips",
             "value": 373449197,
             "range": "± 29340284",
+            "unit": "ns/iter"
+          }
+        ]
+      },
+      {
+        "commit": {
+          "author": {
+            "email": "kare.kvg@gmail.com",
+            "name": "Kåre von Geijer",
+            "username": "KvGeijer"
+          },
+          "committer": {
+            "email": "kare.kvg@gmail.com",
+            "name": "Kåre von Geijer",
+            "username": "KvGeijer"
+          },
+          "distinct": true,
+          "id": "862b3e233535f86e88477005ddfbedc7245a949c",
+          "message": "Change append to concat",
+          "timestamp": "2023-06-04T15:02:25+02:00",
+          "tree_id": "55544e0122bbd5d34d12aefafd1a1fcb5551b492",
+          "url": "https://github.com/KvGeijer/zote/commit/862b3e233535f86e88477005ddfbedc7245a949c"
+        },
+        "date": 1685883970596,
+        "tool": "cargo",
+        "benches": [
+          {
+            "name": "aoc_2022_1",
+            "value": 1283972,
+            "range": "± 33364",
+            "unit": "ns/iter"
+          },
+          {
+            "name": "aoc_2022_2",
+            "value": 24989402,
+            "range": "± 407335",
+            "unit": "ns/iter"
+          },
+          {
+            "name": "fibonachi",
+            "value": 188283047,
+            "range": "± 4703469",
+            "unit": "ns/iter"
+          },
+          {
+            "name": "prints",
+            "value": 25429081,
+            "range": "± 784616",
+            "unit": "ns/iter"
+          },
+          {
+            "name": "string_manips",
+            "value": 229453117,
+            "range": "± 4174779",
             "unit": "ns/iter"
           }
         ]

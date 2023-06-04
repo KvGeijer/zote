@@ -13,6 +13,10 @@ pub struct List {
 }
 
 impl List {
+    pub fn deepclone(&self) -> Self {
+        Self::new(self.vec.borrow().clone())
+    }
+
     pub fn new(values: Vec<Value>) -> Self {
         Self {
             vec: Rc::new(RefCell::new(values)),
@@ -31,6 +35,8 @@ impl List {
             None => Value::Nil,
         }
     }
+
+    /// Extends the ite
 
     /// Checks if the list is empty
     pub fn is_empty(&self) -> bool {

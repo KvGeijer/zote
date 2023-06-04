@@ -74,6 +74,7 @@ pub enum BinOper {
     Leq,
     Gt,
     Geq,
+    Append,
 }
 
 #[derive(PartialEq, Eq, Debug, Clone)]
@@ -264,10 +265,10 @@ impl<'a> Parser<'a> {
     }
 
     fn term(&mut self) -> Option<ExprNode> {
-        // term           → factor ( ( "-" | "+" ) factor )* ;
+        // term           → factor ( ( "-" | "+" | "++" ) factor )* ;
         let mut factor = self.factor()?;
 
-        while let Some(op) = self.match_op([BinOper::Add, BinOper::Sub]) {
+        while let Some(op) = self.match_op([BinOper::Add, BinOper::Sub, BinOper::Append]) {
             let right = self.factor()?;
             factor = ExprNode::binary(factor, op, right);
         }
@@ -633,6 +634,7 @@ impl FromToken for BinOper {
             Token::Minus => Some(BinOper::Sub),
             Token::UpArr => Some(BinOper::Pow),
             Token::Percent => Some(BinOper::Mod),
+            Token::DoublePlus => Some(BinOper::Append),
             _ => None,
         }
     }

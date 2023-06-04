@@ -2,8 +2,8 @@ var i = 0;
 var s1;
 var s2 = "start";
 while (i = i +1) < 30000 {
-	s1 = "hello, " + "world" + "!";
-	s1 = s1 + s1;
-	s1 = s1 + "extra" + "extra" + "extra" + "extra";
-	s2 = s2 + str(i);
+	s1 = "hello, " ++ "world" ++ "!";
+	s1 = s1 ++ s1;
+	s1 = s1 ++ "extra" ++ "extra" ++ "extra" ++ "extra";
+	s2 = s2 ++ str(i);
 }

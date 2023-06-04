@@ -94,6 +94,29 @@ impl Collection {
                 .into_iter(),
         }
     }
+
+    pub fn append(self, other: Value) -> RunRes<Value> {
+        match (self, other) {
+            (Collection::List(list), other) => {
+                let clone = list.deepclone();
+                for item in other.to_iter()? {
+                    clone.push(item);
+                }
+                Ok(clone.into())
+            }
+            (Collection::String(string), Value::Collection(Collection::String(other))) => {
+                Ok((string + &other).into())
+            }
+            (Collection::String(string), Value::Numerical(num)) => {
+                Ok((string + &num.to_rint().to_string()).into())
+            }
+            (left, right) => RunError::error(format!(
+                "Cannot append {} to {}",
+                right.type_of(),
+                left.type_of()
+            )),
+        }
+    }
 }
 
 impl PartialOrd for Collection {

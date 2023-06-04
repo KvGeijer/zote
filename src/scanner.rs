@@ -71,6 +71,7 @@ pub enum Token {
     Nil,
     Pipe,
     PipeColon,
+    DoublePlus,
 }
 
 #[derive(Debug)]
@@ -133,6 +134,7 @@ lazy_static! {
         (r"Nil", |_| Token::Nil),
         (r">>", |_| Token::Pipe),
         (r">>:", |_| Token::PipeColon),
+        (r"\+\+", |_| Token::DoublePlus),
     ];
 }
 

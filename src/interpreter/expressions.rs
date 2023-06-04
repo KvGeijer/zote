@@ -153,6 +153,7 @@ fn eval_assign(lvalue: &LValue, rvalue: Value, env: &Rc<Environment>) -> RunRes<
 
 fn eval_binary(left: Value, op: &BinOperNode, right: Value) -> RunRes<Value> {
     match op.node.as_ref() {
+        BinOper::Append => bin_append(left, right),
         BinOper::Add => bin_add(left, right),
         BinOper::Sub => bin_sub(left, right),
         BinOper::Mult => bin_mult(left, right),
@@ -167,11 +168,20 @@ fn eval_binary(left: Value, op: &BinOperNode, right: Value) -> RunRes<Value> {
         BinOper::Geq => bin_geq(left, right),
     }
 }
+fn bin_append(left: Value, right: Value) -> RunRes<Value> {
+    match left {
+        Value::Collection(x) => x.append(right),
+        left => error(format!(
+            "Cannot append {} to {}",
+            right.type_of(),
+            left.type_of()
+        )),
+    }
+}
 
 fn bin_add(left: Value, right: Value) -> RunRes<Value> {
     match (left, right) {
         (Value::Numerical(x), Value::Numerical(y)) => Ok(Value::Numerical(x.add(y))),
-        // (Value::String(x), Value::String(y)) => Ok(Value::String(x + &y)),
         (left, right) => error(format!(
             "Cannot add {} and {}",
             left.type_of(),

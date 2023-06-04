@@ -1,7 +1,7 @@
 use std::{fmt, vec};
 
 use super::{
-    collections::Collection,
+    collections::{Collection, List},
     functions::Function,
     numerical::Numerical,
     runtime_error::{RunError, RunRes},
@@ -117,5 +117,16 @@ impl From<String> for Value {
 impl From<Vec<Value>> for Value {
     fn from(values: Vec<Value>) -> Self {
         Value::Collection(Collection::new_list(values))
+    }
+}
+
+impl From<Collection> for Value {
+    fn from(coll: Collection) -> Self {
+        Value::Collection(coll)
+    }
+}
+impl From<List> for Value {
+    fn from(list: List) -> Self {
+        Value::Collection(Collection::List(list))
     }
 }

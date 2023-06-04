@@ -20,7 +20,7 @@ pub enum Expr {
     Unary(UnOperNode, ExprNode),
     Logical(ExprNode, LogicalOperNode, ExprNode),
     Assign(LValue, ExprNode),
-    Var(String),
+    Var(String), // TODO: Replace fully by LValue
     Int(i64),
     Float(f64),
     Bool(bool),
@@ -28,6 +28,7 @@ pub enum Expr {
     Block(Stmts),
     If(ExprNode, ExprNode, Option<ExprNode>),
     While(ExprNode, ExprNode),
+    For(LValue, ExprNode, ExprNode),
     Break, // TODO Do we want to return an optional value from this?
     Return(Option<ExprNode>),
     Nil,
@@ -109,25 +110,24 @@ impl<'a> Parser<'a> {
         // TODO At least assign to tuples
         let expr = self.pipe()?;
         if self.match_token(Token::Eq) {
-            let ExprNode {
-                start_loc,
-                end_loc: _,
-                box node,
-            } = expr;
-            match node.to_lvalue() {
-                Ok(lvalue) => {
-                    let rvalue = self.assignment()?;
-                    let end = rvalue.end_loc.clone();
-                    let assign = Expr::Assign(lvalue, rvalue);
-                    Some(ExprNode::new(assign, start_loc, end))
-                }
-                Err(reason) => {
-                    self.error(&reason);
-                    None
-                }
-            }
+            let start = expr.start_loc;
+            let lvalue = self.exprnode_to_lvalue(expr)?;
+            let rvalue = self.assignment()?;
+            let end = rvalue.end_loc.clone();
+            let assign = Expr::Assign(lvalue, rvalue);
+            Some(ExprNode::new(assign, start, end))
         } else {
             Some(expr)
+        }
+    }
+
+    fn exprnode_to_lvalue(&mut self, expr: ExprNode) -> Option<LValue> {
+        match expr.node.to_lvalue() {
+            Ok(lvalue) => Some(lvalue),
+            Err(reason) => {
+                self.error(&reason);
+                None
+            }
         }
     }
 
@@ -405,6 +405,7 @@ impl<'a> Parser<'a> {
             Token::While => self.accept_while(),
             Token::LBrack => self.accept_list(),
             Token::LPar => self.maybe_tuple(),
+            Token::For => self.accept_for(),
             _ => self.simple_primary(),
         }
     }
@@ -538,6 +539,23 @@ impl<'a> Parser<'a> {
         Some(ExprNode::new(Expr::While(cond, repeat), start, end))
     }
 
+    fn accept_for(&mut self) -> Option<ExprNode> {
+        let start = self.peek_start_loc().clone();
+        self.accept(Token::For, "Internal error at for")?;
+
+        let lvalue_expr = self.expression()?;
+        let lvalue = self.exprnode_to_lvalue(lvalue_expr)?;
+        self.accept(
+            Token::In,
+            "Expect \"in\" to follow the lvalue in a for expression",
+        )?;
+        let iterable = self.expression()?;
+        let body = self.expression()?;
+
+        let end = self.peek_last_end_loc()?.clone();
+        Some(ExprNode::new(Expr::For(lvalue, iterable, body), start, end))
+    }
+
     fn match_op<F: FromToken + Eq + Debug, T: IntoIterator<Item = F>>(
         &mut self,
         expected: T,
@@ -605,6 +623,7 @@ impl Expr {
             Expr::Block(_) => "block",
             Expr::If(_, _, _) => "if",
             Expr::While(_, _) => "while",
+            Expr::For(_, _, _) => "for",
             Expr::Break => "break",
             Expr::Return(_) => "return",
             Expr::Nil => "nil",

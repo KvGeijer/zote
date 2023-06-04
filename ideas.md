@@ -16,7 +16,9 @@
 
 * Add maps (sets as well)
 
-* Add cool for each loops.
+* Improve iterables
+  * Want to be able to iterate over a range, like "for i in 1:10"
+  * Do we want to change it from "1:10" to "1..10"?
 
 * Expand standard library
 

@@ -32,6 +32,7 @@ pub fn eval(expr: &ExprNode, env: &Rc<Environment>) -> RunRes<Value> {
         Expr::Block(stmts) => eval_block(stmts, env),
         Expr::If(cond, then, other) => eval_if(eval(cond, env)?, then, other.as_ref(), env),
         Expr::While(cond, repeat) => eval_while(cond, repeat, env),
+        Expr::For(lvalue, iterable, body) => eval_for(lvalue, eval(iterable, env)?, body, env),
         Expr::Break => Err(RunError::Break),
         Expr::Call(callee, args) => eval_call(
             eval(callee, env)?,
@@ -119,6 +120,22 @@ fn eval_while(cond: &ExprNode, repeat: &ExprNode, env: &Rc<Environment>) -> RunR
             Err(RunError::Break) => break,
             otherwise => otherwise?,
         };
+    }
+
+    Ok(def_block_return())
+}
+
+fn eval_for(
+    lvalue: &LValue,
+    iter: Value,
+    body: &ExprNode,
+    outer_env: &Rc<Environment>,
+) -> RunRes<Value> {
+    let mut env = Environment::nest(outer_env);
+    for value in iter.to_iter()? {
+        lvalue.declare(&mut env)?;
+        lvalue.assign(value, &mut env)?;
+        eval(body, &mut env)?;
     }
 
     Ok(def_block_return())

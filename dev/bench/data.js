@@ -1,5 +1,5 @@
 window.BENCHMARK_DATA = {
-  "lastUpdate": 1685872169596,
+  "lastUpdate": 1685879861182,
   "repoUrl": "https://github.com/KvGeijer/zote",
   "entries": {
     "Rust Benchmark": [
@@ -569,6 +569,60 @@ window.BENCHMARK_DATA = {
             "name": "string_manips",
             "value": 242703,
             "range": "± 1313",
+            "unit": "ns/iter"
+          }
+        ]
+      },
+      {
+        "commit": {
+          "author": {
+            "email": "kare.kvg@gmail.com",
+            "name": "Kåre von Geijer",
+            "username": "KvGeijer"
+          },
+          "committer": {
+            "email": "kare.kvg@gmail.com",
+            "name": "Kåre von Geijer",
+            "username": "KvGeijer"
+          },
+          "distinct": true,
+          "id": "3c49b33d2799f67287b5db9e4725a523f12a2ed7",
+          "message": "Implement lvalue slices\n\nSo now we can assign into a slice with another iterable.",
+          "timestamp": "2023-06-04T13:54:48+02:00",
+          "tree_id": "efac33ebe648b70c2f627702a6b30b6938a5ae4b",
+          "url": "https://github.com/KvGeijer/zote/commit/3c49b33d2799f67287b5db9e4725a523f12a2ed7"
+        },
+        "date": 1685879860428,
+        "tool": "cargo",
+        "benches": [
+          {
+            "name": "aoc_2022_1",
+            "value": 1053106,
+            "range": "± 28291",
+            "unit": "ns/iter"
+          },
+          {
+            "name": "aoc_2022_2",
+            "value": 20721749,
+            "range": "± 108221",
+            "unit": "ns/iter"
+          },
+          {
+            "name": "fibonachi",
+            "value": 162702293,
+            "range": "± 1784676",
+            "unit": "ns/iter"
+          },
+          {
+            "name": "prints",
+            "value": 21140225,
+            "range": "± 290381",
+            "unit": "ns/iter"
+          },
+          {
+            "name": "string_manips",
+            "value": 245643,
+            "range": "± 1330",
             "unit": "ns/iter"
           }
         ]

@@ -170,7 +170,7 @@ fn eval_binary(left: Value, op: &BinOperNode, right: Value) -> RunRes<Value> {
 }
 fn bin_append(left: Value, right: Value) -> RunRes<Value> {
     match left {
-        Value::Collection(x) => x.append(right),
+        Value::Collection(x) => x.concat(right),
         left => error(format!(
             "Cannot append {} to {}",
             right.type_of(),

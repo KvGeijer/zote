@@ -95,7 +95,7 @@ impl Collection {
         }
     }
 
-    pub fn append(self, other: Value) -> RunRes<Value> {
+    pub fn concat(self, other: Value) -> RunRes<Value> {
         match (self, other) {
             (Collection::List(list), other) => {
                 let clone = list.deepclone();

@@ -1,5 +1,5 @@
 window.BENCHMARK_DATA = {
-  "lastUpdate": 1685791886964,
+  "lastUpdate": 1685872169596,
   "repoUrl": "https://github.com/KvGeijer/zote",
   "entries": {
     "Rust Benchmark": [
@@ -515,6 +515,60 @@ window.BENCHMARK_DATA = {
             "name": "string_manips",
             "value": 244993,
             "range": "± 1624",
+            "unit": "ns/iter"
+          }
+        ]
+      },
+      {
+        "commit": {
+          "author": {
+            "email": "kare.kvg@gmail.com",
+            "name": "Kåre von Geijer",
+            "username": "KvGeijer"
+          },
+          "committer": {
+            "email": "kare.kvg@gmail.com",
+            "name": "Kåre von Geijer",
+            "username": "KvGeijer"
+          },
+          "distinct": true,
+          "id": "7596c56fe9b5dc6084143b7699703aee95cc2257",
+          "message": "Refactor runtime errors to use stack traces\n\nMajor refactoring of the error types. Nicely this severely limits where\nthe information about where the code locations needs to be accessed.",
+          "timestamp": "2023-06-04T11:45:18+02:00",
+          "tree_id": "aa9feb4ec3de3c0c32173e1560abc4a27c71109b",
+          "url": "https://github.com/KvGeijer/zote/commit/7596c56fe9b5dc6084143b7699703aee95cc2257"
+        },
+        "date": 1685872169136,
+        "tool": "cargo",
+        "benches": [
+          {
+            "name": "aoc_2022_1",
+            "value": 1057141,
+            "range": "± 40060",
+            "unit": "ns/iter"
+          },
+          {
+            "name": "aoc_2022_2",
+            "value": 20547411,
+            "range": "± 63242",
+            "unit": "ns/iter"
+          },
+          {
+            "name": "fibonachi",
+            "value": 161716844,
+            "range": "± 2045262",
+            "unit": "ns/iter"
+          },
+          {
+            "name": "prints",
+            "value": 21131350,
+            "range": "± 245204",
+            "unit": "ns/iter"
+          },
+          {
+            "name": "string_manips",
+            "value": 242703,
+            "range": "± 1313",
             "unit": "ns/iter"
           }
         ]

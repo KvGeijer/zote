@@ -1,5 +1,5 @@
 window.BENCHMARK_DATA = {
-  "lastUpdate": 1685880146482,
+  "lastUpdate": 1685883334679,
   "repoUrl": "https://github.com/KvGeijer/zote",
   "entries": {
     "Rust Benchmark": [
@@ -677,6 +677,60 @@ window.BENCHMARK_DATA = {
             "name": "string_manips",
             "value": 283664,
             "range": "± 61067",
+            "unit": "ns/iter"
+          }
+        ]
+      },
+      {
+        "commit": {
+          "author": {
+            "email": "kare.kvg@gmail.com",
+            "name": "Kåre von Geijer",
+            "username": "KvGeijer"
+          },
+          "committer": {
+            "email": "kare.kvg@gmail.com",
+            "name": "Kåre von Geijer",
+            "username": "KvGeijer"
+          },
+          "distinct": true,
+          "id": "fdae845f2765b71727704b57d5725167b142c663",
+          "message": "Implement ++ operator for concatenation\n\nNow works for adding an iterable to a list, strings to strings, and\nnumbers to strings. Maybe want to add more later, or make it more\ngeneral. But works for now and fixes the benchmark test.",
+          "timestamp": "2023-06-04T14:48:40+02:00",
+          "tree_id": "bcbf2c3562ab653b2bd132bc2c2ff6cf2eaa9f92",
+          "url": "https://github.com/KvGeijer/zote/commit/fdae845f2765b71727704b57d5725167b142c663"
+        },
+        "date": 1685883333630,
+        "tool": "cargo",
+        "benches": [
+          {
+            "name": "aoc_2022_1",
+            "value": 1333599,
+            "range": "± 325410",
+            "unit": "ns/iter"
+          },
+          {
+            "name": "aoc_2022_2",
+            "value": 26288519,
+            "range": "± 3842729",
+            "unit": "ns/iter"
+          },
+          {
+            "name": "fibonachi",
+            "value": 199480688,
+            "range": "± 21579895",
+            "unit": "ns/iter"
+          },
+          {
+            "name": "prints",
+            "value": 26108054,
+            "range": "± 2587829",
+            "unit": "ns/iter"
+          },
+          {
+            "name": "string_manips",
+            "value": 373449197,
+            "range": "± 29340284",
             "unit": "ns/iter"
           }
         ]

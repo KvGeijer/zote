@@ -1,5 +1,11 @@
 # Improvement ideas for Zote
 
+* Add real iterators (generators) to the language.
+  * Can then make slices more generic
+  * Can make infinite iterators such as "1:". Or? Is this actually just bad as it becomes quite an open expression.
+  * Can then add _yield_ as a keyword to create generators.
+  * Can create lazy maps (Maybe all map operations on iterators are lazy while ones on collections are not?) 
+
 * Tighten up grammar to improve inconsistencies such as "if true [1]", as that will seem as an indexing into true
 
 * Add different error types

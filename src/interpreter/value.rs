@@ -1,7 +1,7 @@
 use std::{fmt, vec};
 
 use super::{
-    collections::{Collection, List},
+    collections::{Collection, Dict, List},
     functions::Function,
     numerical::Numerical,
     runtime_error::{RunError, RunRes},
@@ -54,6 +54,21 @@ impl Value {
         match self {
             Value::Collection(collection) => Ok(collection.to_iter()),
             other => RunError::error(format!("Cannot convert {} to an iterator", other.type_of())),
+        }
+    }
+
+    /// Clones the value, including everything in its contained collections
+    pub fn deepclone(&self) -> Value {
+        match self {
+            Value::Collection(coll) => coll.deepclone().into(),
+            other => other.clone(),
+        }
+    }
+
+    pub fn is_nan(&self) -> bool {
+        match self {
+            Value::Numerical(Numerical::Float(float)) => float.is_nan(),
+            _ => false,
         }
     }
 }
@@ -125,8 +140,15 @@ impl From<Collection> for Value {
         Value::Collection(coll)
     }
 }
+
 impl From<List> for Value {
     fn from(list: List) -> Self {
         Value::Collection(Collection::List(list))
+    }
+}
+
+impl From<Dict> for Value {
+    fn from(dict: Dict) -> Self {
+        Value::Collection(Collection::Dict(dict))
     }
 }

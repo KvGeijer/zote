@@ -581,7 +581,7 @@ impl<'a> Parser<'a> {
         let lvalue_expr = self.expression()?;
         let lvalue = self.exprnode_to_lvalue(lvalue_expr)?;
         self.accept(
-            Token::In,
+            Token::Identifier("in".to_string()),
             "Expect \"in\" to follow the lvalue in a for expression",
         )?;
         let iterable = self.expression()?;

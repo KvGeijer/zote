@@ -11,13 +11,15 @@ use crate::{
 
 use super::{environment::Environment, expressions, numerical::Numerical, value::Value, RunRes};
 
-pub use list::List;
+pub use self::{dict::Dict, list::List};
 
+mod dict;
 mod list;
 
 #[derive(PartialEq, Debug, Clone)]
 pub enum Collection {
     List(List),
+    Dict(Dict),
     String(String), // TODO: Wrap in Rc & refcell (Should we wrap all collEnum in this?)
 }
 
@@ -26,6 +28,7 @@ impl Collection {
         match self {
             Collection::List(list) => list.is_empty(),
             Collection::String(string) => string.is_empty(),
+            Collection::Dict(dict) => dict.is_empty(),
         }
     }
 
@@ -33,6 +36,7 @@ impl Collection {
         match self {
             Collection::List(list) => list.stringify(),
             Collection::String(string) => string.to_string(),
+            Collection::Dict(dict) => dict.stringify(),
         }
     }
 
@@ -40,6 +44,7 @@ impl Collection {
         match self {
             Collection::List(_) => "List",
             Collection::String(_) => "String",
+            Collection::Dict(_) => "Dict",
         }
     }
 
@@ -52,10 +57,14 @@ impl Collection {
     }
 
     pub fn assign_into(&self, rvalue: Value, index: IndexValue) -> RunRes<Value> {
-        match self {
-            Collection::List(list) => list.assign_into(rvalue, index),
-            Collection::String(_) => {
+        match (self, index) {
+            (Collection::List(list), index) => list.assign_into(rvalue, index),
+            (Collection::String(_), _) => {
                 RunError::error("Assigning into string not implemented".to_string())
+            }
+            (Collection::Dict(dict), IndexValue::At(key)) => dict.assign_into(key, rvalue),
+            (Collection::Dict(_), _) => {
+                RunError::error("Cannot assign into dict with slice".to_string())
             }
         }
     }
@@ -81,10 +90,14 @@ impl Collection {
                 let sliced: String = slice_iter(string.chars(), slice, len)?.collect();
                 Ok(sliced.into())
             }
+            (Collection::Dict(dict), IndexValue::At(at)) => dict.get(&at),
+            (Collection::Dict(_), _) => {
+                RunError::error("Cannot index into dict with a slice".to_string())
+            }
         }
     }
 
-    pub fn to_iter(self) -> vec::IntoIter<Value> {
+    pub fn to_iter(&self) -> vec::IntoIter<Value> {
         match self {
             Collection::List(list) => list.to_iter(),
             Collection::String(string) => string
@@ -92,6 +105,15 @@ impl Collection {
                 .map(|char| char.to_string().into())
                 .collect::<Vec<Value>>()
                 .into_iter(),
+            Collection::Dict(dict) => dict.to_iter(),
+        }
+    }
+
+    pub fn deepclone(&self) -> Collection {
+        match self {
+            Collection::List(list) => list.deepclone().into(),
+            Collection::Dict(dict) => dict.deepclone().into(),
+            Collection::String(string) => string.clone().into(), // Watch out if we update this
         }
     }
 
@@ -115,6 +137,14 @@ impl Collection {
                 right.type_of(),
                 left.type_of()
             )),
+        }
+    }
+
+    pub fn len(&self) -> usize {
+        match self {
+            Collection::List(list) => list.len(),
+            Collection::Dict(dict) => dict.len(),
+            Collection::String(string) => string.len(),
         }
     }
 }
@@ -215,5 +245,23 @@ fn slice_len(start: usize, stop: usize, step: i64) -> RunRes<usize> {
         } else {
             Ok(0)
         }
+    }
+}
+
+impl From<List> for Collection {
+    fn from(value: List) -> Self {
+        Collection::List(value)
+    }
+}
+
+impl From<Dict> for Collection {
+    fn from(value: Dict) -> Self {
+        Collection::Dict(value)
+    }
+}
+
+impl From<String> for Collection {
+    fn from(value: String) -> Self {
+        Collection::String(value)
     }
 }

@@ -1,5 +1,8 @@
 # Improvement ideas for Zote
 
+
+* Add a simpler way to declare new builtin functions
+
 * Add functions to convert a value to some type. That way we can get rid of all custom pattern matching and havn nice dedicated type errors.
 
 * Add real iterators (generators) to the language.
@@ -23,10 +26,6 @@
   * What features should they have? For example would be nice to implement some point struct for AoC...
 
 * Add maps (sets as well)
-
-* Improve iterables
-  * Want to be able to iterate over a range, like "for i in 1:10"
-  * Do we want to change it from "1:10" to "1..10"?
 
 * Expand standard library
 

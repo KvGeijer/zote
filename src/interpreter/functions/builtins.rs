@@ -1,7 +1,10 @@
 use itertools::Itertools;
 use std::{fs::read_to_string, rc::Rc};
 
-use crate::interpreter::{collections::Collection, RunError, RunRes, Value};
+use crate::interpreter::{
+    collections::{Collection, Dict},
+    RunError, RunRes, Value,
+};
 
 pub trait Builtin {
     fn run(&self, args: Vec<Value>) -> RunRes<Value>;
@@ -20,7 +23,10 @@ macro_rules! box_builtins {
 }
 
 pub fn get_builtins() -> Vec<Rc<dyn Builtin>> {
-    box_builtins![Time, Print, Str, Push, Pop, Read, Int, Max, Map, Split, Sum, Sort]
+    box_builtins![
+        Time, Print, Str, Push, Pop, Read, Int, Max, Map, Split, Sum, Sort, NewDict, List, Len, In,
+        ToAscii
+    ]
 }
 
 struct Time;
@@ -277,5 +283,112 @@ impl Builtin for Sort {
 
     fn name(&self) -> &str {
         "sort"
+    }
+}
+
+struct NewDict;
+impl Builtin for NewDict {
+    fn run(&self, _args: Vec<Value>) -> RunRes<Value> {
+        Ok(Dict::new().into())
+    }
+
+    fn arity(&self) -> usize {
+        0
+    }
+
+    fn name(&self) -> &str {
+        "dict"
+    }
+}
+
+struct In;
+impl Builtin for In {
+    fn run(&self, args: Vec<Value>) -> RunRes<Value> {
+        match args.into_iter().collect_tuple().unwrap() {
+            (value, Value::Collection(Collection::List(list))) => {
+                Ok(list.to_iter().contains(&value).into())
+            }
+            (value, Value::Collection(Collection::Dict(dict))) => {
+                Ok(dict.contains_key(&value)?.into())
+            }
+            (_, arg) => RunError::error(format!(
+                "Expected a list or dict as second argument to in (string not implemented), but got {}",
+                arg.type_of(),
+            )),
+        }
+    }
+
+    fn arity(&self) -> usize {
+        2
+    }
+
+    fn name(&self) -> &str {
+        "in"
+    }
+}
+
+struct Len;
+impl Builtin for Len {
+    fn run(&self, args: Vec<Value>) -> RunRes<Value> {
+        match args.into_iter().next().unwrap() {
+            Value::Collection(coll) => Ok((coll.len() as i64).into()),
+            arg => RunError::error(format!(
+                "Expected a collection as argument to len, but got {}",
+                arg.type_of(),
+            )),
+        }
+    }
+
+    fn arity(&self) -> usize {
+        1
+    }
+
+    fn name(&self) -> &str {
+        "len"
+    }
+}
+
+struct List;
+impl Builtin for List {
+    fn run(&self, args: Vec<Value>) -> RunRes<Value> {
+        match args.into_iter().next().unwrap() {
+            Value::Collection(coll) => Ok(coll.to_iter().collect::<Vec<Value>>().into()),
+            arg => RunError::error(format!(
+                "Expected a collection as argument to list, but got {}",
+                arg.type_of(),
+            )),
+        }
+    }
+
+    fn arity(&self) -> usize {
+        1
+    }
+
+    fn name(&self) -> &str {
+        "list"
+    }
+}
+
+struct ToAscii;
+impl Builtin for ToAscii {
+    fn run(&self, args: Vec<Value>) -> RunRes<Value> {
+        match args.into_iter().next().unwrap() {
+            Value::Collection(Collection::String(string)) => {
+                if string.len() == 1 {
+                    Ok((string.into_bytes()[0] as i64).into())
+                } else {
+                    RunError::error(format!("Cannot convert {string} to a single ascii value"))
+                }
+            }
+            _ => RunError::error(format!("Can only convert string to ascii")),
+        }
+    }
+
+    fn arity(&self) -> usize {
+        1
+    }
+
+    fn name(&self) -> &str {
+        "to_ascii"
     }
 }

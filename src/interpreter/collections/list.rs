@@ -13,14 +13,19 @@ pub struct List {
 }
 
 impl List {
-    pub fn deepclone(&self) -> Self {
-        Self::new(self.vec.borrow().clone())
-    }
-
     pub fn new(values: Vec<Value>) -> Self {
         Self {
             vec: Rc::new(RefCell::new(values)),
         }
+    }
+
+    pub fn deepclone(&self) -> Self {
+        self.vec
+            .borrow()
+            .iter()
+            .map(|value| value.deepclone())
+            .collect::<Vec<Value>>()
+            .into()
     }
 
     /// Pushes a value to the list
@@ -219,5 +224,15 @@ impl List {
     pub fn to_iter(&self) -> vec::IntoIter<Value> {
         // How does this work with mutability?
         self.vec.borrow().clone().into_iter()
+    }
+
+    pub fn len(&self) -> usize {
+        self.vec.borrow().len()
+    }
+}
+
+impl From<Vec<Value>> for List {
+    fn from(value: Vec<Value>) -> Self {
+        Self::new(value)
     }
 }

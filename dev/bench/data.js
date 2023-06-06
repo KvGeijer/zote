@@ -1,5 +1,5 @@
 window.BENCHMARK_DATA = {
-  "lastUpdate": 1685994637597,
+  "lastUpdate": 1686033860027,
   "repoUrl": "https://github.com/KvGeijer/zote",
   "entries": {
     "Rust Benchmark": [
@@ -839,6 +839,60 @@ window.BENCHMARK_DATA = {
             "name": "string_manips",
             "value": 208406606,
             "range": "± 517996",
+            "unit": "ns/iter"
+          }
+        ]
+      },
+      {
+        "commit": {
+          "author": {
+            "email": "kare.kvg@gmail.com",
+            "name": "Kåre von Geijer",
+            "username": "KvGeijer"
+          },
+          "committer": {
+            "email": "kare.kvg@gmail.com",
+            "name": "Kåre von Geijer",
+            "username": "KvGeijer"
+          },
+          "distinct": true,
+          "id": "8e08f9bc72048b8e956da5dda4f3be855319c5cd",
+          "message": "Change operations in parser to not contain codeloc\n\nNow that we streamlined the error handling to only at the expression\nlevel we no longer need the code locations for other nodes.",
+          "timestamp": "2023-06-06T08:38:39+02:00",
+          "tree_id": "edcfe4b979da228b8e641277174837d31df40850",
+          "url": "https://github.com/KvGeijer/zote/commit/8e08f9bc72048b8e956da5dda4f3be855319c5cd"
+        },
+        "date": 1686033859568,
+        "tool": "cargo",
+        "benches": [
+          {
+            "name": "aoc_2022_1",
+            "value": 1066662,
+            "range": "± 13178",
+            "unit": "ns/iter"
+          },
+          {
+            "name": "aoc_2022_2",
+            "value": 21387628,
+            "range": "± 72238",
+            "unit": "ns/iter"
+          },
+          {
+            "name": "fibonachi",
+            "value": 159492839,
+            "range": "± 2818091",
+            "unit": "ns/iter"
+          },
+          {
+            "name": "prints",
+            "value": 21197252,
+            "range": "± 301194",
+            "unit": "ns/iter"
+          },
+          {
+            "name": "string_manips",
+            "value": 191673191,
+            "range": "± 440446",
             "unit": "ns/iter"
           }
         ]

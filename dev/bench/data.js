@@ -1,5 +1,5 @@
 window.BENCHMARK_DATA = {
-  "lastUpdate": 1686045092821,
+  "lastUpdate": 1686072399847,
   "repoUrl": "https://github.com/KvGeijer/zote",
   "entries": {
     "Rust Benchmark": [
@@ -1001,6 +1001,60 @@ window.BENCHMARK_DATA = {
             "name": "string_manips",
             "value": 348610879,
             "range": "± 14821696",
+            "unit": "ns/iter"
+          }
+        ]
+      },
+      {
+        "commit": {
+          "author": {
+            "email": "kare.kvg@gmail.com",
+            "name": "Kåre von Geijer",
+            "username": "KvGeijer"
+          },
+          "committer": {
+            "email": "kare.kvg@gmail.com",
+            "name": "Kåre von Geijer",
+            "username": "KvGeijer"
+          },
+          "distinct": true,
+          "id": "051455929fa1a12d13673f3916f8ea8ae4609b88",
+          "message": "Add dictionaries and a bunch more for aoc day 3\n\nQuite a large commit, but now dictionaries are basically usable.\n\nIssues:\n* How we iterate over strings is an issue as it becomes an iterator over\n  itself, leading to potential recursion.\n\n* Sets are not dicts, and would be nice to pretend, or make it nice to\n  use in some way.\n\n* No nice support working on iterators, such as chunks (which I love).\n\n* Still need pattern matching against tuples and in function defs.\n\n* Hashing function probably very slow.",
+          "timestamp": "2023-06-06T19:15:13+02:00",
+          "tree_id": "a7271a5ad7b02c4fdf6216b743b95fc811d16e74",
+          "url": "https://github.com/KvGeijer/zote/commit/051455929fa1a12d13673f3916f8ea8ae4609b88"
+        },
+        "date": 1686072399300,
+        "tool": "cargo",
+        "benches": [
+          {
+            "name": "aoc_2022_1",
+            "value": 1083058,
+            "range": "± 15118",
+            "unit": "ns/iter"
+          },
+          {
+            "name": "aoc_2022_2",
+            "value": 20994275,
+            "range": "± 51232",
+            "unit": "ns/iter"
+          },
+          {
+            "name": "fibonachi",
+            "value": 161652910,
+            "range": "± 1478673",
+            "unit": "ns/iter"
+          },
+          {
+            "name": "prints",
+            "value": 21221403,
+            "range": "± 411957",
+            "unit": "ns/iter"
+          },
+          {
+            "name": "string_manips",
+            "value": 192751368,
+            "range": "± 660707",
             "unit": "ns/iter"
           }
         ]

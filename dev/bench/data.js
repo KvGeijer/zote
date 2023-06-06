@@ -1,5 +1,5 @@
 window.BENCHMARK_DATA = {
-  "lastUpdate": 1686044962542,
+  "lastUpdate": 1686045092821,
   "repoUrl": "https://github.com/KvGeijer/zote",
   "entries": {
     "Rust Benchmark": [
@@ -947,6 +947,60 @@ window.BENCHMARK_DATA = {
             "name": "string_manips",
             "value": 192720123,
             "range": "± 678511",
+            "unit": "ns/iter"
+          }
+        ]
+      },
+      {
+        "commit": {
+          "author": {
+            "email": "kare.kvg@gmail.com",
+            "name": "Kåre von Geijer",
+            "username": "KvGeijer"
+          },
+          "committer": {
+            "email": "kare.kvg@gmail.com",
+            "name": "Kåre von Geijer",
+            "username": "KvGeijer"
+          },
+          "distinct": true,
+          "id": "0da985688a2dd9bbe9d36c464ad725ea0c0d80b2",
+          "message": "Add range generators for arrays\n\nIn the future we want these slices to just be treated as generic\niterators. This would unify both the slicing and generation of arrays,\nas well as giving us the possibility of lazy iterators.",
+          "timestamp": "2023-06-06T11:47:05+02:00",
+          "tree_id": "be7cc98e221bf226b3e5f71c9c6d47399409ab03",
+          "url": "https://github.com/KvGeijer/zote/commit/0da985688a2dd9bbe9d36c464ad725ea0c0d80b2"
+        },
+        "date": 1686045091842,
+        "tool": "cargo",
+        "benches": [
+          {
+            "name": "aoc_2022_1",
+            "value": 1270189,
+            "range": "± 169892",
+            "unit": "ns/iter"
+          },
+          {
+            "name": "aoc_2022_2",
+            "value": 25805649,
+            "range": "± 2920320",
+            "unit": "ns/iter"
+          },
+          {
+            "name": "fibonachi",
+            "value": 197781486,
+            "range": "± 9999828",
+            "unit": "ns/iter"
+          },
+          {
+            "name": "prints",
+            "value": 25257892,
+            "range": "± 2662726",
+            "unit": "ns/iter"
+          },
+          {
+            "name": "string_manips",
+            "value": 348610879,
+            "range": "± 14821696",
             "unit": "ns/iter"
           }
         ]

@@ -2,11 +2,11 @@ use std::{cmp::Ordering, rc::Rc};
 
 use crate::{
     code_loc::CodeLoc,
-    parser::{BinOper, Expr, ExprNode, Index, LValue, LogicalOper, Stmts, UnOper},
+    parser::{BinOper, Expr, ExprNode, Index, LValue, ListContent, LogicalOper, Stmts, UnOper},
 };
 
 use super::{
-    collections::eval_index,
+    collections::{eval_index, eval_slice, SliceValue},
     environment::Environment,
     functions::{Closure, Function},
     numerical::Numerical,
@@ -42,7 +42,7 @@ pub fn eval(expr: &ExprNode, env: &Rc<Environment>) -> RunRes<Value> {
         Expr::Return(Some(expr)) => Err(RunError::Return(eval(expr, env)?)),
         Expr::Return(None) => Err(RunError::Return(Value::Nil)),
         Expr::Nil => Ok(Value::Nil),
-        Expr::List(exprs) => eval_list(exprs, env),
+        Expr::List(content) => eval_list(content, env),
         Expr::Tuple(_exprs) => {
             RunError::error("Tuples are not part of the language (yet)".to_string())
         }
@@ -71,12 +71,33 @@ fn eval_func_definition(
     Ok(Value::Callable(Function::Closure(closure)))
 }
 
-fn eval_list(exprs: &[ExprNode], env: &Rc<Environment>) -> RunRes<Value> {
-    Ok(exprs
-        .iter()
-        .map(|expr| eval(expr, env))
-        .collect::<Result<Vec<_>, _>>()?
-        .into())
+fn eval_list(content: &ListContent, env: &Rc<Environment>) -> RunRes<Value> {
+    match content {
+        ListContent::Exprs(exprs) => Ok(exprs
+            .iter()
+            .map(|expr| eval(expr, env))
+            .collect::<Result<Vec<_>, _>>()?
+            .into()),
+        ListContent::Range(slice) => {
+            if let SliceValue {
+                start: Some(start),
+                stop: Some(stop),
+                step,
+            } = eval_slice(slice, env)?
+            {
+                let step = step.map(|num| num.to_rint()).unwrap_or(1);
+                Ok((start.to_rint()..stop.to_rint())
+                    .step_by(step as usize)
+                    .map(|int| int.into())
+                    .collect::<Vec<Value>>()
+                    .into())
+            } else {
+                error(
+                    "Building an array from a slice requires populated start and stops".to_string(),
+                )
+            }
+        }
+    }
 }
 
 fn eval_call(callee: Value, args: Vec<Value>, start: CodeLoc, end: CodeLoc) -> RunRes<Value> {

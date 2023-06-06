@@ -5,7 +5,9 @@ mod expressions;
 mod generics;
 mod statements;
 
-pub use expressions::{BinOper, Expr, ExprNode, Index, LValue, LogicalOper, UnOper};
+pub use expressions::{
+    BinOper, Expr, ExprNode, Index, LValue, ListContent, LogicalOper, Slice, UnOper,
+};
 pub use statements::{Stmt, StmtNode, Stmts};
 
 // Each node in the AST is some branch/leaf wrapped in this extra info

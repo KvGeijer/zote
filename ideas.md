@@ -1,5 +1,7 @@
 # Improvement ideas for Zote
 
+* Add functions to convert a value to some type. That way we can get rid of all custom pattern matching and havn nice dedicated type errors.
+
 * Add real iterators (generators) to the language.
   * Can then make slices more generic
   * Can make infinite iterators such as "1:". Or? Is this actually just bad as it becomes quite an open expression.

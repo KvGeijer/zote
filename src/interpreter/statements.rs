@@ -56,13 +56,13 @@ mod tests {
     use crate::scanner::tokenize;
 
     /// Helper to interpret an expression from a string
-    fn interpret_string(program: &str) -> RunRes<Option<Value>> {
+    fn interpret_string(program: &str) -> Option<RunRes<Option<Value>>> {
         let mut error_reporter = ErrorReporter::new();
         let tokens = tokenize(program, &mut error_reporter);
-        let ast = parse(&tokens, &mut error_reporter).unwrap();
+        let ast = parse(&tokens, &mut error_reporter)?;
         let env = Environment::new();
         define_builtins(&env);
-        eval_statements(&ast, &env)
+        Some(eval_statements(&ast, &env))
     }
 
     #[test]
@@ -82,14 +82,17 @@ mod tests {
             result                          \
             ";
 
-        assert_eq!(interpret_string(program).unwrap().unwrap(), 13.into());
+        assert_eq!(
+            interpret_string(program).unwrap().unwrap().unwrap(),
+            13.into()
+        );
     }
 
     #[test]
     fn implicit_nil_returns() {
         let program = "fn nil_ret() -> { return }; nil_ret()";
         assert!(matches!(
-            interpret_string(program).unwrap().unwrap(),
+            interpret_string(program).unwrap().unwrap().unwrap(),
             Value::Nil
         ));
 
@@ -104,7 +107,7 @@ mod tests {
             "maybe_nil_ret(Nil)      \n",
         );
         assert!(matches!(
-            interpret_string(program).unwrap().unwrap(),
+            interpret_string(program).unwrap().unwrap().unwrap(),
             Value::Nil
         ));
         println!("RATARTART");
@@ -119,7 +122,10 @@ mod tests {
             "                          \n",
             "maybe_nil_ret('Nil')      \n",
         );
-        assert_eq!(interpret_string(program).unwrap().unwrap(), true.into());
+        assert_eq!(
+            interpret_string(program).unwrap().unwrap().unwrap(),
+            true.into()
+        );
     }
 
     // TODO Move tests into its own file under interpreter...
@@ -127,7 +133,7 @@ mod tests {
     fn list_operations() {
         let program = "pop([])";
         assert!(matches!(
-            interpret_string(program).unwrap().unwrap(),
+            interpret_string(program).unwrap().unwrap().unwrap(),
             Value::Nil
         ));
 
@@ -144,7 +150,10 @@ mod tests {
             "pop_twice([1,121/11, 3])",
         );
 
-        assert_eq!(interpret_string(program).unwrap().unwrap(), 11.into());
+        assert_eq!(
+            interpret_string(program).unwrap().unwrap().unwrap(),
+            11.into()
+        );
 
         let program = concat!(
             "fn replace_list(list, x) -> { ",
@@ -183,7 +192,7 @@ mod tests {
         .into();
 
         assert!(matches!(
-            interpret_string(program).unwrap().unwrap(),
+            interpret_string(program).unwrap().unwrap().unwrap(),
             _expected
         ));
     }

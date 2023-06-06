@@ -29,9 +29,15 @@ pub enum Expr {
     Break, // TODO Do we want to return an optional value from this?
     Return(Option<ExprNode>),
     Nil,
-    List(Vec<ExprNode>),
+    List(ListContent),
     Tuple(Vec<ExprNode>),
     FunctionDefinition(String, Vec<String>, ExprNode),
+}
+
+#[derive(Debug, PartialEq, Clone)]
+pub enum ListContent {
+    Exprs(Vec<ExprNode>),
+    Range(Slice),
 }
 
 // TODO: Add pattern matching
@@ -45,16 +51,19 @@ pub enum LValue {
 #[derive(Debug, Clone, PartialEq)]
 pub enum Index {
     At(ExprNode),
-    Slice {
-        start: Option<ExprNode>,
-        stop: Option<ExprNode>,
-        step: Option<ExprNode>,
-    },
+    Slice(Slice),
+}
+
+#[derive(Debug, Clone, PartialEq)]
+pub struct Slice {
+    pub start: Option<ExprNode>,
+    pub stop: Option<ExprNode>,
+    pub step: Option<ExprNode>,
 }
 
 impl Index {
     fn slice(start: Option<ExprNode>, stop: Option<ExprNode>, step: Option<ExprNode>) -> Self {
-        Self::Slice { start, stop, step }
+        Self::Slice(Slice { start, stop, step })
     }
 }
 
@@ -458,14 +467,42 @@ impl<'a> Parser<'a> {
     }
 
     fn accept_list(&mut self) -> Option<ExprNode> {
+        // list -> "[" (expr_list | simple_slice) "]"
         let start = self.peek_start_loc().clone();
         self.accept(Token::LBrack, "Internal error at list")?;
 
-        let entries = self.accept_exprs_list(&Token::RBrack)?;
+        // Must separate if concrete values or a pythonic range
+        let contained = if !self.match_token(Token::RBrack) {
+            let expr = self.expression()?;
+            let contained = if self.match_token(Token::Colon) {
+                // Must be a range (But we only allow closed ones)
+                let stop = self.expression()?;
+                let step = if self.match_token(Token::Colon) {
+                    Some(self.expression()?)
+                } else {
+                    None
+                };
+                ListContent::Range(Slice {
+                    start: Some(expr),
+                    stop: Some(stop),
+                    step,
+                })
+            } else if self.match_token(Token::Comma) {
+                // Must be an expr_list
+                let mut exprs = self.accept_exprs_list(&Token::RBrack)?;
+                exprs.insert(0, expr);
+                ListContent::Exprs(exprs)
+            } else {
+                ListContent::Exprs(vec![expr])
+            };
+            self.accept(Token::RBrack, "Need to close list with ']'")?;
+            contained
+        } else {
+            ListContent::Exprs(vec![])
+        };
 
-        self.accept(Token::RBrack, "Need to close list with ']'")?;
         let end = self.peek_last_end_loc()?.clone();
-        Some(ExprNode::new(Expr::List(entries), start, end))
+        Some(ExprNode::new(Expr::List(contained), start, end))
     }
 
     fn accept_return(&mut self) -> Option<ExprNode> {

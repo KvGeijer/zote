@@ -6,7 +6,7 @@ use std::{
 
 use crate::{
     interpreter::RunError,
-    parser::{ExprNode, Index},
+    parser::{ExprNode, Index, Slice},
 };
 
 use super::{environment::Environment, expressions, numerical::Numerical, value::Value, RunRes};
@@ -137,9 +137,9 @@ pub enum IndexValue {
 
 #[derive(Debug, Clone)]
 pub struct SliceValue {
-    start: Option<Numerical>,
-    stop: Option<Numerical>,
-    step: Option<Numerical>,
+    pub start: Option<Numerical>,
+    pub stop: Option<Numerical>,
+    pub step: Option<Numerical>,
 }
 
 impl SliceValue {
@@ -151,12 +151,19 @@ impl SliceValue {
 pub fn eval_index(index: &Index, env: &Rc<Environment>) -> RunRes<IndexValue> {
     match index {
         Index::At(expr) => Ok(IndexValue::At(expressions::eval(expr, env)?)),
-        Index::Slice { start, stop, step } => Ok(IndexValue::Slice(SliceValue::new(
-            eval_opt_ind(start, env)?,
-            eval_opt_ind(stop, env)?,
-            eval_opt_ind(step, env)?,
-        ))),
+        Index::Slice(slice) => Ok(IndexValue::Slice(eval_slice(slice, env)?)),
     }
+}
+
+pub fn eval_slice(
+    Slice { start, stop, step }: &Slice,
+    env: &Rc<Environment>,
+) -> RunRes<SliceValue> {
+    Ok(SliceValue::new(
+        eval_opt_ind(start, env)?,
+        eval_opt_ind(stop, env)?,
+        eval_opt_ind(step, env)?,
+    ))
 }
 
 fn eval_opt_ind(ind: &Option<ExprNode>, env: &Rc<Environment>) -> RunRes<Option<Numerical>> {

@@ -2,10 +2,7 @@ use std::{cmp::Ordering, rc::Rc};
 
 use crate::{
     code_loc::CodeLoc,
-    parser::{
-        BinOper, BinOperNode, Expr, ExprNode, Index, LValue, LogicalOper, LogicalOperNode, Stmts,
-        UnOper, UnOperNode,
-    },
+    parser::{BinOper, Expr, ExprNode, Index, LValue, LogicalOper, Stmts, UnOper},
 };
 
 use super::{
@@ -168,8 +165,8 @@ fn eval_assign(lvalue: &LValue, rvalue: Value, env: &Rc<Environment>) -> RunRes<
     lvalue.assign(rvalue, env)
 }
 
-fn eval_binary(left: Value, op: &BinOperNode, right: Value) -> RunRes<Value> {
-    match op.node.as_ref() {
+fn eval_binary(left: Value, op: &BinOper, right: Value) -> RunRes<Value> {
+    match op {
         BinOper::Append => bin_append(left, right),
         BinOper::Add => bin_add(left, right),
         BinOper::Sub => bin_sub(left, right),
@@ -310,8 +307,8 @@ fn bin_geq(left: Value, right: Value) -> RunRes<Value> {
     }
 }
 
-fn eval_unary(op: &UnOperNode, right: Value) -> RunRes<Value> {
-    match op.node.as_ref() {
+fn eval_unary(op: &UnOper, right: Value) -> RunRes<Value> {
+    match op {
         UnOper::Sub => match right {
             Value::Numerical(num) => Ok(num.un_sub()?.into()),
             _other => error("Unary subtraction only works for a number".to_string()),
@@ -353,11 +350,11 @@ impl LValue {
 
 fn eval_logical(
     left: Value,
-    op: &LogicalOperNode,
+    op: &LogicalOper,
     right: &ExprNode,
     env: &Rc<Environment>,
 ) -> RunRes<Value> {
-    let res = match op.node.as_ref() {
+    let res = match op {
         LogicalOper::And => left.truthy() && eval(right, env)?.truthy(),
         LogicalOper::Or => left.truthy() || eval(right, env)?.truthy(),
     };

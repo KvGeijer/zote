@@ -8,17 +8,14 @@ pub const MAX_ARGS: usize = 255;
 
 // Exposes the data types and the expression method on parser
 pub type ExprNode = AstNode<Expr>;
-pub type BinOperNode = AstNode<BinOper>;
-pub type UnOperNode = AstNode<UnOper>;
-pub type LogicalOperNode = AstNode<LogicalOper>;
 
 #[derive(Debug, PartialEq, Clone)]
 pub enum Expr {
     Call(ExprNode, Vec<ExprNode>),
     Index(ExprNode, Index),
-    Binary(ExprNode, BinOperNode, ExprNode),
-    Unary(UnOperNode, ExprNode),
-    Logical(ExprNode, LogicalOperNode, ExprNode),
+    Binary(ExprNode, BinOper, ExprNode),
+    Unary(UnOper, ExprNode),
+    Logical(ExprNode, LogicalOper, ExprNode),
     Assign(LValue, ExprNode),
     Var(String), // TODO: Replace fully by LValue
     Int(i64),
@@ -302,9 +299,10 @@ impl<'a> Parser<'a> {
 
     fn unary(&mut self) -> Option<ExprNode> {
         // unary          → ( "!" | "-" )? call ;
+        let start = *self.peek_start_loc();
         if let Some(op) = self.match_op([UnOper::Sub, UnOper::Not]) {
             let right = self.call()?;
-            Some(ExprNode::unary(op, right))
+            Some(ExprNode::unary(start, op, right))
         } else {
             self.call()
         }
@@ -559,16 +557,14 @@ impl<'a> Parser<'a> {
     fn match_op<F: FromToken + Eq + Debug, T: IntoIterator<Item = F>>(
         &mut self,
         expected: T,
-    ) -> Option<AstNode<F>> {
+    ) -> Option<F> {
         match F::try_from(self.peek())
             .filter(|peeked| expected.into_iter().any(|wanted| &wanted == peeked))
         {
             None => None,
             Some(matched) => {
-                let start_loc = self.peek_start_loc().clone();
-                let end_loc = self.peek_end_loc().clone();
                 self.take();
-                Some(AstNode::new(matched, start_loc, end_loc))
+                Some(matched)
             }
         }
     }
@@ -576,21 +572,20 @@ impl<'a> Parser<'a> {
 
 // Some helper functions
 impl ExprNode {
-    fn binary(left: ExprNode, op: BinOperNode, right: ExprNode) -> ExprNode {
+    fn binary(left: ExprNode, op: BinOper, right: ExprNode) -> ExprNode {
         let start_loc = left.start_loc.clone();
         let end_loc = right.end_loc.clone();
         let expr = Expr::Binary(left, op, right);
         AstNode::new(expr, start_loc, end_loc)
     }
 
-    fn unary(op: UnOperNode, right: ExprNode) -> ExprNode {
-        let start_loc = op.start_loc.clone();
+    fn unary(start_loc: CodeLoc, op: UnOper, right: ExprNode) -> ExprNode {
         let end_loc = right.end_loc.clone();
         let expr = Expr::Unary(op, right);
         AstNode::new(expr, start_loc, end_loc)
     }
 
-    fn logical(left: ExprNode, op: LogicalOperNode, right: ExprNode) -> ExprNode {
+    fn logical(left: ExprNode, op: LogicalOper, right: ExprNode) -> ExprNode {
         let start_loc = left.start_loc.clone();
         let end_loc = right.end_loc.clone();
         let expr = Expr::Logical(left, op, right);
@@ -702,6 +697,10 @@ mod tests {
         AstNode::new(data, loc.clone(), loc)
     }
 
+    fn fake_loc() -> CodeLoc {
+        CodeLoc::new(0, 0, 0)
+    }
+
     #[test]
     fn basic_math() {
         let mut error_reporter = ErrorReporter::new();
@@ -731,21 +730,21 @@ mod tests {
         let expected = ExprNode::binary(
             ExprNode::binary(
                 fake_node(Expr::Int(9)),
-                fake_node(BinOper::Add),
+                BinOper::Add,
                 fake_node(Expr::Int(3)),
             ),
-            fake_node(BinOper::Sub),
+            BinOper::Sub,
             ExprNode::binary(
                 ExprNode::binary(
                     fake_node(Expr::Int(4)),
-                    fake_node(BinOper::Mult),
+                    BinOper::Mult,
                     fake_node(Expr::Int(9)),
                 ),
-                fake_node(BinOper::Div),
+                BinOper::Div,
                 ExprNode::binary(
                     fake_node(Expr::Int(2)),
-                    fake_node(BinOper::Add),
-                    ExprNode::unary(fake_node(UnOper::Sub), fake_node(Expr::Int(1))),
+                    BinOper::Add,
+                    ExprNode::unary(fake_loc(), UnOper::Sub, fake_node(Expr::Int(1))),
                 ),
             ),
         );
@@ -789,7 +788,7 @@ mod tests {
             parser.expression().unwrap(),
             ExprNode::binary(
                 fake_node(Expr::Int(1)),
-                fake_node(BinOper::Lt),
+                BinOper::Lt,
                 fake_node(Expr::Int(3))
             )
         );
@@ -798,7 +797,7 @@ mod tests {
             parser.expression().unwrap(),
             ExprNode::binary(
                 fake_node(Expr::Int(1)),
-                fake_node(BinOper::Leq),
+                BinOper::Leq,
                 fake_node(Expr::Int(4))
             )
         );
@@ -807,7 +806,7 @@ mod tests {
             parser.expression().unwrap(),
             ExprNode::binary(
                 fake_node(Expr::Int(2)),
-                fake_node(BinOper::Geq),
+                BinOper::Geq,
                 fake_node(Expr::Int(9))
             )
         );
@@ -816,7 +815,7 @@ mod tests {
             parser.expression().unwrap(),
             ExprNode::binary(
                 fake_node(Expr::Int(3)),
-                fake_node(BinOper::Gt),
+                BinOper::Gt,
                 fake_node(Expr::Int(3))
             )
         );
@@ -825,7 +824,7 @@ mod tests {
             parser.expression().unwrap(),
             ExprNode::binary(
                 fake_node(Expr::Int(2)),
-                fake_node(BinOper::Eq),
+                BinOper::Eq,
                 fake_node(Expr::Int(3))
             )
         );
@@ -834,7 +833,7 @@ mod tests {
             parser.expression().unwrap(),
             ExprNode::binary(
                 fake_node(Expr::Int(5)),
-                fake_node(BinOper::Neq),
+                BinOper::Neq,
                 fake_node(Expr::Int(6))
             )
         );
@@ -915,7 +914,7 @@ mod tests {
                 vec!["x".to_string()],
                 ExprNode::binary(
                     fake_node(Expr::Int(2)),
-                    fake_node(BinOper::Add),
+                    BinOper::Add,
                     fake_node(Expr::Var("x".to_string()))
                 )
             ))

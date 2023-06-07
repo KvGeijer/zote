@@ -1,5 +1,5 @@
 window.BENCHMARK_DATA = {
-  "lastUpdate": 1686136154152,
+  "lastUpdate": 1686167801349,
   "repoUrl": "https://github.com/KvGeijer/zote",
   "entries": {
     "Rust Benchmark": [
@@ -1109,6 +1109,60 @@ window.BENCHMARK_DATA = {
             "name": "string_manips",
             "value": 193477211,
             "range": "± 811369",
+            "unit": "ns/iter"
+          }
+        ]
+      },
+      {
+        "commit": {
+          "author": {
+            "email": "kare.kvg@gmail.com",
+            "name": "Kåre von Geijer",
+            "username": "KvGeijer"
+          },
+          "committer": {
+            "email": "kare.kvg@gmail.com",
+            "name": "Kåre von Geijer",
+            "username": "KvGeijer"
+          },
+          "distinct": true,
+          "id": "5819ae5c0e67ad31b14144d3e79fcf5d9c984ac9",
+          "message": "Add LValues to function definitions as well",
+          "timestamp": "2023-06-07T21:53:06+02:00",
+          "tree_id": "15bde8585be7d94f67b3f0278bb416ef7ae6721f",
+          "url": "https://github.com/KvGeijer/zote/commit/5819ae5c0e67ad31b14144d3e79fcf5d9c984ac9"
+        },
+        "date": 1686167800401,
+        "tool": "cargo",
+        "benches": [
+          {
+            "name": "aoc_2022_1",
+            "value": 1179850,
+            "range": "± 15855",
+            "unit": "ns/iter"
+          },
+          {
+            "name": "aoc_2022_2",
+            "value": 19056569,
+            "range": "± 46019",
+            "unit": "ns/iter"
+          },
+          {
+            "name": "fibonachi",
+            "value": 165845012,
+            "range": "± 2049733",
+            "unit": "ns/iter"
+          },
+          {
+            "name": "prints",
+            "value": 22699420,
+            "range": "± 239632",
+            "unit": "ns/iter"
+          },
+          {
+            "name": "string_manips",
+            "value": 210270256,
+            "range": "± 611728",
             "unit": "ns/iter"
           }
         ]

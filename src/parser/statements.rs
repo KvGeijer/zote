@@ -30,8 +30,8 @@ impl<'a> Parser<'a> {
             match self.statement(true) {
                 Either::Left(stmt) => stmts.stmts.push(stmt),
                 Either::Right(expr) => {
-                    let start = expr.start_loc.clone();
-                    let end = expr.end_loc.clone();
+                    let start = expr.start_loc;
+                    let end = expr.end_loc;
                     stmts
                         .stmts
                         .push(StmtNode::new(Stmt::Expr(expr), start, end));
@@ -64,8 +64,8 @@ impl<'a> Parser<'a> {
             self.synchronize_error();
             Either::Left(StmtNode::new(
                 Stmt::Invalid,
-                self.peek_start_loc().clone(),
-                self.peek_start_loc().clone(),
+                *self.peek_start_loc(),
+                *self.peek_start_loc(),
             ))
         }
     }
@@ -81,7 +81,7 @@ impl<'a> Parser<'a> {
 
     fn fn_decl_stmt(&mut self) -> Option<StmtNode> {
         // "fn" var "(" parameters? ")" "->" expression ;
-        let start = self.peek_start_loc().clone();
+        let start = *self.peek_start_loc();
         self.accept(Token::Fn, "Internal fn_decl_stmt error")?;
         if let Token::Identifier(name) = self.peek() {
             let name = name.to_string();
@@ -91,7 +91,7 @@ impl<'a> Parser<'a> {
             self.accept(Token::RPar, "Expect ')' after function parameters")?;
             self.accept(Token::RArrow, "Expect '->' before function body")?;
             let body = self.expression()?;
-            let end = body.end_loc.clone();
+            let end = body.end_loc;
 
             // TODO Do we want to change this?
             self.accept(
@@ -101,8 +101,8 @@ impl<'a> Parser<'a> {
             let id = format!("fn {name}/{}", params.len());
             let func = ExprNode::new(
                 super::Expr::FunctionDefinition(id, params, body),
-                start.clone(),
-                end.clone(),
+                start,
+                end,
             );
 
             Some(StmtNode::new(
@@ -147,16 +147,16 @@ impl<'a> Parser<'a> {
     fn decl_stmt(&mut self) -> Option<StmtNode> {
         // TODO Add declaring multiple in a row and/or tuple based init
         // varDecl        → "var" expression ";" ;
-        let start = self.peek_start_loc().clone();
+        let start = *self.peek_start_loc();
         self.accept(Token::Var, "Expect 'var' at start of declaration");
         let box node = self.expression()?.node; // We can't separate lvalues and assignmen here :/
-        let end = self.peek_end_loc().clone();
+        let end = *self.peek_end_loc();
         match node {
             super::Expr::Assign(lvalue, rvalue) => {
                 self.accept(Token::Semicolon, "Decl statement must end with ';'")?;
                 Some(StmtNode::new(Stmt::Decl(lvalue, Some(rvalue)), start, end))
             }
-            other => match other.to_lvalue() {
+            other => match other.conv_to_lvalue() {
                 Ok(lvalue) => {
                     self.accept(Token::Semicolon, "Decl statement must end with ';'")?;
                     Some(StmtNode::new(Stmt::Decl(lvalue, None), start, end))
@@ -173,13 +173,13 @@ impl<'a> Parser<'a> {
         // expr_stmt      → expression ">>:" IDENTIFIER | epression | expression ";"
 
         let expr = self.expression()?;
-        let start = expr.start_loc.clone();
+        let start = expr.start_loc;
 
         // This first case is to desugar >>: to a declaration statement, could be combined in some way
         if self.match_token(Token::PipeColon) {
-            match self.expression()?.node.to_lvalue() {
+            match self.expression()?.node.conv_to_lvalue() {
                 Ok(lvalue) => {
-                    let end = self.peek_end_loc().clone();
+                    let end = *self.peek_end_loc();
                     self.accept(Token::Semicolon, "Expect ';' after expression statement")?;
                     let decl_stmt = StmtNode::new(Stmt::Decl(lvalue, Some(expr)), start, end);
                     Some(Either::Left(decl_stmt))
@@ -190,7 +190,7 @@ impl<'a> Parser<'a> {
                 }
             }
         } else if !allow_expr || self.peek() == &Token::Semicolon {
-            let end = self.peek_end_loc().clone();
+            let end = *self.peek_end_loc();
             self.accept(Token::Semicolon, "Expect ';' after expression statement")?;
             Some(Either::Left(StmtNode::new(Stmt::Expr(expr), start, end)))
         } else {

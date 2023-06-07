@@ -12,12 +12,12 @@ pub type ExprNode = AstNode<Expr>;
 #[derive(Debug, PartialEq, Clone)]
 pub enum Expr {
     Call(ExprNode, Vec<ExprNode>),
-    Index(ExprNode, Index),
+    IndexInto(ExprNode, Index),
     Binary(ExprNode, BinOper, ExprNode),
     Unary(UnOper, ExprNode),
     Logical(ExprNode, LogicalOper, ExprNode),
     Assign(LValue, ExprNode),
-    Var(String), // TODO: Replace fully by LValue
+    Var(String),
     Int(i64),
     Float(f64),
     Bool(bool),
@@ -119,7 +119,7 @@ impl<'a> Parser<'a> {
             let start = expr.start_loc;
             let lvalue = self.exprnode_to_lvalue(expr)?;
             let rvalue = self.assignment()?;
-            let end = rvalue.end_loc.clone();
+            let end = rvalue.end_loc;
             let assign = Expr::Assign(lvalue, rvalue);
             Some(ExprNode::new(assign, start, end))
         } else {
@@ -128,7 +128,7 @@ impl<'a> Parser<'a> {
     }
 
     fn exprnode_to_lvalue(&mut self, expr: ExprNode) -> Option<LValue> {
-        match expr.node.to_lvalue() {
+        match expr.node.conv_to_lvalue() {
             Ok(lvalue) => Some(lvalue),
             Err(reason) => {
                 self.error(&reason);
@@ -142,7 +142,7 @@ impl<'a> Parser<'a> {
         let mut expr = self.lambda()?;
 
         while self.match_token(Token::Pipe) {
-            let start = expr.start_loc.clone();
+            let start = expr.start_loc;
             let (func, mut args, end) = self.accept_call()?;
             args.insert(0, expr); // Does this really work with ownership?
             expr = ExprNode::new(Expr::Call(func, args), start, end);
@@ -161,7 +161,7 @@ impl<'a> Parser<'a> {
 
         // Is it just a variable?
         if let &Expr::Var(_) = call.node.as_ref() {
-            let end = call.end_loc.clone();
+            let end = call.end_loc;
             Some((call, vec![], end))
         } else if let AstNode {
             // Or a real call
@@ -183,7 +183,7 @@ impl<'a> Parser<'a> {
         let expr = self.or()?;
 
         if self.match_token(Token::RArrow) {
-            let start = expr.start_loc.clone();
+            let start = expr.start_loc;
 
             let params = match expr.node {
                 box Expr::Tuple(tuple) => tuple
@@ -205,7 +205,7 @@ impl<'a> Parser<'a> {
             }
 
             let body = self.expression()?;
-            let end = body.end_loc.clone();
+            let end = body.end_loc;
             let name = format!(
                 "lambda/{} at {}:{}",
                 params.len(),
@@ -326,7 +326,7 @@ impl<'a> Parser<'a> {
     fn add_calls(&mut self, base: ExprNode) -> Option<ExprNode> {
         // Takes a base expressions, and adds     ( "(" expr_list ")" | "[" indexing "]" )*
 
-        let start = base.start_loc.clone();
+        let start = base.start_loc;
         if self.match_token(Token::LPar) {
             let args = self.accept_exprs_list(&Token::RPar)?;
             self.accept(Token::RPar, "Expect ')' to close call arguments")?;
@@ -334,12 +334,12 @@ impl<'a> Parser<'a> {
             if args.len() >= MAX_ARGS {
                 self.error("Can't have more than {MAX_ARGS} arguments");
             }
-            let end = self.peek_last_end_loc()?.clone();
+            let end = *self.peek_last_end_loc()?;
             self.add_calls(ExprNode::new(Expr::Call(base, args), start, end))
         } else if self.match_token(Token::LBrack) {
             let index = self.accept_indexing()?;
-            let end = self.peek_last_end_loc()?.clone();
-            self.add_calls(ExprNode::new(Expr::Index(base, index), start, end))
+            let end = *self.peek_last_end_loc()?;
+            self.add_calls(ExprNode::new(Expr::IndexInto(base, index), start, end))
         } else {
             Some(base)
         }
@@ -385,7 +385,7 @@ impl<'a> Parser<'a> {
             None
         };
 
-        return Some(Index::slice(start, stop, step));
+        Some(Index::slice(start, stop, step))
     }
 
     fn accept_exprs_list(&mut self, terminator: &Token) -> Option<Vec<ExprNode>> {
@@ -420,8 +420,8 @@ impl<'a> Parser<'a> {
     fn simple_primary(&mut self) -> Option<ExprNode> {
         // simple_primary        → INT | FLOAT | STRING | "true" | "false" | "nil" | "break"
         //                       | Identifier ;
-        let start = self.peek_start_loc().clone();
-        let end = self.peek_end_loc().clone();
+        let start = *self.peek_start_loc();
+        let end = *self.peek_end_loc();
         match self.peek() {
             Token::False => some_node(Expr::Bool(false), start, end),
             Token::True => some_node(Expr::Bool(true), start, end),
@@ -453,13 +453,13 @@ impl<'a> Parser<'a> {
             Some(first)
         } else {
             // Could use accept_exprs_list maybe? A bit clunky with 'first' outside
-            let start = first.start_loc.clone();
+            let start = first.start_loc;
             let mut exprs = vec![first];
             while self.peek() != &Token::RPar {
                 self.accept(Token::Comma, "Expect ',' between expressions.")?;
                 exprs.push(self.expression()?);
             }
-            let end = self.peek_end_loc().clone();
+            let end = *self.peek_end_loc();
             self.accept(Token::RPar, "Expect ')' after tuple.")?;
             let tuple = ExprNode::new(Expr::Tuple(exprs), start, end);
             Some(tuple)
@@ -468,7 +468,7 @@ impl<'a> Parser<'a> {
 
     fn accept_list(&mut self) -> Option<ExprNode> {
         // list -> "[" (expr_list | simple_slice) "]"
-        let start = self.peek_start_loc().clone();
+        let start = *self.peek_start_loc();
         self.accept(Token::LBrack, "Internal error at list")?;
 
         // Must separate if concrete values or a pythonic range
@@ -501,12 +501,12 @@ impl<'a> Parser<'a> {
             ListContent::Exprs(vec![])
         };
 
-        let end = self.peek_last_end_loc()?.clone();
+        let end = *self.peek_last_end_loc()?;
         Some(ExprNode::new(Expr::List(contained), start, end))
     }
 
     fn accept_return(&mut self) -> Option<ExprNode> {
-        let start = self.peek_start_loc().clone();
+        let start = *self.peek_start_loc();
         self.accept(Token::Return, "Internal error at return")?;
 
         // Ugly way, but if there is no expression we try to infer a nil return,
@@ -525,19 +525,19 @@ impl<'a> Parser<'a> {
         } else {
             None
         };
-        let end = self.peek_last_end_loc()?.clone();
+        let end = *self.peek_last_end_loc()?;
         Some(ExprNode::new(Expr::Return(expr), start, end))
     }
 
     fn accept_break(&mut self) -> Option<ExprNode> {
-        let start = self.peek_start_loc().clone();
-        let end = self.peek_end_loc().clone();
+        let start = *self.peek_start_loc();
+        let end = *self.peek_end_loc();
         self.accept(Token::Break, "Internal error at break")?;
         Some(ExprNode::new(Expr::Break, start, end))
     }
 
     fn accept_if(&mut self) -> Option<ExprNode> {
-        let start = self.peek_start_loc().clone();
+        let start = *self.peek_start_loc();
         self.accept(Token::If, "Internal error at if")?;
 
         let cond = self.expression()?;
@@ -548,34 +548,34 @@ impl<'a> Parser<'a> {
             None
         };
 
-        let end = self.peek_last_end_loc()?.clone();
+        let end = *self.peek_last_end_loc()?;
         Some(ExprNode::new(Expr::If(cond, then, otherwise), start, end))
     }
 
     fn accept_block(&mut self) -> Option<ExprNode> {
-        let start = self.peek_start_loc().clone();
+        let start = *self.peek_start_loc();
         self.accept(Token::LBrace, "Internal error at block")?;
 
         let stmts = self.statements(Token::RBrace).ok()?;
 
-        let end = self.peek_last_end_loc()?.clone();
+        let end = *self.peek_last_end_loc()?;
         self.accept(Token::RBrace, "Need to close block with '}'")?;
         Some(ExprNode::new(Expr::Block(stmts), start, end))
     }
 
     fn accept_while(&mut self) -> Option<ExprNode> {
-        let start = self.peek_start_loc().clone();
+        let start = *self.peek_start_loc();
         self.accept(Token::While, "Internal error at while")?;
 
         let cond = self.expression()?;
         let repeat = self.expression()?;
 
-        let end = self.peek_last_end_loc()?.clone();
+        let end = *self.peek_last_end_loc()?;
         Some(ExprNode::new(Expr::While(cond, repeat), start, end))
     }
 
     fn accept_for(&mut self) -> Option<ExprNode> {
-        let start = self.peek_start_loc().clone();
+        let start = *self.peek_start_loc();
         self.accept(Token::For, "Internal error at for")?;
 
         let lvalue_expr = self.expression()?;
@@ -587,7 +587,7 @@ impl<'a> Parser<'a> {
         let iterable = self.expression()?;
         let body = self.expression()?;
 
-        let end = self.peek_last_end_loc()?.clone();
+        let end = *self.peek_last_end_loc()?;
         Some(ExprNode::new(Expr::For(lvalue, iterable, body), start, end))
     }
 
@@ -610,30 +610,30 @@ impl<'a> Parser<'a> {
 // Some helper functions
 impl ExprNode {
     fn binary(left: ExprNode, op: BinOper, right: ExprNode) -> ExprNode {
-        let start_loc = left.start_loc.clone();
-        let end_loc = right.end_loc.clone();
+        let start_loc = left.start_loc;
+        let end_loc = right.end_loc;
         let expr = Expr::Binary(left, op, right);
         AstNode::new(expr, start_loc, end_loc)
     }
 
     fn unary(start_loc: CodeLoc, op: UnOper, right: ExprNode) -> ExprNode {
-        let end_loc = right.end_loc.clone();
+        let end_loc = right.end_loc;
         let expr = Expr::Unary(op, right);
         AstNode::new(expr, start_loc, end_loc)
     }
 
     fn logical(left: ExprNode, op: LogicalOper, right: ExprNode) -> ExprNode {
-        let start_loc = left.start_loc.clone();
-        let end_loc = right.end_loc.clone();
+        let start_loc = left.start_loc;
+        let end_loc = right.end_loc;
         let expr = Expr::Logical(left, op, right);
         AstNode::new(expr, start_loc, end_loc)
     }
 }
 
 impl Expr {
-    pub fn to_lvalue(self) -> Result<LValue, String> {
+    pub fn conv_to_lvalue(self) -> Result<LValue, String> {
         match self {
-            Expr::Index(expr_node, index) => Ok(LValue::Index(expr_node, index)),
+            Expr::IndexInto(expr_node, index) => Ok(LValue::Index(expr_node, index)),
             Expr::Var(id) => Ok(LValue::Var(id)),
             other => Err(format!("Cannot convert {} to an lvalue.", other.type_of())), // TODO, no debug print
         }
@@ -642,7 +642,7 @@ impl Expr {
     fn type_of(&self) -> &str {
         match self {
             Expr::Call(_, _) => "call",
-            Expr::Index(_, _) => "index",
+            Expr::IndexInto(_, _) => "index",
             Expr::Binary(_, _, _) => "binary",
             Expr::Unary(_, _) => "unary",
             Expr::Logical(_, _, _) => "logical",
@@ -731,7 +731,7 @@ mod tests {
 
     fn fake_node<T: Debug>(data: T) -> AstNode<T> {
         let loc = CodeLoc::new(0, 0, 0);
-        AstNode::new(data, loc.clone(), loc)
+        AstNode::new(data, loc, loc)
     }
 
     fn fake_loc() -> CodeLoc {

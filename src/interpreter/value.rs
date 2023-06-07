@@ -50,7 +50,7 @@ impl Value {
         }
     }
 
-    pub fn to_iter(self) -> RunRes<vec::IntoIter<Value>> {
+    pub fn to_iter(&self) -> RunRes<vec::IntoIter<Value>> {
         match self {
             Value::Collection(collection) => Ok(collection.to_iter()),
             other => RunError::error(format!("Cannot convert {} to an iterator", other.type_of())),

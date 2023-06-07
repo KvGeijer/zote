@@ -202,7 +202,7 @@ impl List {
                 let mut vec = self.vec.borrow_mut();
                 let vec_len = vec.len();
                 let assign_slice_len = slice_iter(0.., slice.clone(), vec_len)?.count();
-                let rvalue_iter = value.clone().to_iter()?;
+                let rvalue_iter = value.to_iter()?;
 
                 if assign_slice_len != rvalue_iter.as_slice().len() {
                     return RunError::error(format!(

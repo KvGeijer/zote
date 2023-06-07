@@ -239,12 +239,10 @@ pub fn slice_iter<T, I: Iterator<Item = T>>(
 fn slice_len(start: usize, stop: usize, step: i64) -> RunRes<usize> {
     if step < 0 {
         RunError::error("Negatice steps in slices not implemented".to_string())
+    } else if stop > start {
+        Ok(((stop - start) + (step - 1) as usize) / step as usize)
     } else {
-        if stop > start {
-            Ok(((stop - start) + (step - 1) as usize) / step as usize)
-        } else {
-            Ok(0)
-        }
+        Ok(0)
     }
 }
 

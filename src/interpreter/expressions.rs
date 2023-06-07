@@ -47,7 +47,7 @@ pub fn eval(expr: &ExprNode, env: &Rc<Environment>) -> RunRes<Value> {
             RunError::error("Tuples are not part of the language (yet)".to_string())
         }
         Expr::FunctionDefinition(name, param, body) => eval_func_definition(name, param, body, env),
-        Expr::Index(base, index) => eval_index_expr(base, index, env),
+        Expr::IndexInto(base, index) => eval_index_expr(base, index, env),
     }
     .add_loc(expr.start_loc, expr.end_loc)
 }
@@ -149,11 +149,11 @@ fn eval_for(
     body: &ExprNode,
     outer_env: &Rc<Environment>,
 ) -> RunRes<Value> {
-    let mut env = Environment::nest(outer_env);
+    let env = Environment::nest(outer_env);
     for value in iter.to_iter()? {
-        lvalue.declare(&mut env)?;
-        lvalue.assign(value, &mut env)?;
-        eval(body, &mut env)?;
+        lvalue.declare(&env)?;
+        lvalue.assign(value, &env)?;
+        eval(body, &env)?;
     }
 
     Ok(def_block_return())

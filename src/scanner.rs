@@ -166,7 +166,7 @@ pub fn tokenize(code: &str, error_reporter: &mut ErrorReporter) -> Vec<TokenInfo
     }
     tokens.push(TokenInfo {
         token: Token::Eof,
-        start_loc: loc.clone(),
+        start_loc: loc,
         end_loc: loc,
         string: "EOF".to_string(),
     });
@@ -196,9 +196,9 @@ fn parse_token(code: &str, loc: &mut CodeLoc) -> Option<TokenInfo> {
         })
         .max_by_key(|(cap, _transform)| cap.len())
         .map(|(cap, transform)| {
-            let start_loc = loc.clone();
+            let start_loc = *loc;
             loc.adv_col(cap.chars().count(), cap.len()); // Not very nice looking to mutate in here
-            let end_loc = loc.clone();
+            let end_loc = *loc;
 
             TokenInfo {
                 token: transform(&cap),

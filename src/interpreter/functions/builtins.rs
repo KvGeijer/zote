@@ -380,7 +380,7 @@ impl Builtin for ToAscii {
                     RunError::error(format!("Cannot convert {string} to a single ascii value"))
                 }
             }
-            _ => RunError::error(format!("Can only convert string to ascii")),
+            _ => RunError::error("Can only convert string to ascii".to_string()),
         }
     }
 

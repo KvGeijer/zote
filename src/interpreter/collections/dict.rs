@@ -44,7 +44,7 @@ impl Dict {
         for (key, value) in self.dict.borrow().iter() {
             string.push_str(&format!(" {}: {},", key.val.stringify(), value.stringify()));
         }
-        string.push_str("}");
+        string.push('}');
         string
     }
 
@@ -141,7 +141,7 @@ fn valid_key(value: &Value) -> bool {
 
 impl ValueKey {
     fn new(value: &Value) -> RunRes<ValueKey> {
-        if valid_key(&value) {
+        if valid_key(value) {
             Ok(ValueKey {
                 val: value.deepclone(),
             })

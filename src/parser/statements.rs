@@ -123,8 +123,7 @@ impl<'a> Parser<'a> {
             while first || self.match_token(Token::Comma) {
                 first = false;
 
-                let expr = *self.expression()?.node;
-                let param = self.expr_to_lvalue(expr, true)?;
+                let param = self.lvalue(true)?;
                 params.push(param);
             }
             if params.len() >= MAX_ARGS {
@@ -164,8 +163,7 @@ impl<'a> Parser<'a> {
 
         // This first case is to desugar >>: to a declaration statement, could be combined in some way
         if self.match_token(Token::PipeColon) {
-            let lexpr = *self.expression()?.node;
-            let lvalue = self.expr_to_lvalue(lexpr, true)?;
+            let lvalue = self.lvalue(true)?;
             let end = *self.peek_end_loc();
             self.accept(Token::Semicolon, "Expect ';' after expression statement")?;
             let decl_stmt = StmtNode::new(Stmt::Decl(lvalue, Some(expr)), start, end);

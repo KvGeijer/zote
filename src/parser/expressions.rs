@@ -133,6 +133,11 @@ impl<'a> Parser<'a> {
         }
     }
 
+    pub fn lvalue(&mut self, decl: bool) -> Option<LValue> {
+        let expr = *self.expression()?.node;
+        self.expr_to_lvalue(expr, decl)
+    }
+
     pub fn expr_to_lvalue(&mut self, expr: Expr, decl: bool) -> Option<LValue> {
         match expr.conv_to_lvalue(decl) {
             Ok(lvalue) => Some(lvalue),
@@ -577,8 +582,7 @@ impl<'a> Parser<'a> {
         let start = *self.peek_start_loc();
         self.accept(Token::For, "Internal error at for")?;
 
-        let lvalue_expr = self.expression()?;
-        let lvalue = self.expr_to_lvalue(*lvalue_expr.node, true)?;
+        let lvalue = self.lvalue(true)?;
         self.accept(
             Token::Identifier("in".to_string()),
             "Expect \"in\" to follow the lvalue in a for expression",

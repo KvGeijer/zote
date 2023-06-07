@@ -63,7 +63,7 @@ fn eval_index_expr(base: &ExprNode, index_expr: &Index, env: &Rc<Environment>) -
 
 fn eval_func_definition(
     id: &str,
-    param: &[String],
+    param: &[LValue],
     body: &ExprNode,
     env: &Rc<Environment>,
 ) -> RunRes<Value> {

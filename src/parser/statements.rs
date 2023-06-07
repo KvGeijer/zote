@@ -116,24 +116,16 @@ impl<'a> Parser<'a> {
         }
     }
 
-    fn parameter_list(&mut self) -> Option<Vec<String>> {
+    fn parameter_list(&mut self) -> Option<Vec<LValue>> {
         if self.peek() != &Token::RPar {
             let mut params = vec![];
             let mut first = true;
-            while first || self.peek() == &Token::Comma {
-                if !first {
-                    self.accept(Token::Comma, "Internal error in paramater_list");
-                } else {
-                    first = false
-                }
-                if let Token::Identifier(param) = self.peek() {
-                    let param = param.to_string();
-                    self.take();
-                    params.push(param); // OPT Should take string and not copy.
-                } else {
-                    self.error("Expected parameter after ',' in parameter list");
-                    return None;
-                }
+            while first || self.match_token(Token::Comma) {
+                first = false;
+
+                let expr = *self.expression()?.node;
+                let param = self.expr_to_lvalue(expr, true)?;
+                params.push(param);
             }
             if params.len() >= MAX_ARGS {
                 self.error("Cannot have more than {MAX_ARGS} parameters");
@@ -156,16 +148,11 @@ impl<'a> Parser<'a> {
                 self.accept(Token::Semicolon, "Decl statement must end with ';'")?;
                 Some(StmtNode::new(Stmt::Decl(lvalue, Some(rvalue)), start, end))
             }
-            other => match other.conv_to_lvalue() {
-                Ok(lvalue) => {
-                    self.accept(Token::Semicolon, "Decl statement must end with ';'")?;
-                    Some(StmtNode::new(Stmt::Decl(lvalue, None), start, end))
-                }
-                Err(reason) => {
-                    self.error(&reason);
-                    None
-                }
-            },
+            other => {
+                let lvalue = self.expr_to_lvalue(other, true)?;
+                self.accept(Token::Semicolon, "Decl statement must end with ';'")?;
+                Some(StmtNode::new(Stmt::Decl(lvalue, None), start, end))
+            }
         }
     }
 
@@ -177,18 +164,12 @@ impl<'a> Parser<'a> {
 
         // This first case is to desugar >>: to a declaration statement, could be combined in some way
         if self.match_token(Token::PipeColon) {
-            match self.expression()?.node.conv_to_lvalue() {
-                Ok(lvalue) => {
-                    let end = *self.peek_end_loc();
-                    self.accept(Token::Semicolon, "Expect ';' after expression statement")?;
-                    let decl_stmt = StmtNode::new(Stmt::Decl(lvalue, Some(expr)), start, end);
-                    Some(Either::Left(decl_stmt))
-                }
-                Err(reason) => {
-                    self.error(&reason);
-                    None
-                }
-            }
+            let lexpr = *self.expression()?.node;
+            let lvalue = self.expr_to_lvalue(lexpr, true)?;
+            let end = *self.peek_end_loc();
+            self.accept(Token::Semicolon, "Expect ';' after expression statement")?;
+            let decl_stmt = StmtNode::new(Stmt::Decl(lvalue, Some(expr)), start, end);
+            Some(Either::Left(decl_stmt))
         } else if !allow_expr || self.peek() == &Token::Semicolon {
             let end = *self.peek_end_loc();
             self.accept(Token::Semicolon, "Expect ';' after expression statement")?;

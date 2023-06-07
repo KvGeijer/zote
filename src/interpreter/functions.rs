@@ -4,7 +4,7 @@ use std::{
     rc::Rc,
 };
 
-use crate::parser::ExprNode;
+use crate::parser::{ExprNode, LValue};
 
 use super::{environment::Environment, expressions, RunRes, Value};
 
@@ -76,13 +76,13 @@ impl PartialOrd for Function {
 #[derive(Clone)]
 pub struct Closure {
     id: String, // Maybe not ideal to have
-    params: Vec<String>,
+    params: Vec<LValue>,
     body: ExprNode, // Should we have this as a borrow instead maybe? Probably just a hassle
     env: Rc<Environment>,
 }
 
 impl Closure {
-    pub fn new(id: String, params: Vec<String>, body: ExprNode, env: &Rc<Environment>) -> Self {
+    pub fn new(id: String, params: Vec<LValue>, body: ExprNode, env: &Rc<Environment>) -> Self {
         Self {
             id,
             params,
@@ -94,7 +94,8 @@ impl Closure {
     fn call(&self, args: Vec<Value>) -> RunRes<Value> {
         let env = Environment::nest(&self.env);
         for (param, arg) in self.params.iter().zip(args.into_iter()) {
-            env.define(param.to_string(), arg);
+            param.declare(&env)?;
+            param.assign(arg, &env)?;
         }
         expressions::eval(&self.body, &env)
     }

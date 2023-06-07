@@ -31,7 +31,7 @@ pub enum Expr {
     Nil,
     List(ListContent),
     Tuple(Vec<ExprNode>),
-    FunctionDefinition(String, Vec<String>, ExprNode),
+    FunctionDefinition(String, Vec<LValue>, ExprNode),
 }
 
 #[derive(Debug, PartialEq, Clone)]
@@ -46,6 +46,12 @@ pub enum LValue {
     Index(ExprNode, Index), // So far, the only interior mutability in zote
     Var(String),
     // Underscore, // Might want to add later, but for now they are just normal variables
+}
+
+impl From<String> for LValue {
+    fn from(value: String) -> Self {
+        LValue::Var(value)
+    }
 }
 
 #[derive(Debug, Clone, PartialEq)]
@@ -117,7 +123,7 @@ impl<'a> Parser<'a> {
         let expr = self.pipe()?;
         if self.match_token(Token::Eq) {
             let start = expr.start_loc;
-            let lvalue = self.exprnode_to_lvalue(expr)?;
+            let lvalue = self.expr_to_lvalue(*expr.node, false)?;
             let rvalue = self.assignment()?;
             let end = rvalue.end_loc;
             let assign = Expr::Assign(lvalue, rvalue);
@@ -127,8 +133,8 @@ impl<'a> Parser<'a> {
         }
     }
 
-    fn exprnode_to_lvalue(&mut self, expr: ExprNode) -> Option<LValue> {
-        match expr.node.conv_to_lvalue() {
+    pub fn expr_to_lvalue(&mut self, expr: Expr, decl: bool) -> Option<LValue> {
+        match expr.conv_to_lvalue(decl) {
             Ok(lvalue) => Some(lvalue),
             Err(reason) => {
                 self.error(&reason);
@@ -185,19 +191,12 @@ impl<'a> Parser<'a> {
         if self.match_token(Token::RArrow) {
             let start = expr.start_loc;
 
-            let params = match expr.node {
-                box Expr::Tuple(tuple) => tuple
+            let params: Vec<LValue> = match *expr.node {
+                Expr::Tuple(tuple) => tuple
                     .into_iter()
-                    .map(|expr| match *expr.node {
-                        Expr::Var(param) => Some(param),
-                        _ => None,
-                    })
-                    .collect::<Option<_>>()?,
-                box Expr::Var(param) => vec![param],
-                _pattern => {
-                    self.error("Expected tuple or variable as param in lambda");
-                    return None;
-                }
+                    .map(|expr| self.expr_to_lvalue(*expr.node, true))
+                    .collect::<Option<Vec<LValue>>>()?,
+                expr => vec![self.expr_to_lvalue(expr, true)?],
             };
 
             if params.len() >= MAX_ARGS {
@@ -579,7 +578,7 @@ impl<'a> Parser<'a> {
         self.accept(Token::For, "Internal error at for")?;
 
         let lvalue_expr = self.expression()?;
-        let lvalue = self.exprnode_to_lvalue(lvalue_expr)?;
+        let lvalue = self.expr_to_lvalue(*lvalue_expr.node, true)?;
         self.accept(
             Token::Identifier("in".to_string()),
             "Expect \"in\" to follow the lvalue in a for expression",
@@ -631,9 +630,12 @@ impl ExprNode {
 }
 
 impl Expr {
-    pub fn conv_to_lvalue(self) -> Result<LValue, String> {
+    pub fn conv_to_lvalue(self, declaration: bool) -> Result<LValue, String> {
         match self {
-            Expr::IndexInto(expr_node, index) => Ok(LValue::Index(expr_node, index)),
+            Expr::IndexInto(expr_node, index) if !declaration => {
+                Ok(LValue::Index(expr_node, index))
+            }
+            Expr::IndexInto(_, _) => Err("Cannot index into a value in a declaration".to_string()),
             Expr::Var(id) => Ok(LValue::Var(id)),
             other => Err(format!("Cannot convert {} to an lvalue.", other.type_of())), // TODO, no debug print
         }
@@ -948,7 +950,7 @@ mod tests {
             expr,
             fake_node(Expr::FunctionDefinition(
                 "lambda/1 at 0:0".to_string(),
-                vec!["x".to_string()],
+                vec!["x".to_string().into()],
                 ExprNode::binary(
                     fake_node(Expr::Int(2)),
                     BinOper::Add,
@@ -981,7 +983,7 @@ mod tests {
             expr,
             fake_node(Expr::FunctionDefinition(
                 "lambda/2 at 0:0".to_string(),
-                vec!["x".to_string(), "y".to_string()],
+                vec!["x".to_string().into(), "y".to_string().into()],
                 fake_node(Expr::Call(
                     fake_node(Expr::Var("max".to_string())),
                     vec![

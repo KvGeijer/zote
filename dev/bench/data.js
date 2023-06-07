@@ -1,5 +1,5 @@
 window.BENCHMARK_DATA = {
-  "lastUpdate": 1686072399847,
+  "lastUpdate": 1686136154152,
   "repoUrl": "https://github.com/KvGeijer/zote",
   "entries": {
     "Rust Benchmark": [
@@ -1055,6 +1055,60 @@ window.BENCHMARK_DATA = {
             "name": "string_manips",
             "value": 192751368,
             "range": "± 660707",
+            "unit": "ns/iter"
+          }
+        ]
+      },
+      {
+        "commit": {
+          "author": {
+            "email": "kare.kvg@gmail.com",
+            "name": "Kåre von Geijer",
+            "username": "KvGeijer"
+          },
+          "committer": {
+            "email": "kare.kvg@gmail.com",
+            "name": "Kåre von Geijer",
+            "username": "KvGeijer"
+          },
+          "distinct": true,
+          "id": "b361571a0290fdd70c36e1019ce07bb426e31b08",
+          "message": "Fix a bunch of clippy complaints\n\nMainly from changing CodeLoc to implement copy. Really strange why the\nclippy hints work now, and not before, and not at home...",
+          "timestamp": "2023-06-07T13:04:58+02:00",
+          "tree_id": "4dc5badb6f6c5af4c5fc8f55252b89db92ffe513",
+          "url": "https://github.com/KvGeijer/zote/commit/b361571a0290fdd70c36e1019ce07bb426e31b08"
+        },
+        "date": 1686136153696,
+        "tool": "cargo",
+        "benches": [
+          {
+            "name": "aoc_2022_1",
+            "value": 1117366,
+            "range": "± 40035",
+            "unit": "ns/iter"
+          },
+          {
+            "name": "aoc_2022_2",
+            "value": 21854870,
+            "range": "± 24108",
+            "unit": "ns/iter"
+          },
+          {
+            "name": "fibonachi",
+            "value": 166328395,
+            "range": "± 1472370",
+            "unit": "ns/iter"
+          },
+          {
+            "name": "prints",
+            "value": 21383084,
+            "range": "± 373115",
+            "unit": "ns/iter"
+          },
+          {
+            "name": "string_manips",
+            "value": 193477211,
+            "range": "± 811369",
             "unit": "ns/iter"
           }
         ]

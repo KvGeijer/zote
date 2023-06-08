@@ -498,9 +498,10 @@ mod tests {
         let val = interpret_expression_string(program).unwrap();
         assert!(matches!(val, Value::Nil));
 
+        // No longer a nil return!
         let program = "print(3)";
         let val = interpret_expression_string(program).unwrap();
-        assert!(matches!(val, Value::Nil));
+        assert!(matches!(val, Value::Numerical(Numerical::Int(3))));
 
         let program = "if false 1";
         let val = interpret_expression_string(program).unwrap();

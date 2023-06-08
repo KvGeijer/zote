@@ -53,8 +53,9 @@ struct Print;
 
 impl Builtin for Print {
     fn run(&self, args: Vec<Value>) -> RunRes<Value> {
-        println!("{}", args[0].stringify());
-        Ok(Value::Nil)
+        let val = args.into_iter().next().unwrap();
+        println!("{}", val.stringify());
+        Ok(val)
     }
 
     fn arity(&self) -> usize {

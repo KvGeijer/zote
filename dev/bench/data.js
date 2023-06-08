@@ -1,5 +1,5 @@
 window.BENCHMARK_DATA = {
-  "lastUpdate": 1686253843295,
+  "lastUpdate": 1686254380623,
   "repoUrl": "https://github.com/KvGeijer/zote",
   "entries": {
     "Rust Benchmark": [
@@ -1277,6 +1277,66 @@ window.BENCHMARK_DATA = {
             "name": "string_manips",
             "value": 413719815,
             "range": "± 19119408",
+            "unit": "ns/iter"
+          }
+        ]
+      },
+      {
+        "commit": {
+          "author": {
+            "email": "kare.kvg@gmail.com",
+            "name": "Kåre von Geijer",
+            "username": "KvGeijer"
+          },
+          "committer": {
+            "email": "kare.kvg@gmail.com",
+            "name": "Kåre von Geijer",
+            "username": "KvGeijer"
+          },
+          "distinct": true,
+          "id": "9002a4e1d5367198bdc93011df92c2e5c31d9287",
+          "message": "Add tuple lvalues to match against iterators\n\nA tuple as an lvalue will match each of its contained lvalues to one of\nthe rvalues in the rvalue iterator. If any of the two sides are of\ndifferent lengths it errors.\n\nAlso solve aoc day 4 with it! Very brute force with sets, but went\nquite fast! Makes me feel good about the languges chances.",
+          "timestamp": "2023-06-08T21:53:58+02:00",
+          "tree_id": "97f57b2aeb71feb1734fe677bdd1638c60f277c1",
+          "url": "https://github.com/KvGeijer/zote/commit/9002a4e1d5367198bdc93011df92c2e5c31d9287"
+        },
+        "date": 1686254380120,
+        "tool": "cargo",
+        "benches": [
+          {
+            "name": "aoc_2022_1",
+            "value": 1364376,
+            "range": "± 29182",
+            "unit": "ns/iter"
+          },
+          {
+            "name": "aoc_2022_2",
+            "value": 26315951,
+            "range": "± 175908",
+            "unit": "ns/iter"
+          },
+          {
+            "name": "aoc_2022_4",
+            "value": 37289039,
+            "range": "± 166723",
+            "unit": "ns/iter"
+          },
+          {
+            "name": "fibonachi",
+            "value": 198058311,
+            "range": "± 2760864",
+            "unit": "ns/iter"
+          },
+          {
+            "name": "prints",
+            "value": 25587046,
+            "range": "± 745945",
+            "unit": "ns/iter"
+          },
+          {
+            "name": "string_manips",
+            "value": 231619350,
+            "range": "± 2819941",
             "unit": "ns/iter"
           }
         ]

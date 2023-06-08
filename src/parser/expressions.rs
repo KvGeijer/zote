@@ -40,12 +40,11 @@ pub enum ListContent {
     Range(Slice),
 }
 
-// TODO: Add pattern matching
 #[derive(Debug, PartialEq, Clone)]
 pub enum LValue {
-    Index(ExprNode, Index), // So far, the only interior mutability in zote
+    Index(ExprNode, Index),
     Var(String),
-    // Underscore, // Might want to add later, but for now they are just normal variables
+    Tuple(Vec<LValue>),
 }
 
 impl From<String> for LValue {
@@ -641,6 +640,13 @@ impl Expr {
             }
             Expr::IndexInto(_, _) => Err("Cannot index into a value in a declaration".to_string()),
             Expr::Var(id) => Ok(LValue::Var(id)),
+            Expr::Tuple(exprs) => {
+                let lvalues = exprs
+                    .into_iter()
+                    .map(|expr| expr.node.conv_to_lvalue(declaration))
+                    .collect::<Result<Vec<LValue>, String>>()?;
+                Ok(LValue::Tuple(lvalues))
+            }
             other => Err(format!("Cannot convert {} to an lvalue.", other.type_of())), // TODO, no debug print
         }
     }

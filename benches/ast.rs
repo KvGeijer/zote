@@ -34,3 +34,9 @@ fn aoc_2022_2(bench: &mut Bencher) {
     let code = include_str!("../aoc-2022/inputs/02.txt");
     bench.iter(|| run_str(code));
 }
+
+#[bench]
+fn aoc_2022_4(bench: &mut Bencher) {
+    let code = include_str!("../aoc-2022/inputs/04.txt");
+    bench.iter(|| run_str(code));
+}

@@ -153,7 +153,10 @@ fn eval_for(
     for value in iter.to_iter()? {
         lvalue.declare(&env)?;
         lvalue.assign(value, &env)?;
-        eval(body, &env)?;
+        match eval(body, &env) {
+            Err(RunError::Break) => break,
+            other => other,
+        }?;
     }
 
     Ok(def_block_return())
@@ -339,14 +342,20 @@ fn eval_unary(op: &UnOper, right: Value) -> RunRes<Value> {
 }
 
 impl LValue {
-    pub fn declare(&self, env: &Rc<Environment>) -> RunRes<Value> {
+    pub fn declare(&self, env: &Rc<Environment>) -> RunRes<()> {
         match self {
             LValue::Var(id) => {
                 env.define(id.to_string(), Value::Uninitialized);
-                Ok(Value::Uninitialized)
+                Ok(())
             }
             LValue::Index(_expr, _index) => {
                 RunError::error("Cannot include an indexing in a declaration".to_string())
+            }
+            LValue::Tuple(lvalues) => {
+                for lvalue in lvalues {
+                    lvalue.declare(env)?;
+                }
+                Ok(())
             }
         }
     }
@@ -363,6 +372,30 @@ impl LValue {
                         "Cannot index into {} for assignment",
                         other.type_of()
                     )),
+                }
+            }
+            LValue::Tuple(lvalues) => {
+                let mut lvalues_iter = lvalues.into_iter();
+                let mut rvalues_iter = rvalue.clone().to_iter()?;
+                loop {
+                    match (lvalues_iter.next(), rvalues_iter.next()) {
+                        (Some(lvalue), Some(rvalue)) => {
+                            lvalue.assign(rvalue, env)?;
+                        }
+                        (None, None) => break Ok(rvalue),
+                        (None, _) => {
+                            break RunError::error(format!(
+                                "{} rvalues remain after all lvalues",
+                                rvalues_iter.count() + 1
+                            ))
+                        }
+                        (_, None) => {
+                            break RunError::error(format!(
+                                "{} lvalues remain after all rvalues",
+                                lvalues_iter.count() + 1
+                            ))
+                        }
+                    }
                 }
             }
         }

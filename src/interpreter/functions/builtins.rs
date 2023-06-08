@@ -25,7 +25,7 @@ macro_rules! box_builtins {
 pub fn get_builtins() -> Vec<Rc<dyn Builtin>> {
     box_builtins![
         Time, Print, Str, Push, Pop, Read, Int, Max, Map, Split, Sum, Sort, NewDict, List, Len, In,
-        ToAscii
+        ToAscii, Rev
     ]
 }
 
@@ -391,5 +391,27 @@ impl Builtin for ToAscii {
 
     fn name(&self) -> &str {
         "to_ascii"
+    }
+}
+
+struct Rev;
+impl Builtin for Rev {
+    fn run(&self, args: Vec<Value>) -> RunRes<Value> {
+        Ok(args
+            .into_iter()
+            .next()
+            .unwrap()
+            .to_iter()?
+            .rev()
+            .collect::<Vec<Value>>()
+            .into())
+    }
+
+    fn arity(&self) -> usize {
+        1
+    }
+
+    fn name(&self) -> &str {
+        "rev"
     }
 }

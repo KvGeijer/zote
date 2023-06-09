@@ -1,7 +1,7 @@
 use crate::interpreter::runtime_error::RunError;
 
 use super::{
-    super::{functions::Function, numerical::Numerical, RunRes, Value},
+    super::{numerical::Numerical, RunRes, Value},
     index_wrap, slice_iter, IndexValue, SliceValue,
 };
 
@@ -34,25 +34,17 @@ impl List {
     }
 
     /// Pops a value from the list
-    pub fn pop(&self) -> Value {
-        match self.vec.borrow_mut().pop() {
-            Some(value) => value,
-            None => Value::Nil,
-        }
+    pub fn pop(&self) -> RunRes<Value> {
+        self.vec.borrow_mut().pop().ok_or(RunError::bare_error(
+            "Attemt to pop from an empty list".to_string(),
+        ))
     }
-
-    /// Extends the ite
 
     /// Checks if the list is empty
     pub fn is_empty(&self) -> bool {
         // Should this be added as a zote function? What name?
         self.vec.borrow().is_empty()
     }
-
-    // /// Converts list to bool, which just checks if empty
-    // pub fn to_bool(&self) -> bool {
-    //     self.is_empty() == false.into()
-    // }
 
     pub fn stringify(&self) -> String {
         let mut string = String::from("[");
@@ -88,36 +80,6 @@ impl List {
                 vec.len()
             )),
         }
-    }
-
-    /// Returns the max of the list, or Nil if empty
-    pub fn max(&self) -> RunRes<Value> {
-        let vec = self.vec.borrow();
-        let mut iter = vec.iter();
-        let mut max = iter.next().cloned().unwrap_or(Value::Nil);
-        for val in iter {
-            match max.partial_cmp(val) {
-                Some(Ordering::Less) => max = val.clone(),
-                None => {
-                    return RunError::error(format!(
-                        "Cannot compare {} with {}. For finding max in a list.",
-                        max.type_of(),
-                        val.type_of(),
-                    ))
-                }
-                _ => (),
-            }
-        }
-        Ok(max)
-    }
-
-    pub fn map(&self, func: &Function) -> RunRes<Value> {
-        let mut mapped = vec![];
-        for value in self.vec.borrow().iter() {
-            // Shoud we do something to the error info?
-            mapped.push(func.call(vec![value.clone()])?);
-        }
-        Ok(mapped.into())
     }
 
     pub fn split(&self, delimiter: &Value) -> RunRes<Value> {

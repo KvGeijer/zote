@@ -52,6 +52,7 @@ mod tests {
     use super::*;
     use crate::errors::ErrorReporter;
     use crate::interpreter::functions::define_builtins;
+    use crate::interpreter::runtime_error::RunError;
     use crate::parser::parse;
     use crate::scanner::tokenize;
 
@@ -132,10 +133,8 @@ mod tests {
     #[test]
     fn list_operations() {
         let program = "pop([])";
-        assert!(matches!(
-            interpret_string(program).unwrap().unwrap().unwrap(),
-            Value::Nil
-        ));
+        let result = interpret_string(program).unwrap();
+        assert!(matches!(result, Err(RunError::Error(_))));
 
         let program = concat!(
             "fn pop_twice(list) -> { ",
@@ -170,9 +169,6 @@ mod tests {
             "    pop(list),                ",
             "    pop(list),                ",
             "    pop(list),                ",
-            "    pop(list),                ",
-            "    pop(list),                ",
-            "    pop(list),                ",
             "    pop(list)                 ",
             "]                             ",
         );
@@ -185,9 +181,6 @@ mod tests {
             3.into(),
             2.into(),
             1.into(),
-            Value::Nil,
-            Value::Nil,
-            Value::Nil,
         ]
         .into();
 

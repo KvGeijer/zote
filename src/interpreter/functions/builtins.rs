@@ -1,5 +1,5 @@
 use itertools::Itertools;
-use std::{fs::read_to_string, rc::Rc};
+use std::{cmp::Ordering, fs::read_to_string, rc::Rc};
 
 use crate::interpreter::{
     collections::{Collection, Dict},
@@ -111,7 +111,7 @@ struct Pop;
 impl Builtin for Pop {
     fn run(&self, args: Vec<Value>) -> RunRes<Value> {
         match args.into_iter().next().unwrap() {
-            Value::Collection(Collection::List(list)) => Ok(list.pop()),
+            Value::Collection(Collection::List(list)) => list.pop(),
             _ => RunError::error("Argument to pop must be a list".to_string()),
         }
     }
@@ -176,10 +176,22 @@ impl Builtin for Int {
 struct Max;
 impl Builtin for Max {
     fn run(&self, args: Vec<Value>) -> RunRes<Value> {
-        match args.into_iter().next().unwrap() {
-            Value::Collection(Collection::List(list)) => list.max(),
-            _ => RunError::error("So far max is only implemented for lists".to_string()),
-        }
+        args.into_iter()
+            .next()
+            .unwrap()
+            .to_iter()?
+            .try_reduce(|x, y| match x.partial_cmp(&y) {
+                None => RunError::error(format!(
+                    "Cannot compare {} with {}. For finding max in a list.",
+                    x.type_of(),
+                    y.type_of(),
+                )),
+                Some(Ordering::Less) => Ok(y),
+                Some(_) => Ok(x),
+            })?
+            .ok_or(RunError::bare_error(
+                "Canot get max from empty iterator".to_string(),
+            ))
     }
 
     fn arity(&self) -> usize {
@@ -223,11 +235,16 @@ impl Builtin for Split {
     }
 }
 
+/// Maps the function over the iterable, then converting it back into a list
 struct Map;
 impl Builtin for Map {
     fn run(&self, args: Vec<Value>) -> RunRes<Value> {
         match args.into_iter().collect_tuple().unwrap() {
-            (Value::Collection(Collection::List(list)), Value::Callable(func)) => list.map(&func),
+            (Value::Collection(coll), Value::Callable(func)) => Ok(coll
+                .to_iter()
+                .map(|val| func.call(vec![val]))
+                .collect::<Result<Vec<Value>, _>>()?
+                .into()),
             (left, right) => RunError::error(format!(
                 "Expected a list and a function as arguments to map, but got {} and {}",
                 left.type_of(),

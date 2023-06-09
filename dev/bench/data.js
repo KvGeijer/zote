@@ -1,5 +1,5 @@
 window.BENCHMARK_DATA = {
-  "lastUpdate": 1686302409150,
+  "lastUpdate": 1686304553723,
   "repoUrl": "https://github.com/KvGeijer/zote",
   "entries": {
     "Rust Benchmark": [
@@ -1517,6 +1517,66 @@ window.BENCHMARK_DATA = {
             "name": "string_manips",
             "value": 224432790,
             "range": "± 6392673",
+            "unit": "ns/iter"
+          }
+        ]
+      },
+      {
+        "commit": {
+          "author": {
+            "email": "kare.kvg@gmail.com",
+            "name": "Kåre von Geijer",
+            "username": "KvGeijer"
+          },
+          "committer": {
+            "email": "kare.kvg@gmail.com",
+            "name": "Kåre von Geijer",
+            "username": "KvGeijer"
+          },
+          "distinct": true,
+          "id": "101f165addf8475b8055370879c9d7998156e7d6",
+          "message": "Add a more dynamic way to define builtins\n\nFor now only implemented for builtins with two arguments as a testing\nperiod. It reduces the amount of boilerplate by a lot, but might make\nit more confusing and harder to document behavior of functions.",
+          "timestamp": "2023-06-09T11:48:55+02:00",
+          "tree_id": "2461e26aab4e318b2d9b367b8beb716df621d689",
+          "url": "https://github.com/KvGeijer/zote/commit/101f165addf8475b8055370879c9d7998156e7d6"
+        },
+        "date": 1686304552639,
+        "tool": "cargo",
+        "benches": [
+          {
+            "name": "aoc_2022_1",
+            "value": 1399464,
+            "range": "± 274303",
+            "unit": "ns/iter"
+          },
+          {
+            "name": "aoc_2022_2",
+            "value": 27682829,
+            "range": "± 4038349",
+            "unit": "ns/iter"
+          },
+          {
+            "name": "aoc_2022_4",
+            "value": 38797696,
+            "range": "± 4613899",
+            "unit": "ns/iter"
+          },
+          {
+            "name": "fibonachi",
+            "value": 214578355,
+            "range": "± 12075685",
+            "unit": "ns/iter"
+          },
+          {
+            "name": "prints",
+            "value": 27549279,
+            "range": "± 3925259",
+            "unit": "ns/iter"
+          },
+          {
+            "name": "string_manips",
+            "value": 396781808,
+            "range": "± 18238956",
             "unit": "ns/iter"
           }
         ]

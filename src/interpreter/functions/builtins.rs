@@ -23,10 +23,100 @@ macro_rules! box_builtins {
 }
 
 pub fn get_builtins() -> Vec<Rc<dyn Builtin>> {
-    box_builtins![
-        Time, Print, Str, Push, Pop, Read, Int, Max, Map, Split, Sum, Sort, NewDict, List, Len, In,
-        ToAscii, Rev
-    ]
+    let mut builtins: Vec<Rc<dyn Builtin>> = box_builtins![
+        Time, Print, Str, Pop, Read, Int, Max, Sum, Sort, NewDict, List, Len, ToAscii, Rev
+    ];
+
+    builtins.push(TwoArgBuiltin::new("push", |item, stack| {
+        match (item, stack) {
+            (value, Value::Collection(Collection::List(list))) => {
+                list.push(value);
+                Ok(Value::Nil)
+            }
+            (_, _) => RunError::error("Second argument to push must be a list".to_string()),
+        }
+    }));
+
+    builtins.push(TwoArgBuiltin::new("split", |base, delim| {
+        match (base, delim) {
+            (
+                Value::Collection(Collection::String(string)),
+                Value::Collection(Collection::String(delimiter)),
+            ) => {
+                let splitted: Vec<Value> = string
+                    .split(&delimiter)
+                    .map(|str| str.to_string().into())
+                    .collect();
+                Ok(splitted.into())
+            }
+            (Value::Collection(Collection::List(list)), value) => list.split(&value),
+            (left, right) => RunError::error(format!(
+                "Arguments {} and {} are not valid for split",
+                left.type_of(),
+                right.type_of()
+            )),
+        }
+    }));
+
+    // Maps the function over the iterable, then converting it back into a list
+    builtins.push(TwoArgBuiltin::new("map", |base, func| match (base, func) {
+        (Value::Collection(coll), Value::Callable(func)) => Ok(coll
+            .to_iter()
+            .map(|val| func.call(vec![val]))
+            .collect::<Result<Vec<Value>, _>>()?
+            .into()),
+        (left, right) => RunError::error(format!(
+            "Expected a list and a function as arguments to map, but got {} and {}",
+            left.type_of(),
+            right.type_of()
+        )),
+    }));
+
+    builtins.push(TwoArgBuiltin::new("in", |item, base| match (item, base) {
+        (value, Value::Collection(Collection::List(list))) => {
+            Ok(list.to_iter().contains(&value).into())
+        }
+        (value, Value::Collection(Collection::Dict(dict))) => Ok(dict.contains_key(&value)?.into()),
+        (_, arg) => RunError::error(format!(
+            "Expected a list or dict as second argument to in (string not implemented), but got {}",
+            arg.type_of(),
+        )),
+    }));
+
+    builtins
+}
+
+struct TwoArgBuiltin {
+    name: &'static str,
+    func: Box<dyn Fn(Value, Value) -> RunRes<Value>>,
+}
+
+impl TwoArgBuiltin {
+    fn new(name: &'static str, func: impl Fn(Value, Value) -> RunRes<Value> + 'static) -> Rc<Self> {
+        Rc::new(Self {
+            name,
+            func: Box::new(func),
+        })
+    }
+}
+
+impl Builtin for TwoArgBuiltin {
+    fn run(&self, args: Vec<Value>) -> RunRes<Value> {
+        let (x, y) = args
+            .into_iter()
+            .tuples()
+            .next()
+            .expect("Incorrect number of args");
+        (self.func)(x, y)
+    }
+
+    fn arity(&self) -> usize {
+        2
+    }
+
+    fn name(&self) -> &str {
+        self.name
+    }
 }
 
 struct Time;
@@ -80,29 +170,6 @@ impl Builtin for Str {
 
     fn name(&self) -> &str {
         "str"
-    }
-}
-
-// push(item, list), so we can do item >> push(list)
-struct Push;
-impl Builtin for Push {
-    fn run(&self, args: Vec<Value>) -> RunRes<Value> {
-        match args.into_iter().collect_tuple().unwrap() {
-            // Strange if pushing a list to itself. Print crashes :D
-            (value, Value::Collection(Collection::List(list))) => {
-                list.push(value);
-                Ok(Value::Nil)
-            }
-            (_, _) => RunError::error("Second argument to push must be a list".to_string()),
-        }
-    }
-
-    fn arity(&self) -> usize {
-        2
-    }
-
-    fn name(&self) -> &str {
-        "push"
     }
 }
 
@@ -203,65 +270,6 @@ impl Builtin for Max {
     }
 }
 
-struct Split;
-impl Builtin for Split {
-    fn run(&self, args: Vec<Value>) -> RunRes<Value> {
-        match args.into_iter().collect_tuple().unwrap() {
-            (
-                Value::Collection(Collection::String(string)),
-                Value::Collection(Collection::String(delimiter)),
-            ) => {
-                let splitted: Vec<Value> = string
-                    .split(&delimiter)
-                    .map(|str| str.to_string().into())
-                    .collect();
-                Ok(splitted.into())
-            }
-            (Value::Collection(Collection::List(list)), value) => list.split(&value),
-            (left, right) => RunError::error(format!(
-                "Arguments {} and {} are not valid for split",
-                left.type_of(),
-                right.type_of()
-            )),
-        }
-    }
-
-    fn arity(&self) -> usize {
-        2
-    }
-
-    fn name(&self) -> &str {
-        "split"
-    }
-}
-
-/// Maps the function over the iterable, then converting it back into a list
-struct Map;
-impl Builtin for Map {
-    fn run(&self, args: Vec<Value>) -> RunRes<Value> {
-        match args.into_iter().collect_tuple().unwrap() {
-            (Value::Collection(coll), Value::Callable(func)) => Ok(coll
-                .to_iter()
-                .map(|val| func.call(vec![val]))
-                .collect::<Result<Vec<Value>, _>>()?
-                .into()),
-            (left, right) => RunError::error(format!(
-                "Expected a list and a function as arguments to map, but got {} and {}",
-                left.type_of(),
-                right.type_of()
-            )),
-        }
-    }
-
-    fn arity(&self) -> usize {
-        2
-    }
-
-    fn name(&self) -> &str {
-        "map"
-    }
-}
-
 struct Sum;
 impl Builtin for Sum {
     fn run(&self, args: Vec<Value>) -> RunRes<Value> {
@@ -316,32 +324,6 @@ impl Builtin for NewDict {
 
     fn name(&self) -> &str {
         "dict"
-    }
-}
-
-struct In;
-impl Builtin for In {
-    fn run(&self, args: Vec<Value>) -> RunRes<Value> {
-        match args.into_iter().collect_tuple().unwrap() {
-            (value, Value::Collection(Collection::List(list))) => {
-                Ok(list.to_iter().contains(&value).into())
-            }
-            (value, Value::Collection(Collection::Dict(dict))) => {
-                Ok(dict.contains_key(&value)?.into())
-            }
-            (_, arg) => RunError::error(format!(
-                "Expected a list or dict as second argument to in (string not implemented), but got {}",
-                arg.type_of(),
-            )),
-        }
-    }
-
-    fn arity(&self) -> usize {
-        2
-    }
-
-    fn name(&self) -> &str {
-        "in"
     }
 }
 

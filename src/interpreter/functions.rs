@@ -14,7 +14,6 @@ mod builtins;
 
 #[derive(Clone)]
 pub enum Function {
-    // Closure(),
     Closure(Closure),
     Builtin(Rc<dyn Builtin>),
 }

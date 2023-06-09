@@ -1,5 +1,5 @@
 window.BENCHMARK_DATA = {
-  "lastUpdate": 1686257882314,
+  "lastUpdate": 1686302409150,
   "repoUrl": "https://github.com/KvGeijer/zote",
   "entries": {
     "Rust Benchmark": [
@@ -1457,6 +1457,66 @@ window.BENCHMARK_DATA = {
             "name": "string_manips",
             "value": 215534266,
             "range": "± 863423",
+            "unit": "ns/iter"
+          }
+        ]
+      },
+      {
+        "commit": {
+          "author": {
+            "email": "kare.kvg@gmail.com",
+            "name": "Kåre von Geijer",
+            "username": "KvGeijer"
+          },
+          "committer": {
+            "email": "kare.kvg@gmail.com",
+            "name": "Kåre von Geijer",
+            "username": "KvGeijer"
+          },
+          "distinct": true,
+          "id": "eff1c52f171a1b12cb31c3f20a9840ca1391b321",
+          "message": "Clean up some builtins\n\nPop and max now error if the iterable is empty, instead of returning\nNil.\n\nFurthermore, some builtin funcions now generailze over to_iter, rahter\nthan being specific to list.",
+          "timestamp": "2023-06-09T10:43:35+02:00",
+          "tree_id": "32ad0c905ce19576da9726b405586009beab7a95",
+          "url": "https://github.com/KvGeijer/zote/commit/eff1c52f171a1b12cb31c3f20a9840ca1391b321"
+        },
+        "date": 1686302408345,
+        "tool": "cargo",
+        "benches": [
+          {
+            "name": "aoc_2022_1",
+            "value": 1317001,
+            "range": "± 27904",
+            "unit": "ns/iter"
+          },
+          {
+            "name": "aoc_2022_2",
+            "value": 24960568,
+            "range": "± 1089300",
+            "unit": "ns/iter"
+          },
+          {
+            "name": "aoc_2022_4",
+            "value": 35401213,
+            "range": "± 200249",
+            "unit": "ns/iter"
+          },
+          {
+            "name": "fibonachi",
+            "value": 192758531,
+            "range": "± 6521768",
+            "unit": "ns/iter"
+          },
+          {
+            "name": "prints",
+            "value": 24843989,
+            "range": "± 972116",
+            "unit": "ns/iter"
+          },
+          {
+            "name": "string_manips",
+            "value": 224432790,
+            "range": "± 6392673",
             "unit": "ns/iter"
           }
         ]

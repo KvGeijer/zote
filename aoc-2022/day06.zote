@@ -1,0 +1,17 @@
+read("aoc-2022/inputs/06.txt") >> list >>: signal;
+
+for end in [4:len(signal)] {
+	var marker = signal[end - 4:end];
+	if len(set(marker)) == 4 {
+		print(end);
+		break;
+	};
+};
+
+for end in [14:len(signal)] {
+	var marker = signal[end - 14:end];
+	if len(set(marker)) == 14 {
+		print(end);
+		break;
+	};
+};

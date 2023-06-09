@@ -24,7 +24,7 @@ macro_rules! box_builtins {
 
 pub fn get_builtins() -> Vec<Rc<dyn Builtin>> {
     let mut builtins: Vec<Rc<dyn Builtin>> = box_builtins![
-        Time, Print, Str, Pop, Read, Int, Max, Sum, Sort, NewDict, List, Len, ToAscii, Rev
+        Time, Print, Str, Pop, Read, Int, Max, Sum, Sort, NewDict, List, Len, ToAscii, Rev, Set
     ];
 
     builtins.push(TwoArgBuiltin::new("push", |item, stack| {
@@ -366,6 +366,25 @@ impl Builtin for List {
 
     fn name(&self) -> &str {
         "list"
+    }
+}
+
+struct Set;
+impl Builtin for Set {
+    fn run(&self, args: Vec<Value>) -> RunRes<Value> {
+        let set = Dict::new();
+        for val in args.into_iter().next().unwrap().to_iter()? {
+            set.assign_into(val, Value::Nil)?;
+        }
+        Ok(set.into())
+    }
+
+    fn arity(&self) -> usize {
+        1
+    }
+
+    fn name(&self) -> &str {
+        "set"
     }
 }
 

@@ -7,23 +7,18 @@ fn to_int(char) -> {
 	else if char == 'Z' 2
 };
 
-fn score1(line) -> {
-	line[0] >> to_int >>: opp; 
-	line[2] >> to_int >>: you; 
-
+fn score1((opp, you)) -> {
 	you + 1 + ((you - opp + 1) % 3) * 3
 };
 
-fn score2(line) -> {
-	line[0] >> to_int >>: opp; 
-	line[2] >> to_int >>: res; 
-
+fn score2((opp, res)) -> {
 	res*3 + (opp + res - 1) % 3 + 1
 };
 
 [score1, score2] >> map(score -> 
 	read("aoc-2022/inputs/02.txt") 
 		>> split("\n") 
+		>> map(line -> line >> split(" ") >> map(to_int)) // How can this be simpler?
 		>> map(score) 
 		>> sum 
 		>> print

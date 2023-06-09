@@ -1,15 +1,12 @@
-var lines = read("aoc-2022/inputs/04.txt") 
-	>> split("\n");
+fn collect_points((start, end)) -> set([int(start):int(end) + 1]);
 
-fn collect_points((start, end)) -> {
-	var points = dict();
-	for point in [int(start):int(end)+1] {
-		points[point] = Nil;
-	};
-	points
-};
+var pair_ranges = read("aoc-2022/inputs/04.txt") 
+	>> split("\n")
+	>> map(line -> line
+			>> split(",")
+			>> map(range -> range >> split("-") >> collect_points));
 
-fn covers(s1, s2) -> {
+fn covers((s1, s2)) -> {
 	for (s11, s22) in [[s1, s2], [s2, s1]] {
 		var outside = false;
 		for (key, _) in s11 {
@@ -23,17 +20,7 @@ fn covers(s1, s2) -> {
 	false
 };
 
-lines
-	>> map(line -> {
-		var (lpoints, rpoints) = line
-			>> split(",")
-			>> map(range -> range >> split("-") >> collect_points);
-		covers(lpoints, rpoints)
-	})
-	>> sum
-	>> print;
-
-fn intersects(s1, s2) -> {
+fn intersects((s1, s2)) -> {
 	for (key, _) in s1 {
 		if key >> in(s2) {
 			return true;
@@ -42,13 +29,11 @@ fn intersects(s1, s2) -> {
 	false
 };
 
-lines
-	>> map(line -> {
-		var (lpoints, rpoints) = line
-			>> split(",")
-			>> map(range -> range >> split("-") >> collect_points);
-		intersects(lpoints, rpoints)
-	})
-	>> sum
-	>> print;
+for method in [covers, intersects] {
+	pair_ranges
+		>> map(method)
+		>> sum
+		>> print;
+
+};
 

@@ -6,7 +6,7 @@ use std::{
 
 use crate::parser::{ExprNode, LValue};
 
-use super::{environment::Environment, expressions, RunRes, Value};
+use super::{environment::Environment, expressions, runtime_error::RunError, RunRes, Value};
 
 use builtins::Builtin;
 
@@ -20,6 +20,24 @@ pub enum Function {
 
 impl Function {
     pub fn call(&self, args: Vec<Value>) -> RunRes<Value> {
+        if args.len() == self.arity() {
+            match self.delegate_call(args) {
+                Err(RunError::Break) => {
+                    RunError::error("Break encountered outside loop".to_string())
+                }
+                Err(RunError::Return(value)) => Ok(value),
+                otherwise => otherwise,
+            }
+        } else {
+            RunError::error(format!(
+                "Expected {} arguments but got {}.",
+                self.arity(),
+                args.len()
+            ))
+        }
+    }
+
+    fn delegate_call(&self, args: Vec<Value>) -> RunRes<Value> {
         match self {
             Function::Closure(closure) => closure.call(args),
             Function::Builtin(builtin) => builtin.run(args),

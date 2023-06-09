@@ -102,20 +102,9 @@ fn eval_list(content: &ListContent, env: &Rc<Environment>) -> RunRes<Value> {
 
 fn eval_call(callee: Value, args: Vec<Value>, start: CodeLoc, end: CodeLoc) -> RunRes<Value> {
     if let Value::Callable(callable) = callee {
-        if args.len() == callable.arity() {
-            match callable.call(args) {
-                Err(RunError::Break) => error("Break encountered outside loop".to_string()),
-                Err(RunError::Return(value)) => Ok(value),
-                otherwise => otherwise,
-            }
+        callable
+            .call(args)
             .add_trace(callable.name().to_string(), start, end)
-        } else {
-            error(format!(
-                "Expected {} arguments but got {}.",
-                callable.arity(),
-                args.len()
-            ))
-        }
     } else {
         error(format!(
             "Can only call functions, but got {}",

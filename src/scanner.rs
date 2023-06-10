@@ -36,6 +36,7 @@ pub enum Token {
     Break,
     // In,
     RArrow,
+    WideRArrow,
 
     // Single chars
     LPar,
@@ -105,6 +106,7 @@ lazy_static! {
         (r"break", |_| Token::Break),
         // (r"in", |_| Token::In),
         (r"->", |_| Token::RArrow),
+        (r"=>", |_| Token::WideRArrow),
         (r"\(", |_| Token::LPar),
         (r"\)", |_| Token::RPar),
         (r"\{", |_| Token::LBrace),

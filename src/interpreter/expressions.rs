@@ -48,8 +48,21 @@ pub fn eval(expr: &ExprNode, env: &Rc<Environment>) -> RunRes<Value> {
         }
         Expr::FunctionDefinition(name, param, body) => eval_func_definition(name, param, body, env),
         Expr::IndexInto(base, index) => eval_index_expr(base, index, env),
+        Expr::Match(matched, arms) => eval_match(eval(matched, env)?, arms, env),
     }
     .add_loc(expr.start_loc, expr.end_loc)
+}
+
+fn eval_match(base: Value, arms: &Vec<(LValue, ExprNode)>, env: &Rc<Environment>) -> RunRes<Value> {
+    for (lvalue, expr) in arms {
+        let inner_env = Environment::nest(env);
+        lvalue.declare(&inner_env)?;
+        match lvalue.assign(base.clone(), &inner_env) {
+            Ok(_) => return eval(expr, &inner_env),
+            Err(_) => continue,
+        }
+    }
+    RunError::error("None of the arms could be matched".to_string())
 }
 
 fn eval_index_expr(base: &ExprNode, index_expr: &Index, env: &Rc<Environment>) -> RunRes<Value> {
@@ -346,9 +359,11 @@ impl LValue {
                 }
                 Ok(())
             }
+            LValue::Constant(_expr) => Ok(()), // TODO: This causes some strange allowed decl
         }
     }
 
+    /// Pattern match the lvalue, and assign into rvalue if env supplied
     pub fn assign(&self, rvalue: Value, env: &Rc<Environment>) -> RunRes<Value> {
         match self {
             LValue::Var(id) => env.assign(id, rvalue),
@@ -385,6 +400,17 @@ impl LValue {
                             ))
                         }
                     }
+                }
+            }
+            LValue::Constant(expr) => {
+                let lvalue = eval(expr, env)?;
+                if lvalue == rvalue {
+                    Ok(rvalue)
+                } else {
+                    RunError::error(format!(
+                        "LValue did not match rvalue.\nLeft: {}\nRight: {}",
+                        lvalue, rvalue,
+                    ))
                 }
             }
         }

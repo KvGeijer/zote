@@ -1,6 +1,6 @@
 use either::Either;
 
-use super::{expressions::MAX_ARGS, AstNode, ExprNode, LValue, Parser};
+use super::{expressions::MAX_ARGS, AstNode, Expr, ExprNode, LValue, Parser};
 use crate::scanner::Token;
 
 pub type StmtNode = AstNode<Stmt>;
@@ -140,18 +140,15 @@ impl<'a> Parser<'a> {
         // varDecl        → "var" expression ";" ;
         let start = *self.peek_start_loc();
         self.accept(Token::Var, "Expect 'var' at start of declaration");
-        let box node = self.expression()?.node; // We can't separate lvalues and assignmen here :/
+        let expr = self.expression()?; // We can't separate lvalues and assignmen here :/
         let end = *self.peek_end_loc();
-        match node {
-            super::Expr::Assign(lvalue, rvalue) => {
-                self.accept(Token::Semicolon, "Decl statement must end with ';'")?;
-                Some(StmtNode::new(Stmt::Decl(lvalue, Some(rvalue)), start, end))
-            }
-            other => {
-                let lvalue = self.expr_to_lvalue(other, true)?;
-                self.accept(Token::Semicolon, "Decl statement must end with ';'")?;
-                Some(StmtNode::new(Stmt::Decl(lvalue, None), start, end))
-            }
+        if let Expr::Assign(lvalue, rvalue) = *expr.node {
+            self.accept(Token::Semicolon, "Decl statement must end with ';'")?;
+            Some(StmtNode::new(Stmt::Decl(lvalue, Some(rvalue)), start, end))
+        } else {
+            let lvalue = self.expr_to_lvalue(expr, true)?;
+            self.accept(Token::Semicolon, "Decl statement must end with ';'")?;
+            Some(StmtNode::new(Stmt::Decl(lvalue, None), start, end))
         }
     }
 

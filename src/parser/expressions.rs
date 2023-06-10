@@ -32,6 +32,7 @@ pub enum Expr {
     List(ListContent),
     Tuple(Vec<ExprNode>),
     FunctionDefinition(String, Vec<LValue>, ExprNode),
+    Match(ExprNode, Vec<(LValue, ExprNode)>),
 }
 
 #[derive(Debug, PartialEq, Clone)]
@@ -45,6 +46,7 @@ pub enum LValue {
     Index(ExprNode, Index),
     Var(String),
     Tuple(Vec<LValue>),
+    Constant(ExprNode),
 }
 
 impl From<String> for LValue {
@@ -122,7 +124,7 @@ impl<'a> Parser<'a> {
         let expr = self.pipe()?;
         if self.match_token(Token::Eq) {
             let start = expr.start_loc;
-            let lvalue = self.expr_to_lvalue(*expr.node, false)?;
+            let lvalue = self.expr_to_lvalue(expr, false)?;
             let rvalue = self.assignment()?;
             let end = rvalue.end_loc;
             let assign = Expr::Assign(lvalue, rvalue);
@@ -133,11 +135,11 @@ impl<'a> Parser<'a> {
     }
 
     pub fn lvalue(&mut self, decl: bool) -> Option<LValue> {
-        let expr = *self.expression()?.node;
+        let expr = self.expression()?;
         self.expr_to_lvalue(expr, decl)
     }
 
-    pub fn expr_to_lvalue(&mut self, expr: Expr, decl: bool) -> Option<LValue> {
+    pub fn expr_to_lvalue(&mut self, expr: ExprNode, decl: bool) -> Option<LValue> {
         match expr.conv_to_lvalue(decl) {
             Ok(lvalue) => Some(lvalue),
             Err(reason) => {
@@ -195,12 +197,13 @@ impl<'a> Parser<'a> {
         if self.match_token(Token::RArrow) {
             let start = expr.start_loc;
 
-            let params: Vec<LValue> = match *expr.node {
-                Expr::Tuple(tuple) => tuple
+            let params: Vec<LValue> = if let Expr::Tuple(tuple) = *expr.node {
+                tuple
                     .into_iter()
-                    .map(|expr| self.expr_to_lvalue(*expr.node, true))
-                    .collect::<Option<Vec<LValue>>>()?,
-                expr => vec![self.expr_to_lvalue(expr, true)?],
+                    .map(|expr| self.expr_to_lvalue(expr, true))
+                    .collect::<Option<Vec<LValue>>>()?
+            } else {
+                vec![self.expr_to_lvalue(expr, true)?]
             };
 
             if params.len() >= MAX_ARGS {
@@ -416,6 +419,7 @@ impl<'a> Parser<'a> {
             Token::LBrack => self.accept_list(),
             Token::LPar => self.maybe_tuple(),
             Token::For => self.accept_for(),
+            Token::Match => self.accept_match(),
             _ => self.simple_primary(),
         }
     }
@@ -593,6 +597,38 @@ impl<'a> Parser<'a> {
         Some(ExprNode::new(Expr::For(lvalue, iterable, body), start, end))
     }
 
+    fn accept_match(&mut self) -> Option<ExprNode> {
+        let start = *self.peek_start_loc();
+        self.accept(Token::Match, "Internal error at match")?;
+
+        let expr = self.expression()?;
+
+        self.accept(Token::LBrace, "Expect \"{\" to start match block")?;
+
+        let mut arms = vec![];
+        while !self.match_token(Token::RBrace) {
+            let lvalue = self.lvalue(true)?;
+
+            // I would have prefered -> here, but then it collides with a function def :/
+            self.accept(
+                Token::WideRArrow,
+                "Expect \"=>\" to follow lvalues in match block",
+            )?;
+
+            let block = self.expression()?;
+
+            self.accept(
+                Token::Comma,
+                "Expect \",\" to follow rvalues in match block",
+            )?;
+
+            arms.push((lvalue, block));
+        }
+
+        let end = *self.peek_last_end_loc()?;
+        Some(ExprNode::new(Expr::Match(expr, arms), start, end))
+    }
+
     fn match_op<F: FromToken + Eq + Debug, T: IntoIterator<Item = F>>(
         &mut self,
         expected: T,
@@ -630,11 +666,14 @@ impl ExprNode {
         let expr = Expr::Logical(left, op, right);
         AstNode::new(expr, start_loc, end_loc)
     }
-}
 
-impl Expr {
     pub fn conv_to_lvalue(self, declaration: bool) -> Result<LValue, String> {
-        match self {
+        let ExprNode {
+            box node,
+            start_loc: start,
+            end_loc: end,
+        } = self;
+        match node {
             Expr::IndexInto(expr_node, index) if !declaration => {
                 Ok(LValue::Index(expr_node, index))
             }
@@ -643,14 +682,22 @@ impl Expr {
             Expr::Tuple(exprs) => {
                 let lvalues = exprs
                     .into_iter()
-                    .map(|expr| expr.node.conv_to_lvalue(declaration))
+                    .map(|expr| expr.conv_to_lvalue(declaration))
                     .collect::<Result<Vec<LValue>, String>>()?;
                 Ok(LValue::Tuple(lvalues))
             }
+            Expr::Int(x) => Ok(LValue::Constant(ExprNode::new(Expr::Int(x), start, end))),
+            Expr::Float(x) => Ok(LValue::Constant(ExprNode::new(Expr::Float(x), start, end))),
+            Expr::Bool(x) => Ok(LValue::Constant(ExprNode::new(Expr::Bool(x), start, end))),
+            Expr::String(x) => Ok(LValue::Constant(ExprNode::new(Expr::String(x), start, end))),
+            Expr::Nil => Ok(LValue::Constant(ExprNode::new(Expr::Nil, start, end))),
+
             other => Err(format!("Cannot convert {} to an lvalue.", other.type_of())), // TODO, no debug print
         }
     }
+}
 
+impl Expr {
     fn type_of(&self) -> &str {
         match self {
             Expr::Call(_, _) => "call",
@@ -674,6 +721,7 @@ impl Expr {
             Expr::List(_) => "list",
             Expr::Tuple(_) => "tuple",
             Expr::FunctionDefinition(_, _, _) => "func_def",
+            Expr::Match(_, _) => "match",
         }
     }
 }

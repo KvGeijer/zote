@@ -1,5 +1,7 @@
 # Improvement ideas for Zote
 
+* Change => to -> in match arms.
+
 * Make operations on env require it to me mutably borrowed.
 
 * Add functions to convert a value to some type. That way we can get rid of all custom pattern matching and havn nice dedicated type errors.

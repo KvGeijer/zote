@@ -76,7 +76,17 @@ impl Value {
         match self {
             Value::Collection(Collection::List(list)) => Ok(list),
             other => RunError::error(format!(
-                "Type-error: Expect list, but got {}. {error_msg}",
+                "Type-error: Expect List, but got {}. {error_msg}",
+                other.type_of()
+            )),
+        }
+    }
+
+    pub fn cast_string(self, error_msg: &str) -> RunRes<String> {
+        match self {
+            Value::Collection(Collection::String(string)) => Ok(string),
+            other => RunError::error(format!(
+                "Type-error: Expect String, but got {}. {error_msg}",
                 other.type_of()
             )),
         }

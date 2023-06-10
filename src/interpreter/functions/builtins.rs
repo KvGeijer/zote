@@ -24,7 +24,7 @@ macro_rules! box_builtins {
 }
 
 pub fn get_builtins() -> Vec<Rc<dyn Builtin>> {
-    let mut builtins: Vec<Rc<dyn Builtin>> = box_builtins![DictBuiltin, SetBuiltin];
+    let mut builtins: Vec<Rc<dyn Builtin>> = box_builtins![DictBuiltin, SetBuiltin, JoinBuiltin];
 
     builtins.new_0arg("time", || {
         let now = std::time::SystemTime::now()
@@ -240,6 +240,44 @@ impl Builtin for DictBuiltin {
 
     fn arity(&self) -> &str {
         "[0, 1]"
+    }
+}
+
+struct JoinBuiltin;
+impl Builtin for JoinBuiltin {
+    fn run(&self, args: Vec<Value>) -> RunRes<Value> {
+        let mut arg_iter = args.into_iter();
+        let joining = arg_iter.next().unwrap();
+        let delim = if let Some(joiner) = arg_iter.next() {
+            joiner.cast_string("Second arg to join should be the string to be interspersed")?
+        } else {
+            "".to_string()
+        };
+
+        let mut joined = String::new();
+        let mut first = true;
+        for value in joining.to_iter()? {
+            if !first {
+                joined.push_str(&delim);
+            }
+            // This way it becomes much harder to see where the error is.
+            let str = value.cast_string("Expect to only be joining strings")?;
+            joined.push_str(&str);
+            first = false;
+        }
+        Ok(joined.into())
+    }
+
+    fn accept_arity(&self, arity: usize) -> bool {
+        [1, 2].contains(&arity)
+    }
+
+    fn name(&self) -> &str {
+        "join"
+    }
+
+    fn arity(&self) -> &str {
+        "[1, 2]"
     }
 }
 

@@ -8,8 +8,9 @@ use crate::interpreter::{
 
 pub trait Builtin {
     fn run(&self, args: Vec<Value>) -> RunRes<Value>;
-    fn arity(&self) -> usize;
+    fn accept_arity(&self, arity: usize) -> bool;
     fn name(&self) -> &str;
+    fn arity(&self) -> &str;
 }
 
 macro_rules! box_builtins {
@@ -110,12 +111,16 @@ impl Builtin for TwoArgBuiltin {
         (self.func)(x, y)
     }
 
-    fn arity(&self) -> usize {
-        2
+    fn accept_arity(&self, arity: usize) -> bool {
+        arity == 2
     }
 
     fn name(&self) -> &str {
         self.name
+    }
+
+    fn arity(&self) -> &str {
+        "2"
     }
 }
 
@@ -130,12 +135,16 @@ impl Builtin for Time {
         Ok(now.into())
     }
 
-    fn arity(&self) -> usize {
-        0
+    fn accept_arity(&self, arity: usize) -> bool {
+        arity == 0
     }
 
     fn name(&self) -> &str {
         "time"
+    }
+
+    fn arity(&self) -> &str {
+        "0"
     }
 }
 
@@ -148,12 +157,16 @@ impl Builtin for Print {
         Ok(val)
     }
 
-    fn arity(&self) -> usize {
-        1
+    fn accept_arity(&self, arity: usize) -> bool {
+        arity == 1
     }
 
     fn name(&self) -> &str {
         "print"
+    }
+
+    fn arity(&self) -> &str {
+        "1"
     }
 }
 
@@ -164,12 +177,16 @@ impl Builtin for Str {
         Ok(args[0].stringify().into())
     }
 
-    fn arity(&self) -> usize {
-        1
+    fn accept_arity(&self, arity: usize) -> bool {
+        arity == 1
     }
 
     fn name(&self) -> &str {
         "str"
+    }
+
+    fn arity(&self) -> &str {
+        "1"
     }
 }
 
@@ -183,12 +200,16 @@ impl Builtin for Pop {
         }
     }
 
-    fn arity(&self) -> usize {
-        1
+    fn accept_arity(&self, arity: usize) -> bool {
+        arity == 1
     }
 
     fn name(&self) -> &str {
         "pop"
+    }
+
+    fn arity(&self) -> &str {
+        "1"
     }
 }
 
@@ -205,12 +226,16 @@ impl Builtin for Read {
         }
     }
 
-    fn arity(&self) -> usize {
-        1
+    fn accept_arity(&self, arity: usize) -> bool {
+        arity == 1
     }
 
     fn name(&self) -> &str {
         "read"
+    }
+
+    fn arity(&self) -> &str {
+        "1"
     }
 }
 
@@ -231,12 +256,16 @@ impl Builtin for Int {
         }
     }
 
-    fn arity(&self) -> usize {
-        1
+    fn accept_arity(&self, arity: usize) -> bool {
+        arity == 1
     }
 
     fn name(&self) -> &str {
         "int"
+    }
+
+    fn arity(&self) -> &str {
+        "1"
     }
 }
 
@@ -261,12 +290,16 @@ impl Builtin for Max {
             ))
     }
 
-    fn arity(&self) -> usize {
-        1
+    fn accept_arity(&self, arity: usize) -> bool {
+        arity == 1
     }
 
     fn name(&self) -> &str {
         "max"
+    }
+
+    fn arity(&self) -> &str {
+        "1"
     }
 }
 
@@ -282,12 +315,16 @@ impl Builtin for Sum {
         }
     }
 
-    fn arity(&self) -> usize {
-        1
+    fn accept_arity(&self, arity: usize) -> bool {
+        arity == 1
     }
 
     fn name(&self) -> &str {
         "sum"
+    }
+
+    fn arity(&self) -> &str {
+        "1"
     }
 }
 
@@ -303,12 +340,16 @@ impl Builtin for Sort {
         }
     }
 
-    fn arity(&self) -> usize {
-        1
+    fn accept_arity(&self, arity: usize) -> bool {
+        arity == 1
     }
 
     fn name(&self) -> &str {
         "sort"
+    }
+
+    fn arity(&self) -> &str {
+        "1"
     }
 }
 
@@ -318,12 +359,16 @@ impl Builtin for NewDict {
         Ok(Dict::new().into())
     }
 
-    fn arity(&self) -> usize {
-        0
+    fn accept_arity(&self, arity: usize) -> bool {
+        arity == 0
     }
 
     fn name(&self) -> &str {
         "dict"
+    }
+
+    fn arity(&self) -> &str {
+        "0"
     }
 }
 
@@ -339,12 +384,16 @@ impl Builtin for Len {
         }
     }
 
-    fn arity(&self) -> usize {
-        1
+    fn accept_arity(&self, arity: usize) -> bool {
+        arity == 1
     }
 
     fn name(&self) -> &str {
         "len"
+    }
+
+    fn arity(&self) -> &str {
+        "1"
     }
 }
 
@@ -360,12 +409,16 @@ impl Builtin for List {
         }
     }
 
-    fn arity(&self) -> usize {
-        1
+    fn accept_arity(&self, arity: usize) -> bool {
+        arity == 1
     }
 
     fn name(&self) -> &str {
         "list"
+    }
+
+    fn arity(&self) -> &str {
+        "1"
     }
 }
 
@@ -379,12 +432,16 @@ impl Builtin for Set {
         Ok(set.into())
     }
 
-    fn arity(&self) -> usize {
-        1
+    fn accept_arity(&self, arity: usize) -> bool {
+        arity == 1
     }
 
     fn name(&self) -> &str {
         "set"
+    }
+
+    fn arity(&self) -> &str {
+        "1"
     }
 }
 
@@ -403,12 +460,16 @@ impl Builtin for ToAscii {
         }
     }
 
-    fn arity(&self) -> usize {
-        1
+    fn accept_arity(&self, arity: usize) -> bool {
+        arity == 1
     }
 
     fn name(&self) -> &str {
         "to_ascii"
+    }
+
+    fn arity(&self) -> &str {
+        "1"
     }
 }
 
@@ -425,11 +486,15 @@ impl Builtin for Rev {
             .into())
     }
 
-    fn arity(&self) -> usize {
-        1
+    fn accept_arity(&self, arity: usize) -> bool {
+        arity == 1
     }
 
     fn name(&self) -> &str {
         "rev"
+    }
+
+    fn arity(&self) -> &str {
+        "1"
     }
 }

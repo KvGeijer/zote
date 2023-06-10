@@ -20,7 +20,7 @@ pub enum Function {
 
 impl Function {
     pub fn call(&self, args: Vec<Value>) -> RunRes<Value> {
-        if args.len() == self.arity() {
+        if self.accept_arity(args.len()) {
             match self.delegate_call(args) {
                 Err(RunError::Break) => {
                     RunError::error("Break encountered outside loop".to_string())
@@ -44,10 +44,10 @@ impl Function {
         }
     }
 
-    pub fn arity(&self) -> usize {
+    pub fn accept_arity(&self, arity: usize) -> bool {
         match self {
-            Function::Closure(closure) => closure.arity(),
-            Function::Builtin(builtin) => builtin.arity(),
+            Function::Closure(closure) => arity == closure.arity(),
+            Function::Builtin(builtin) => builtin.accept_arity(arity),
         }
     }
 
@@ -55,6 +55,15 @@ impl Function {
         match self {
             Function::Closure(closure) => closure.name(),
             Function::Builtin(builtin) => builtin.name(),
+        }
+    }
+
+    /// String representation of the arity of the function
+    pub fn arity(&self) -> String {
+        // Should we cange this to str in some way?
+        match self {
+            Function::Closure(closure) => format!("{}", closure.arity()),
+            Function::Builtin(builtin) => builtin.arity().to_string(),
         }
     }
 }

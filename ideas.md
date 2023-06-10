@@ -26,15 +26,10 @@
 * Add structs.
   * What features should they have? For example would be nice to implement some point struct for AoC...
 
-* Add maps (sets as well)
-
 * Expand standard library
 
 * Remove need for semicolons after blocks in some cases. Such as an expression statement ending with a block probably.
 
 * Start work on a real virtual machine interpreter. Could probably be a lot faster than the naive one.
 
-* Add pattern matching.
-  * Pattern match against a sequence
-  * Incorporate it in function definitions
-  
+* Add pattern match statements.  

@@ -1,5 +1,5 @@
 window.BENCHMARK_DATA = {
-  "lastUpdate": 1686324202455,
+  "lastUpdate": 1686387331246,
   "repoUrl": "https://github.com/KvGeijer/zote",
   "entries": {
     "Rust Benchmark": [
@@ -1637,6 +1637,66 @@ window.BENCHMARK_DATA = {
             "name": "string_manips",
             "value": 215111299,
             "range": "± 740282",
+            "unit": "ns/iter"
+          }
+        ]
+      },
+      {
+        "commit": {
+          "author": {
+            "email": "kare.kvg@gmail.com",
+            "name": "Kåre von Geijer",
+            "username": "KvGeijer"
+          },
+          "committer": {
+            "email": "kare.kvg@gmail.com",
+            "name": "Kåre von Geijer",
+            "username": "KvGeijer"
+          },
+          "distinct": true,
+          "id": "2e97f16ddfb0c5db169e65140b3ce24874f7dfd7",
+          "message": "Restructure builtins to take variable nbr args\n\nCompletely restructure how we add more of them as well. A bit more\nmessy in a way, but way less boilerplate and probably more extensible.",
+          "timestamp": "2023-06-10T10:50:33+02:00",
+          "tree_id": "1b8352262a37e2a586d19211d2756a68a4e1f791",
+          "url": "https://github.com/KvGeijer/zote/commit/2e97f16ddfb0c5db169e65140b3ce24874f7dfd7"
+        },
+        "date": 1686387330163,
+        "tool": "cargo",
+        "benches": [
+          {
+            "name": "aoc_2022_1",
+            "value": 1325501,
+            "range": "± 52260",
+            "unit": "ns/iter"
+          },
+          {
+            "name": "aoc_2022_2",
+            "value": 25044317,
+            "range": "± 77025",
+            "unit": "ns/iter"
+          },
+          {
+            "name": "aoc_2022_4",
+            "value": 35204097,
+            "range": "± 119545",
+            "unit": "ns/iter"
+          },
+          {
+            "name": "fibonachi",
+            "value": 189915734,
+            "range": "± 2559942",
+            "unit": "ns/iter"
+          },
+          {
+            "name": "prints",
+            "value": 25618955,
+            "range": "± 284963",
+            "unit": "ns/iter"
+          },
+          {
+            "name": "string_manips",
+            "value": 235031682,
+            "range": "± 9814826",
             "unit": "ns/iter"
           }
         ]

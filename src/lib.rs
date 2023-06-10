@@ -1,4 +1,4 @@
-#![feature(box_patterns, iterator_try_reduce)]
+#![feature(box_patterns, iterator_try_reduce, let_chains)]
 
 use errors::ErrorReporter;
 use interpreter::InterpreterState;

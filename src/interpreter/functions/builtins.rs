@@ -24,43 +24,133 @@ macro_rules! box_builtins {
 }
 
 pub fn get_builtins() -> Vec<Rc<dyn Builtin>> {
-    let mut builtins: Vec<Rc<dyn Builtin>> = box_builtins![
-        Time, Print, Str, Pop, Read, Int, Max, Sum, Sort, NewDict, List, Len, ToAscii, Rev, Set
-    ];
+    let mut builtins: Vec<Rc<dyn Builtin>> = box_builtins![Max];
 
-    builtins.push(TwoArgBuiltin::new("push", |item, stack| {
-        match (item, stack) {
-            (value, Value::Collection(Collection::List(list))) => {
-                list.push(value);
-                Ok(Value::Nil)
-            }
-            (_, _) => RunError::error("Second argument to push must be a list".to_string()),
-        }
-    }));
+    builtins.new_0arg("time", || {
+        let now = std::time::SystemTime::now()
+            .duration_since(std::time::UNIX_EPOCH)
+            .expect("Time went backwards")
+            .as_secs_f64();
+        Ok(now.into())
+    });
 
-    builtins.push(TwoArgBuiltin::new("split", |base, delim| {
-        match (base, delim) {
-            (
-                Value::Collection(Collection::String(string)),
-                Value::Collection(Collection::String(delimiter)),
-            ) => {
-                let splitted: Vec<Value> = string
-                    .split(&delimiter)
-                    .map(|str| str.to_string().into())
-                    .collect();
-                Ok(splitted.into())
-            }
-            (Value::Collection(Collection::List(list)), value) => list.split(&value),
-            (left, right) => RunError::error(format!(
-                "Arguments {} and {} are not valid for split",
-                left.type_of(),
-                right.type_of()
-            )),
+    builtins.new_0arg("dict", || Ok(Dict::new().into()));
+
+    builtins.new_1arg("print", |arg| {
+        println!("{}", arg.stringify());
+        Ok(arg)
+    });
+
+    builtins.new_1arg("str", |arg| Ok(arg.stringify().into()));
+
+    builtins.new_1arg("pop", |arg| match arg {
+        Value::Collection(Collection::List(list)) => list.pop(),
+        _ => RunError::error("Argument to pop must be a list".to_string()),
+    });
+
+    builtins.new_1arg("int", |arg| match arg {
+        Value::Collection(Collection::String(string)) => string
+            .parse::<i64>()
+            .map(|int| int.into())
+            .map_err(|_| RunError::bare_error(format!("Cannot parse {string} as integer"))),
+        Value::Numerical(num) => Ok(num.to_int().into()),
+        Value::Nil => Ok(0.into()),
+        val => RunError::error(format!("Cannot convert {} to an int", val.type_of())),
+    });
+
+    builtins.new_1arg("sum", |arg| match arg {
+        Value::Collection(Collection::List(list)) => list.sum(),
+        arg => RunError::error(format!(
+            "Expected a list as argument to sum, but got {}",
+            arg.type_of(),
+        )),
+    });
+
+    builtins.new_1arg("sort", |arg| match arg {
+        Value::Collection(Collection::List(list)) => list.sort(),
+        arg => RunError::error(format!(
+            "Expected a list as argument to sort, but got {}",
+            arg.type_of(),
+        )),
+    });
+
+    builtins.new_1arg("len", |arg| match arg {
+        Value::Collection(coll) => Ok((coll.len() as i64).into()),
+        arg => RunError::error(format!(
+            "Expected a collection as argument to len, but got {}",
+            arg.type_of(),
+        )),
+    });
+
+    builtins.new_1arg("list", |arg| match arg {
+        Value::Collection(coll) => Ok(coll.to_iter().collect::<Vec<Value>>().into()),
+        arg => RunError::error(format!(
+            "Expected a collection as argument to list, but got {}",
+            arg.type_of(),
+        )),
+    });
+
+    builtins.new_1arg("set", |arg| {
+        let set = Dict::new();
+        for val in arg.to_iter()? {
+            set.assign_into(val, Value::Nil)?;
         }
-    }));
+        Ok(set.into())
+    });
+
+    builtins.new_1arg("to_ascii", |arg| {
+        match arg {
+        Value::Collection(Collection::String(string)) => {
+            if let Some(char) = string.chars().next() && char.is_ascii() {
+                Ok((char as i64).into())
+            } else {
+                RunError::error(format!("Cannot convert {string} to a single ascii value"))
+            }
+        }
+        _ => RunError::error("Can only convert string to ascii".to_string()),
+    }
+    });
+
+    builtins.new_1arg("read", |arg| match arg {
+        Value::Collection(Collection::String(path)) => read_to_string(&path)
+            .map(|content| content.into())
+            .map_err(|_| RunError::bare_error(format!("Could not read file at {path}"))),
+        _ => RunError::error("Argument to read must be a string".to_string()),
+    });
+
+    builtins.new_1arg("rev", |arg| {
+        Ok(arg.to_iter()?.rev().collect::<Vec<Value>>().into())
+    });
+
+    builtins.new_2arg("push", |item, stack| match (item, stack) {
+        (value, Value::Collection(Collection::List(list))) => {
+            list.push(value);
+            Ok(Value::Nil)
+        }
+        (_, _) => RunError::error("Second argument to push must be a list".to_string()),
+    });
+
+    builtins.new_2arg("split", |base, delim| match (base, delim) {
+        (
+            Value::Collection(Collection::String(string)),
+            Value::Collection(Collection::String(delimiter)),
+        ) => {
+            let splitted: Vec<Value> = string
+                .split(&delimiter)
+                .map(|str| str.to_string().into())
+                .collect();
+            Ok(splitted.into())
+        }
+        (Value::Collection(Collection::List(list)), value) => list.split(&value),
+        (left, right) => RunError::error(format!(
+            "Arguments {} and {} are not valid for split",
+            left.type_of(),
+            right.type_of()
+        )),
+    });
 
     // Maps the function over the iterable, then converting it back into a list
-    builtins.push(TwoArgBuiltin::new("map", |base, func| match (base, func) {
+    builtins.new_2arg("map", |base, func| match (base, func) {
         (Value::Collection(coll), Value::Callable(func)) => Ok(coll
             .to_iter()
             .map(|val| func.call(vec![val]))
@@ -71,9 +161,9 @@ pub fn get_builtins() -> Vec<Rc<dyn Builtin>> {
             left.type_of(),
             right.type_of()
         )),
-    }));
+    });
 
-    builtins.push(TwoArgBuiltin::new("in", |item, base| match (item, base) {
+    builtins.new_2arg("in", |item, base| match (item, base) {
         (value, Value::Collection(Collection::List(list))) => {
             Ok(list.to_iter().contains(&value).into())
         }
@@ -82,191 +172,9 @@ pub fn get_builtins() -> Vec<Rc<dyn Builtin>> {
             "Expected a list or dict as second argument to in (string not implemented), but got {}",
             arg.type_of(),
         )),
-    }));
+    });
 
     builtins
-}
-
-struct TwoArgBuiltin {
-    name: &'static str,
-    func: Box<dyn Fn(Value, Value) -> RunRes<Value>>,
-}
-
-impl TwoArgBuiltin {
-    fn new(name: &'static str, func: impl Fn(Value, Value) -> RunRes<Value> + 'static) -> Rc<Self> {
-        Rc::new(Self {
-            name,
-            func: Box::new(func),
-        })
-    }
-}
-
-impl Builtin for TwoArgBuiltin {
-    fn run(&self, args: Vec<Value>) -> RunRes<Value> {
-        let (x, y) = args
-            .into_iter()
-            .tuples()
-            .next()
-            .expect("Incorrect number of args");
-        (self.func)(x, y)
-    }
-
-    fn accept_arity(&self, arity: usize) -> bool {
-        arity == 2
-    }
-
-    fn name(&self) -> &str {
-        self.name
-    }
-
-    fn arity(&self) -> &str {
-        "2"
-    }
-}
-
-struct Time;
-
-impl Builtin for Time {
-    fn run(&self, _args: Vec<Value>) -> RunRes<Value> {
-        let now = std::time::SystemTime::now()
-            .duration_since(std::time::UNIX_EPOCH)
-            .expect("Time went backwards")
-            .as_secs_f64();
-        Ok(now.into())
-    }
-
-    fn accept_arity(&self, arity: usize) -> bool {
-        arity == 0
-    }
-
-    fn name(&self) -> &str {
-        "time"
-    }
-
-    fn arity(&self) -> &str {
-        "0"
-    }
-}
-
-struct Print;
-
-impl Builtin for Print {
-    fn run(&self, args: Vec<Value>) -> RunRes<Value> {
-        let val = args.into_iter().next().unwrap();
-        println!("{}", val.stringify());
-        Ok(val)
-    }
-
-    fn accept_arity(&self, arity: usize) -> bool {
-        arity == 1
-    }
-
-    fn name(&self) -> &str {
-        "print"
-    }
-
-    fn arity(&self) -> &str {
-        "1"
-    }
-}
-
-struct Str;
-
-impl Builtin for Str {
-    fn run(&self, args: Vec<Value>) -> RunRes<Value> {
-        Ok(args[0].stringify().into())
-    }
-
-    fn accept_arity(&self, arity: usize) -> bool {
-        arity == 1
-    }
-
-    fn name(&self) -> &str {
-        "str"
-    }
-
-    fn arity(&self) -> &str {
-        "1"
-    }
-}
-
-struct Pop;
-
-impl Builtin for Pop {
-    fn run(&self, args: Vec<Value>) -> RunRes<Value> {
-        match args.into_iter().next().unwrap() {
-            Value::Collection(Collection::List(list)) => list.pop(),
-            _ => RunError::error("Argument to pop must be a list".to_string()),
-        }
-    }
-
-    fn accept_arity(&self, arity: usize) -> bool {
-        arity == 1
-    }
-
-    fn name(&self) -> &str {
-        "pop"
-    }
-
-    fn arity(&self) -> &str {
-        "1"
-    }
-}
-
-/// Reads the file at the given path into a string
-struct Read;
-
-impl Builtin for Read {
-    fn run(&self, args: Vec<Value>) -> RunRes<Value> {
-        match args.into_iter().next().unwrap() {
-            Value::Collection(Collection::String(path)) => read_to_string(&path)
-                .map(|content| content.into())
-                .map_err(|_| RunError::bare_error(format!("Could not read file at {path}"))),
-            _ => RunError::error("Argument to read must be a string".to_string()),
-        }
-    }
-
-    fn accept_arity(&self, arity: usize) -> bool {
-        arity == 1
-    }
-
-    fn name(&self) -> &str {
-        "read"
-    }
-
-    fn arity(&self) -> &str {
-        "1"
-    }
-}
-
-struct Int;
-impl Builtin for Int {
-    fn run(&self, args: Vec<Value>) -> RunRes<Value> {
-        match args.into_iter().next().unwrap() {
-            Value::Collection(Collection::String(string)) => {
-                if let Ok(int) = string.parse::<i64>() {
-                    Ok(int.into())
-                } else {
-                    RunError::error(format!("Cannot parse {string} as integer"))
-                }
-            }
-            Value::Numerical(num) => Ok(num.to_int().into()),
-            Value::Nil => Ok(0.into()),
-            val => RunError::error(format!("Cannot convert {val} to an int")),
-        }
-    }
-
-    fn accept_arity(&self, arity: usize) -> bool {
-        arity == 1
-    }
-
-    fn name(&self) -> &str {
-        "int"
-    }
-
-    fn arity(&self) -> &str {
-        "1"
-    }
 }
 
 struct Max;
@@ -303,60 +211,55 @@ impl Builtin for Max {
     }
 }
 
-struct Sum;
-impl Builtin for Sum {
-    fn run(&self, args: Vec<Value>) -> RunRes<Value> {
-        match args.into_iter().next().unwrap() {
-            Value::Collection(Collection::List(list)) => list.sum(),
-            arg => RunError::error(format!(
-                "Expected a list as argument to sum, but got {}",
-                arg.type_of(),
-            )),
-        }
+/// Trait for more easily adding builtins with a certain number of args
+trait Builtins {
+    fn new_0arg(&mut self, name: &'static str, func: impl Fn() -> RunRes<Value> + 'static);
+    fn new_1arg(&mut self, name: &'static str, func: impl Fn(Value) -> RunRes<Value> + 'static);
+    fn new_2arg(
+        &mut self,
+        name: &'static str,
+        func: impl Fn(Value, Value) -> RunRes<Value> + 'static,
+    );
+}
+
+impl Builtins for Vec<Rc<dyn Builtin>> {
+    fn new_0arg(&mut self, name: &'static str, func: impl Fn() -> RunRes<Value> + 'static) {
+        let builtin = Rc::new(ZeroArgBuiltin {
+            name,
+            func: Box::new(func),
+        });
+        self.push(builtin);
     }
 
-    fn accept_arity(&self, arity: usize) -> bool {
-        arity == 1
+    fn new_1arg(&mut self, name: &'static str, func: impl Fn(Value) -> RunRes<Value> + 'static) {
+        let builtin = Rc::new(OneArgBuiltin {
+            name,
+            func: Box::new(func),
+        });
+        self.push(builtin);
     }
 
-    fn name(&self) -> &str {
-        "sum"
-    }
-
-    fn arity(&self) -> &str {
-        "1"
+    fn new_2arg(
+        &mut self,
+        name: &'static str,
+        func: impl Fn(Value, Value) -> RunRes<Value> + 'static,
+    ) {
+        let builtin = Rc::new(TwoArgBuiltin {
+            name,
+            func: Box::new(func),
+        });
+        self.push(builtin);
     }
 }
 
-struct Sort;
-impl Builtin for Sort {
-    fn run(&self, args: Vec<Value>) -> RunRes<Value> {
-        match args.into_iter().next().unwrap() {
-            Value::Collection(Collection::List(list)) => list.sort(),
-            arg => RunError::error(format!(
-                "Expected a list as argument to sort, but got {}",
-                arg.type_of(),
-            )),
-        }
-    }
-
-    fn accept_arity(&self, arity: usize) -> bool {
-        arity == 1
-    }
-
-    fn name(&self) -> &str {
-        "sort"
-    }
-
-    fn arity(&self) -> &str {
-        "1"
-    }
+struct ZeroArgBuiltin {
+    name: &'static str,
+    func: Box<dyn Fn() -> RunRes<Value>>,
 }
 
-struct NewDict;
-impl Builtin for NewDict {
+impl Builtin for ZeroArgBuiltin {
     fn run(&self, _args: Vec<Value>) -> RunRes<Value> {
-        Ok(Dict::new().into())
+        (self.func)()
     }
 
     fn accept_arity(&self, arity: usize) -> bool {
@@ -364,7 +267,7 @@ impl Builtin for NewDict {
     }
 
     fn name(&self) -> &str {
-        "dict"
+        self.name
     }
 
     fn arity(&self) -> &str {
@@ -372,16 +275,15 @@ impl Builtin for NewDict {
     }
 }
 
-struct Len;
-impl Builtin for Len {
+struct OneArgBuiltin {
+    name: &'static str,
+    func: Box<dyn Fn(Value) -> RunRes<Value>>,
+}
+
+impl Builtin for OneArgBuiltin {
     fn run(&self, args: Vec<Value>) -> RunRes<Value> {
-        match args.into_iter().next().unwrap() {
-            Value::Collection(coll) => Ok((coll.len() as i64).into()),
-            arg => RunError::error(format!(
-                "Expected a collection as argument to len, but got {}",
-                arg.type_of(),
-            )),
-        }
+        let arg = args.into_iter().next().expect("Incorrect number of args");
+        (self.func)(arg)
     }
 
     fn accept_arity(&self, arity: usize) -> bool {
@@ -389,7 +291,7 @@ impl Builtin for Len {
     }
 
     fn name(&self) -> &str {
-        "len"
+        self.name
     }
 
     fn arity(&self) -> &str {
@@ -397,104 +299,30 @@ impl Builtin for Len {
     }
 }
 
-struct List;
-impl Builtin for List {
-    fn run(&self, args: Vec<Value>) -> RunRes<Value> {
-        match args.into_iter().next().unwrap() {
-            Value::Collection(coll) => Ok(coll.to_iter().collect::<Vec<Value>>().into()),
-            arg => RunError::error(format!(
-                "Expected a collection as argument to list, but got {}",
-                arg.type_of(),
-            )),
-        }
-    }
-
-    fn accept_arity(&self, arity: usize) -> bool {
-        arity == 1
-    }
-
-    fn name(&self) -> &str {
-        "list"
-    }
-
-    fn arity(&self) -> &str {
-        "1"
-    }
+struct TwoArgBuiltin {
+    name: &'static str,
+    func: Box<dyn Fn(Value, Value) -> RunRes<Value>>,
 }
 
-struct Set;
-impl Builtin for Set {
+impl Builtin for TwoArgBuiltin {
     fn run(&self, args: Vec<Value>) -> RunRes<Value> {
-        let set = Dict::new();
-        for val in args.into_iter().next().unwrap().to_iter()? {
-            set.assign_into(val, Value::Nil)?;
-        }
-        Ok(set.into())
-    }
-
-    fn accept_arity(&self, arity: usize) -> bool {
-        arity == 1
-    }
-
-    fn name(&self) -> &str {
-        "set"
-    }
-
-    fn arity(&self) -> &str {
-        "1"
-    }
-}
-
-struct ToAscii;
-impl Builtin for ToAscii {
-    fn run(&self, args: Vec<Value>) -> RunRes<Value> {
-        match args.into_iter().next().unwrap() {
-            Value::Collection(Collection::String(string)) => {
-                if string.len() == 1 {
-                    Ok((string.into_bytes()[0] as i64).into())
-                } else {
-                    RunError::error(format!("Cannot convert {string} to a single ascii value"))
-                }
-            }
-            _ => RunError::error("Can only convert string to ascii".to_string()),
-        }
-    }
-
-    fn accept_arity(&self, arity: usize) -> bool {
-        arity == 1
-    }
-
-    fn name(&self) -> &str {
-        "to_ascii"
-    }
-
-    fn arity(&self) -> &str {
-        "1"
-    }
-}
-
-struct Rev;
-impl Builtin for Rev {
-    fn run(&self, args: Vec<Value>) -> RunRes<Value> {
-        Ok(args
+        let (x, y) = args
             .into_iter()
+            .tuples()
             .next()
-            .unwrap()
-            .to_iter()?
-            .rev()
-            .collect::<Vec<Value>>()
-            .into())
+            .expect("Incorrect number of args");
+        (self.func)(x, y)
     }
 
     fn accept_arity(&self, arity: usize) -> bool {
-        arity == 1
+        arity == 2
     }
 
     fn name(&self) -> &str {
-        "rev"
+        self.name
     }
 
     fn arity(&self) -> &str {
-        "1"
+        "2"
     }
 }

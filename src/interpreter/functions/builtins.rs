@@ -124,7 +124,7 @@ pub fn get_builtins() -> Vec<Rc<dyn Builtin>> {
         arg.to_iter()?
             .try_reduce(|x, y| match x.partial_cmp(&y) {
                 None => RunError::error(format!(
-                    "Cannot compare {} with {}. For finding max in a list.",
+                    "Cannot compare {} with {}. For finding max in an iterable.",
                     x.type_of(),
                     y.type_of(),
                 )),
@@ -133,6 +133,22 @@ pub fn get_builtins() -> Vec<Rc<dyn Builtin>> {
             })?
             .ok_or(RunError::bare_error(
                 "Canot get max from empty iterator".to_string(),
+            ))
+    });
+
+    builtins.new_1arg("min", |arg| {
+        arg.to_iter()?
+            .try_reduce(|x, y| match x.partial_cmp(&y) {
+                None => RunError::error(format!(
+                    "Cannot compare {} with {}. For finding min in an iterable.",
+                    x.type_of(),
+                    y.type_of(),
+                )),
+                Some(Ordering::Greater) => Ok(y),
+                Some(_) => Ok(x),
+            })?
+            .ok_or(RunError::bare_error(
+                "Canot get min from empty iterator".to_string(),
             ))
     });
 
@@ -171,7 +187,25 @@ pub fn get_builtins() -> Vec<Rc<dyn Builtin>> {
             .collect::<Result<Vec<Value>, _>>()?
             .into()),
         (left, right) => RunError::error(format!(
-            "Expected a list and a function as arguments to map, but got {} and {}",
+            "Expected a collectino and a function as arguments to map, but got {} and {}",
+            left.type_of(),
+            right.type_of()
+        )),
+    });
+
+    // Very bad way to do this. Is there a better functional way?
+    builtins.new_2arg("filter", |base, func| match (base, func) {
+        (Value::Collection(coll), Value::Callable(func)) => {
+            let mut filtered = vec![];
+            for val in coll.to_iter() {
+                if func.call(vec![val.clone()])?.truthy() {
+                    filtered.push(val);
+                }
+            }
+            Ok(filtered.into())
+        }
+        (left, right) => RunError::error(format!(
+            "Expected a collection and a function as arguments to filter, but got {} and {}",
             left.type_of(),
             right.type_of()
         )),

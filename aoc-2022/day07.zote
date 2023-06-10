@@ -26,22 +26,17 @@ for (path, size) in tree {
 	};
 };
 
-var part1 = 0;
-for (dir, size) in sizes {
-	if size <= 100000 {
-		part1 = part1 + size;
-	};
-};
-
-part1 >> print;
+sizes
+	>> values
+	>> filter(size -> size <= 100000)
+	>> sum
+	>> print;
 
 var total = tree >> values >> sum;
 var to_free = total - 40000000;
 
-for dir_size in rev(sort(values(sizes))) {
-	if dir_size >= to_free {
-		print(dir_size);
-		break;
-	};
-};
-
+sizes 
+	>> values 
+	>> filter(size -> size >= to_free) 
+	>> min 
+	>> print;

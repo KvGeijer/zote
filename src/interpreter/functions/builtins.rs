@@ -24,7 +24,7 @@ macro_rules! box_builtins {
 }
 
 pub fn get_builtins() -> Vec<Rc<dyn Builtin>> {
-    let mut builtins: Vec<Rc<dyn Builtin>> = box_builtins![Max];
+    let mut builtins: Vec<Rc<dyn Builtin>> = box_builtins![DictBuiltin, SetBuiltin];
 
     builtins.new_0arg("time", || {
         let now = std::time::SystemTime::now()
@@ -33,8 +33,6 @@ pub fn get_builtins() -> Vec<Rc<dyn Builtin>> {
             .as_secs_f64();
         Ok(now.into())
     });
-
-    builtins.new_0arg("dict", || Ok(Dict::new().into()));
 
     builtins.new_1arg("print", |arg| {
         println!("{}", arg.stringify());
@@ -90,14 +88,6 @@ pub fn get_builtins() -> Vec<Rc<dyn Builtin>> {
         )),
     });
 
-    builtins.new_1arg("set", |arg| {
-        let set = Dict::new();
-        for val in arg.to_iter()? {
-            set.assign_into(val, Value::Nil)?;
-        }
-        Ok(set.into())
-    });
-
     builtins.new_1arg("to_ascii", |arg| {
         match arg {
         Value::Collection(Collection::String(string)) => {
@@ -120,6 +110,22 @@ pub fn get_builtins() -> Vec<Rc<dyn Builtin>> {
 
     builtins.new_1arg("rev", |arg| {
         Ok(arg.to_iter()?.rev().collect::<Vec<Value>>().into())
+    });
+
+    builtins.new_1arg("max", |arg| {
+        arg.to_iter()?
+            .try_reduce(|x, y| match x.partial_cmp(&y) {
+                None => RunError::error(format!(
+                    "Cannot compare {} with {}. For finding max in a list.",
+                    x.type_of(),
+                    y.type_of(),
+                )),
+                Some(Ordering::Less) => Ok(y),
+                Some(_) => Ok(x),
+            })?
+            .ok_or(RunError::bare_error(
+                "Canot get max from empty iterator".to_string(),
+            ))
     });
 
     builtins.new_2arg("push", |item, stack| match (item, stack) {
@@ -177,37 +183,63 @@ pub fn get_builtins() -> Vec<Rc<dyn Builtin>> {
     builtins
 }
 
-struct Max;
-impl Builtin for Max {
+struct SetBuiltin;
+impl Builtin for SetBuiltin {
     fn run(&self, args: Vec<Value>) -> RunRes<Value> {
-        args.into_iter()
-            .next()
-            .unwrap()
-            .to_iter()?
-            .try_reduce(|x, y| match x.partial_cmp(&y) {
-                None => RunError::error(format!(
-                    "Cannot compare {} with {}. For finding max in a list.",
-                    x.type_of(),
-                    y.type_of(),
-                )),
-                Some(Ordering::Less) => Ok(y),
-                Some(_) => Ok(x),
-            })?
-            .ok_or(RunError::bare_error(
-                "Canot get max from empty iterator".to_string(),
-            ))
+        let set = Dict::new();
+
+        if let Some(arg) = args.into_iter().next() {
+            for val in arg.to_iter()? {
+                set.assign_into(val, Value::Nil)?;
+            }
+        }
+        Ok(set.into())
     }
 
     fn accept_arity(&self, arity: usize) -> bool {
-        arity == 1
+        [0, 1].contains(&arity)
     }
 
     fn name(&self) -> &str {
-        "max"
+        "set"
     }
 
     fn arity(&self) -> &str {
-        "1"
+        "[0, 1]"
+    }
+}
+
+struct DictBuiltin;
+impl Builtin for DictBuiltin {
+    fn run(&self, args: Vec<Value>) -> RunRes<Value> {
+        let dict = Dict::new();
+
+        if let Some(arg) = args.into_iter().next() {
+            for entry in arg.to_iter()? {
+                let list = entry.cast_list("Expect a list of key-value in dict iterator")?;
+                if list.len() != 2 {
+                    return RunError::error(format!(
+                        "Expect a key and value, but found {} values",
+                        list.len()
+                    ));
+                }
+                let (key, value) = list.to_iter().tuples().next().unwrap();
+                dict.assign_into(key, value)?;
+            }
+        }
+        Ok(dict.into())
+    }
+
+    fn accept_arity(&self, arity: usize) -> bool {
+        [0, 1].contains(&arity)
+    }
+
+    fn name(&self) -> &str {
+        "dict"
+    }
+
+    fn arity(&self) -> &str {
+        "[0, 1]"
     }
 }
 

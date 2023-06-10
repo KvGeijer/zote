@@ -71,6 +71,16 @@ impl Value {
             _ => false,
         }
     }
+
+    pub fn cast_list(self, error_msg: &str) -> RunRes<List> {
+        match self {
+            Value::Collection(Collection::List(list)) => Ok(list),
+            other => RunError::error(format!(
+                "Type-error: Expect list, but got {}. {error_msg}",
+                other.type_of()
+            )),
+        }
+    }
 }
 
 // Simple print with the value wrapped in its type, for informative prints

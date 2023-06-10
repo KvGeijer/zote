@@ -24,11 +24,9 @@ for movement in [simple_movement, cool_movement] {
 	for i in [0:(len(state_lines[0]) + 1)/4] push([], stacks);
 
 	for row in rev(state_lines[:-1]) {
-		var stack_ind = 0; // TODO: Add zip!
-			for item in row[1::4] {
-				if (item != " ") push(item, stacks[stack_ind]);
-				stack_ind = stack_ind + 1;
-			};
+		for (stack, item) in zip(stacks, row[1::4]) {
+			if (item != " ") push(item, stack);
+		};
 	};
 
 	movement(stacks);

@@ -180,6 +180,15 @@ pub fn get_builtins() -> Vec<Rc<dyn Builtin>> {
         )),
     });
 
+    builtins.new_2arg("zip", |left, right| {
+        Ok(left
+            .to_iter()?
+            .zip(right.to_iter()?)
+            .map(|(x, y)| vec![x, y].into())
+            .collect::<Vec<Value>>()
+            .into())
+    });
+
     builtins
 }
 

@@ -82,6 +82,18 @@ impl Dict {
     pub fn contains_key(&self, key: &Value) -> RunRes<bool> {
         Ok(self.safe_get(key)?.is_some())
     }
+
+    pub fn keys(&self) -> Vec<Value> {
+        self.dict
+            .borrow()
+            .keys()
+            .map(|key| key.val.deepclone())
+            .collect()
+    }
+
+    pub fn values(&self) -> Vec<Value> {
+        self.dict.borrow().values().cloned().collect()
+    }
 }
 
 impl From<HashMap<ValueKey, Value>> for Dict {

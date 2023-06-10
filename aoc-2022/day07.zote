@@ -1,0 +1,47 @@
+read("aoc-2022/inputs/07.txt")
+	>> split("\n")
+	>> map(line -> line >> split(" "))
+	>>: instrs;
+
+var tree = dict();
+var path = [];
+for instr in instrs {
+	match instr {
+		("$", "cd", "/") =>  path = ["/"],
+		("$", "cd", "..") =>  path >> pop,
+		("$", "cd", sub) => sub >> push(path),
+		("$", "ls") => {},
+		("dir", _) => {},
+		(size, name) => tree[path ++ [name]] = int(size), 
+	};
+};
+
+var sizes = dict();
+for (path, size) in tree {
+	pop(path); // remove file name
+	while path {
+		if !in(path, sizes) sizes[path] = 0;
+		sizes[path] = sizes[path] + size;
+		path >> pop;
+	};
+};
+
+var part1 = 0;
+for (dir, size) in sizes {
+	if size <= 100000 {
+		part1 = part1 + size;
+	};
+};
+
+part1 >> print;
+
+var total = tree >> values >> sum;
+var to_free = total - 40000000;
+
+for dir_size in rev(sort(values(sizes))) {
+	if dir_size >= to_free {
+		print(dir_size);
+		break;
+	};
+};
+

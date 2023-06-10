@@ -82,6 +82,16 @@ impl Value {
         }
     }
 
+    pub fn cast_dict(self, error_msg: &str) -> RunRes<Dict> {
+        match self {
+            Value::Collection(Collection::Dict(dict)) => Ok(dict),
+            other => RunError::error(format!(
+                "Type-error: Expect Dict, but got {}. {error_msg}",
+                other.type_of()
+            )),
+        }
+    }
+
     pub fn cast_string(self, error_msg: &str) -> RunRes<String> {
         match self {
             Value::Collection(Collection::String(string)) => Ok(string),

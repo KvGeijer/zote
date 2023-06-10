@@ -34,6 +34,14 @@ pub fn get_builtins() -> Vec<Rc<dyn Builtin>> {
         Ok(now.into())
     });
 
+    builtins.new_1arg("values", |arg| {
+        Ok(arg.cast_dict("values expects a dict")?.values().into())
+    });
+
+    builtins.new_1arg("keys", |arg| {
+        Ok(arg.cast_dict("keys expects a dict")?.keys().into())
+    });
+
     builtins.new_1arg("print", |arg| {
         println!("{}", arg.stringify());
         Ok(arg)

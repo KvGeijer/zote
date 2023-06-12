@@ -7,26 +7,12 @@ var pair_ranges = read("aoc-2022/inputs/04.txt")
 			>> map(range -> range >> split("-") >> collect_points));
 
 fn covers((s1, s2)) -> {
-	for (s11, s22) in [[s1, s2], [s2, s1]] {
-		var outside = false;
-		for (key, _) in s11 {
-			if !(key >> in(s22)) {
-				outside = true;
-				break;
-			};
-		};
-		if !outside return true;
-	};
-	false
+	s1 >> union(s2) >>: union;
+	union == s1 or union == s2
 };
 
 fn intersects((s1, s2)) -> {
-	for (key, _) in s1 {
-		if key >> in(s2) {
-			return true;
-		};
-	};
-	false
+	s1 >> intersect(s2) >> bool
 };
 
 for method in [covers, intersects] {

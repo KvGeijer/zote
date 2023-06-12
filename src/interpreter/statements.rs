@@ -39,11 +39,13 @@ fn eval(stmt: &StmtNode, env: &Rc<Environment>) -> RunRes<Option<Value>> {
 }
 
 fn decl(lvalue: &LValue, expr: &Option<ExprNode>, env: &Rc<Environment>) -> RunRes<()> {
-    lvalue.declare(env)?;
     if let Some(expr) = expr {
         let rvalue = expressions::eval(expr, env)?;
+        lvalue.declare(env)?;
         lvalue.assign(rvalue, env)?;
-    };
+    } else {
+        lvalue.declare(env)?;
+    }
     Ok(())
 }
 

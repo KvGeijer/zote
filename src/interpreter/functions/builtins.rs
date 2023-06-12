@@ -64,6 +64,8 @@ pub fn get_builtins() -> Vec<Rc<dyn Builtin>> {
         val => RunError::error(format!("Cannot convert {} to an int", val.type_of())),
     });
 
+    builtins.new_1arg("bool", |arg| Ok(arg.truthy().into()));
+
     builtins.new_1arg("sum", |arg| match arg {
         Value::Collection(Collection::List(list)) => list.sum(),
         arg => RunError::error(format!(
@@ -118,6 +120,14 @@ pub fn get_builtins() -> Vec<Rc<dyn Builtin>> {
 
     builtins.new_1arg("rev", |arg| {
         Ok(arg.to_iter()?.rev().collect::<Vec<Value>>().into())
+    });
+
+    builtins.new_1arg("id", Ok);
+
+    builtins.new_1arg("head", |arg| {
+        arg.to_iter()?.next().ok_or(RunError::bare_error(
+            "Cannot take head of empty iterator".to_string(),
+        ))
     });
 
     builtins.new_1arg("max", |arg| {
@@ -228,6 +238,20 @@ pub fn get_builtins() -> Vec<Rc<dyn Builtin>> {
             .zip(right.to_iter()?)
             .map(|(x, y)| vec![x, y].into())
             .collect::<Vec<Value>>()
+            .into())
+    });
+
+    builtins.new_2arg("intersect", |left, right| {
+        Ok(left
+            .cast_dict("In first arg to intersect")?
+            .intersect(&right.cast_dict("In first arg to intersect")?)
+            .into())
+    });
+
+    builtins.new_2arg("union", |left, right| {
+        Ok(left
+            .cast_dict("In first arg to union")?
+            .union(&right.cast_dict("In first arg to union")?)
             .into())
     });
 

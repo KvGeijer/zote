@@ -50,8 +50,12 @@ impl Dict {
 
     pub fn assign_into(&self, key: Value, value: Value) -> RunRes<Value> {
         let key = ValueKey::new_clone(key)?;
-        self.dict.borrow_mut().insert(key, value.clone());
+        self.insert(key, value.clone());
         Ok(value)
+    }
+
+    fn insert(&self, key: ValueKey, value: Value) {
+        self.dict.borrow_mut().insert(key, value);
     }
 
     pub fn get(&self, key: &Value) -> RunRes<Value> {
@@ -93,6 +97,32 @@ impl Dict {
 
     pub fn values(&self) -> Vec<Value> {
         self.dict.borrow().values().cloned().collect()
+    }
+
+    /// Keeps all key-value pairs present in both
+    pub fn intersect(&self, other: &Dict) -> Dict {
+        let intersect = Dict::new();
+        let left = self.dict.borrow();
+        let right = other.dict.borrow();
+        for (key, value) in left.iter() {
+            match right.get(key) {
+                Some(rval) if rval == value => intersect.insert(key.clone(), value.clone()),
+                _other => (),
+            }
+        }
+        intersect
+    }
+
+    /// Keeps all key value-value pairs from both (the first has precedence on values)
+    pub fn union(&self, other: &Dict) -> Dict {
+        let union = Dict::new();
+        for (key, value) in other.dict.borrow().iter() {
+            union.insert(key.clone(), value.clone())
+        }
+        for (key, value) in self.dict.borrow().iter() {
+            union.insert(key.clone(), value.clone())
+        }
+        union
     }
 }
 

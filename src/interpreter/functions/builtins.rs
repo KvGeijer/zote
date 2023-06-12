@@ -24,7 +24,8 @@ macro_rules! box_builtins {
 }
 
 pub fn get_builtins() -> Vec<Rc<dyn Builtin>> {
-    let mut builtins: Vec<Rc<dyn Builtin>> = box_builtins![DictBuiltin, SetBuiltin, JoinBuiltin];
+    let mut builtins: Vec<Rc<dyn Builtin>> =
+        box_builtins![DictBuiltin, SetBuiltin, MaxBuiltin, JoinBuiltin];
 
     builtins.new_0arg("time", || {
         let now = std::time::SystemTime::now()
@@ -32,6 +33,15 @@ pub fn get_builtins() -> Vec<Rc<dyn Builtin>> {
             .expect("Time went backwards")
             .as_secs_f64();
         Ok(now.into())
+    });
+
+    builtins.new_1arg("enumerate", |arg| {
+        Ok(arg
+            .to_iter()?
+            .enumerate()
+            .map(|(i, val)| vec![(i as i64).into(), val].into())
+            .collect::<Vec<Value>>()
+            .into())
     });
 
     builtins.new_1arg("values", |arg| {
@@ -66,6 +76,7 @@ pub fn get_builtins() -> Vec<Rc<dyn Builtin>> {
 
     builtins.new_1arg("bool", |arg| Ok(arg.truthy().into()));
 
+    // TODO: Should work for any iterator
     builtins.new_1arg("sum", |arg| match arg {
         Value::Collection(Collection::List(list)) => list.sum(),
         arg => RunError::error(format!(
@@ -128,22 +139,6 @@ pub fn get_builtins() -> Vec<Rc<dyn Builtin>> {
         arg.to_iter()?.next().ok_or(RunError::bare_error(
             "Cannot take head of empty iterator".to_string(),
         ))
-    });
-
-    builtins.new_1arg("max", |arg| {
-        arg.to_iter()?
-            .try_reduce(|x, y| match x.partial_cmp(&y) {
-                None => RunError::error(format!(
-                    "Cannot compare {} with {}. For finding max in an iterable.",
-                    x.type_of(),
-                    y.type_of(),
-                )),
-                Some(Ordering::Less) => Ok(y),
-                Some(_) => Ok(x),
-            })?
-            .ok_or(RunError::bare_error(
-                "Canot get max from empty iterator".to_string(),
-            ))
     });
 
     builtins.new_1arg("min", |arg| {
@@ -315,6 +310,43 @@ impl Builtin for DictBuiltin {
 
     fn arity(&self) -> &str {
         "[0, 1]"
+    }
+}
+
+/// If a single value, iterates over it to find max, and if several values, the max of them
+struct MaxBuiltin;
+impl Builtin for MaxBuiltin {
+    fn run(&self, args: Vec<Value>) -> RunRes<Value> {
+        let mut value_iter = if args.len() == 1 {
+            args[0].to_iter()?
+        } else {
+            args.into_iter()
+        };
+        value_iter
+            .try_reduce(|x, y| match x.partial_cmp(&y) {
+                None => RunError::error(format!(
+                    "Cannot compare {} with {}. For finding max among values.",
+                    x.type_of(),
+                    y.type_of(),
+                )),
+                Some(Ordering::Less) => Ok(y),
+                Some(_) => Ok(x),
+            })?
+            .ok_or(RunError::bare_error(
+                "Canot get max from empty iterator".to_string(),
+            ))
+    }
+
+    fn accept_arity(&self, arity: usize) -> bool {
+        arity > 0
+    }
+
+    fn name(&self) -> &str {
+        "max"
+    }
+
+    fn arity(&self) -> &str {
+        "[>0]"
     }
 }
 

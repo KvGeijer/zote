@@ -1,5 +1,5 @@
 window.BENCHMARK_DATA = {
-  "lastUpdate": 1686415024700,
+  "lastUpdate": 1686550937255,
   "repoUrl": "https://github.com/KvGeijer/zote",
   "entries": {
     "Rust Benchmark": [
@@ -1817,6 +1817,66 @@ window.BENCHMARK_DATA = {
             "name": "string_manips",
             "value": 195612755,
             "range": "± 655173",
+            "unit": "ns/iter"
+          }
+        ]
+      },
+      {
+        "commit": {
+          "author": {
+            "email": "kare.kvg@gmail.com",
+            "name": "Kåre von Geijer",
+            "username": "KvGeijer"
+          },
+          "committer": {
+            "email": "kare.kvg@gmail.com",
+            "name": "Kåre von Geijer",
+            "username": "KvGeijer"
+          },
+          "distinct": true,
+          "id": "f122c8ba0e5d7eecdc3dab0d5724d16812321e15",
+          "message": "Add intersect, union, bool, head and id\n\nAlso change so that a variable is only declared after its rvalue is\nevaluated (for shadowing things in the rvalue).",
+          "timestamp": "2023-06-12T08:16:12+02:00",
+          "tree_id": "acbbaecff6c72c6a28d9cd26c5a7f212004665cb",
+          "url": "https://github.com/KvGeijer/zote/commit/f122c8ba0e5d7eecdc3dab0d5724d16812321e15"
+        },
+        "date": 1686550936366,
+        "tool": "cargo",
+        "benches": [
+          {
+            "name": "aoc_2022_1",
+            "value": 1461864,
+            "range": "± 236373",
+            "unit": "ns/iter"
+          },
+          {
+            "name": "aoc_2022_2",
+            "value": 28238179,
+            "range": "± 3470111",
+            "unit": "ns/iter"
+          },
+          {
+            "name": "aoc_2022_4",
+            "value": 40766091,
+            "range": "± 4369008",
+            "unit": "ns/iter"
+          },
+          {
+            "name": "fibonachi",
+            "value": 220804209,
+            "range": "± 18320911",
+            "unit": "ns/iter"
+          },
+          {
+            "name": "prints",
+            "value": 27313814,
+            "range": "± 3817737",
+            "unit": "ns/iter"
+          },
+          {
+            "name": "string_manips",
+            "value": 400127208,
+            "range": "± 20616943",
             "unit": "ns/iter"
           }
         ]

@@ -21,7 +21,7 @@ for (path, size) in tree {
 	pop(path); // remove file name
 	while path {
 		if !in(path, sizes) sizes[path] = 0;
-		sizes[path] = sizes[path] + size;
+		sizes[path] += size;
 		path >> pop;
 	};
 };

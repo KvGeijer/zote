@@ -22,8 +22,8 @@ for (row, tree_row) in trees >> enumerate {
 				break;
 			};
 		};
-		vis = vis or seeing;
-		score = score * count;
+		vis or= seeing;
+		score *= count;
 		
 		var count = 0;
 		var seeing = true;
@@ -34,8 +34,8 @@ for (row, tree_row) in trees >> enumerate {
 				break;
 			};
 		};
-		vis = vis or seeing;
-		score = score * count;
+		vis or= seeing;
+		score *= count;
 		
 		var count = 0;
 		var seeing = true;
@@ -46,8 +46,8 @@ for (row, tree_row) in trees >> enumerate {
 				break;
 			};
 		};
-		vis = vis or seeing;
-		score = score * count;
+		vis or= seeing;
+		score *= count;
 		
 		var count = 0;
 		var seeing = true;
@@ -58,8 +58,8 @@ for (row, tree_row) in trees >> enumerate {
 				break;
 			};
 		};
-		vis = vis or seeing;
-		score = score * count;
+		vis or= seeing;
+		score *= count;
 		
 		visible = visible + vis;
 		scenic = max(scenic, score);

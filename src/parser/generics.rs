@@ -91,6 +91,10 @@ impl<'a> Parser<'a> {
         &self.peek_info().token
     }
 
+    pub fn peek2(&self) -> Option<&Token> {
+        self.tokens.get(self.current + 1).map(|info| &info.token)
+    }
+
     pub fn peek_start_loc(&self) -> &CodeLoc {
         &self.peek_info().start_loc
     }

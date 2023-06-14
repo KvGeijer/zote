@@ -1,5 +1,7 @@
 # Improvement ideas for Zote
 
+* Fix += and similar shorthands. Now x op= y <-> x = x op y. But this breaks if x contains mutable calls (like C macros)
+
 * Change => to -> in match arms.
 
 * Make operations on env require it to me mutably borrowed.

@@ -119,10 +119,43 @@ impl<'a> Parser<'a> {
     }
 
     fn assignment(&mut self) -> Option<ExprNode> {
-        // assignment     → lvalue "=" assignment | equality ;
-        // TODO At least assign to tuples
+        // assignment     → lvalue binOper? "=" assignment | equality ;
         let expr = self.pipe()?;
-        if self.match_token(Token::Eq) {
+
+        // Ugly duplication as we need different code for logical and binary
+        if let Some(oper) = FromToken::try_from(self.peek()) && self.peek2() == Some(&Token::Eq) {
+            self.take(); // Take the token corresponding to the oper. (ERROR potential)
+            self.accept(
+                Token::Eq,
+                "Internal error: = should follow oper in shorthand binary assignment",
+            )?;
+
+            let start = expr.start_loc;
+            let lvalue = self.expr_to_lvalue(expr.clone(), false)?;
+            let rvalue = self.assignment()?;
+            let end = rvalue.end_loc;
+
+            let binary = ExprNode::binary(expr, oper, rvalue);
+            let assign = Expr::Assign(lvalue, binary);
+            Some(ExprNode::new(assign, start, end))
+
+        } else if let Some(oper) = FromToken::try_from(self.peek()) && self.peek2() == Some(&Token::Eq) {
+            self.take(); // Take the token corresponding to the oper. (ERROR potential)
+            self.accept(
+                Token::Eq,
+                "Internal error: = should follow oper in shorthand logical assignment",
+            )?;
+
+            let start = expr.start_loc;
+            let lvalue = self.expr_to_lvalue(expr.clone(), false)?;
+            let rvalue = self.assignment()?;
+            let end = rvalue.end_loc;
+
+            let logical = ExprNode::logical(expr, oper, rvalue);
+            let assign = Expr::Assign(lvalue, logical);
+            Some(ExprNode::new(assign, start, end))
+
+        } else if self.match_token(Token::Eq) {
             let start = expr.start_loc;
             let lvalue = self.expr_to_lvalue(expr, false)?;
             let rvalue = self.assignment()?;
@@ -232,7 +265,7 @@ impl<'a> Parser<'a> {
         // or       → and ( "or" and )* ;
         let mut expr = self.and()?;
 
-        while let Some(op) = self.match_op([LogicalOper::Or]) {
+        while let Some(op) = self.match_bin_expr_op([LogicalOper::Or]) {
             let right = self.and()?;
             expr = ExprNode::logical(expr, op, right);
         }
@@ -244,7 +277,7 @@ impl<'a> Parser<'a> {
         // and       → equality ( "and" equality )* ;
         let mut expr = self.equality()?;
 
-        while let Some(op) = self.match_op([LogicalOper::And]) {
+        while let Some(op) = self.match_bin_expr_op([LogicalOper::And]) {
             let right = self.equality()?;
             expr = ExprNode::logical(expr, op, right);
         }
@@ -280,7 +313,7 @@ impl<'a> Parser<'a> {
         // term           → factor ( ( "-" | "+" | "++" ) factor )* ;
         let mut factor = self.factor()?;
 
-        while let Some(op) = self.match_op([BinOper::Add, BinOper::Sub, BinOper::Append]) {
+        while let Some(op) = self.match_bin_expr_op([BinOper::Add, BinOper::Sub, BinOper::Append]) {
             let right = self.factor()?;
             factor = ExprNode::binary(factor, op, right);
         }
@@ -292,7 +325,7 @@ impl<'a> Parser<'a> {
         // factor         → exponent ( ( "/" | "*" | "%" ) exponent )* ;
         let mut exponent = self.exponent()?;
 
-        while let Some(op) = self.match_op([BinOper::Div, BinOper::Mult, BinOper::Mod]) {
+        while let Some(op) = self.match_bin_expr_op([BinOper::Div, BinOper::Mult, BinOper::Mod]) {
             let right = self.exponent()?;
             exponent = ExprNode::binary(exponent, op, right);
         }
@@ -304,7 +337,7 @@ impl<'a> Parser<'a> {
         // exponent         → unary ( "^" unary )* ;
         let mut unary = self.unary()?;
 
-        while let Some(op) = self.match_op([BinOper::Pow]) {
+        while let Some(op) = self.match_bin_expr_op([BinOper::Pow]) {
             let right = self.unary()?;
             unary = ExprNode::binary(unary, op, right);
         }
@@ -627,6 +660,18 @@ impl<'a> Parser<'a> {
 
         let end = *self.peek_last_end_loc()?;
         Some(ExprNode::new(Expr::Match(expr, arms), start, end))
+    }
+
+    // Same as match_op, but also makes sure the following token != "=" as in x += 2
+    fn match_bin_expr_op<F: FromToken + Eq + Debug, T: IntoIterator<Item = F>>(
+        &mut self,
+        opers: T,
+    ) -> Option<F> {
+        if self.peek2() != Some(&Token::Eq) {
+            self.match_op(opers)
+        } else {
+            None
+        }
     }
 
     fn match_op<F: FromToken + Eq + Debug, T: IntoIterator<Item = F>>(

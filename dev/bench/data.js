@@ -1,5 +1,5 @@
 window.BENCHMARK_DATA = {
-  "lastUpdate": 1686577509611,
+  "lastUpdate": 1686740599323,
   "repoUrl": "https://github.com/KvGeijer/zote",
   "entries": {
     "Rust Benchmark": [
@@ -1997,6 +1997,66 @@ window.BENCHMARK_DATA = {
             "name": "string_manips",
             "value": 218748015,
             "range": "± 733125",
+            "unit": "ns/iter"
+          }
+        ]
+      },
+      {
+        "commit": {
+          "author": {
+            "email": "kare.kvg@gmail.com",
+            "name": "Kåre von Geijer",
+            "username": "KvGeijer"
+          },
+          "committer": {
+            "email": "kare.kvg@gmail.com",
+            "name": "Kåre von Geijer",
+            "username": "KvGeijer"
+          },
+          "distinct": true,
+          "id": "307e426951cb3f445cc772ecc9792bb66609960f",
+          "message": "Implement shoddy version of += and similar\n\nWorks well, but parser changes \"x op= y\" to \"x = x op y\", which sucks\nin eg. \"arr[x += 1] += 2\" as x will be updated twice. Basically a C\nmacro...",
+          "timestamp": "2023-06-14T12:57:50+02:00",
+          "tree_id": "1cdaf601ccc7fc5acf1ba56e43e1e354657adde0",
+          "url": "https://github.com/KvGeijer/zote/commit/307e426951cb3f445cc772ecc9792bb66609960f"
+        },
+        "date": 1686740598793,
+        "tool": "cargo",
+        "benches": [
+          {
+            "name": "aoc_2022_1",
+            "value": 1115150,
+            "range": "± 57287",
+            "unit": "ns/iter"
+          },
+          {
+            "name": "aoc_2022_2",
+            "value": 21286944,
+            "range": "± 749034",
+            "unit": "ns/iter"
+          },
+          {
+            "name": "aoc_2022_4",
+            "value": 29790069,
+            "range": "± 80910",
+            "unit": "ns/iter"
+          },
+          {
+            "name": "fibonachi",
+            "value": 164162639,
+            "range": "± 1854909",
+            "unit": "ns/iter"
+          },
+          {
+            "name": "prints",
+            "value": 21270570,
+            "range": "± 425561",
+            "unit": "ns/iter"
+          },
+          {
+            "name": "string_manips",
+            "value": 195546069,
+            "range": "± 659537",
             "unit": "ns/iter"
           }
         ]

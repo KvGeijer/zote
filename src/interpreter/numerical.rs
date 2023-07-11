@@ -43,7 +43,7 @@ impl Numerical {
         }
     }
 
-    fn to_float(self) -> Numerical {
+    pub fn to_float(self) -> Numerical {
         match self {
             Numerical::Bool(true) => 1.0,
             Numerical::Bool(false) => 0.0,

@@ -68,10 +68,20 @@ pub fn get_builtins() -> Vec<Rc<dyn Builtin>> {
         Value::Collection(Collection::String(string)) => string
             .parse::<i64>()
             .map(|int| int.into())
-            .map_err(|_| RunError::bare_error(format!("Cannot parse {string} as integer"))),
+            .map_err(|_| RunError::bare_error(format!("Cannot parse {:?} as integer", string))),
         Value::Numerical(num) => Ok(num.to_int().into()),
         Value::Nil => Ok(0.into()),
         val => RunError::error(format!("Cannot convert {} to an int", val.type_of())),
+    });
+
+    builtins.new_1arg("float", |arg| match arg {
+        Value::Collection(Collection::String(string)) => string
+            .parse::<f64>()
+            .map(|float| float.into())
+            .map_err(|_| RunError::bare_error(format!("Cannot parse {:?} as float", string))),
+        Value::Numerical(num) => Ok(num.to_float().into()),
+        Value::Nil => Ok(0.0.into()),
+        val => RunError::error(format!("Cannot convert {} to an float", val.type_of())),
     });
 
     builtins.new_1arg("bool", |arg| Ok(arg.truthy().into()));
@@ -170,10 +180,14 @@ pub fn get_builtins() -> Vec<Rc<dyn Builtin>> {
             Value::Collection(Collection::String(string)),
             Value::Collection(Collection::String(delimiter)),
         ) => {
-            let splitted: Vec<Value> = string
+            let mut splitted: Vec<Value> = string
                 .split(&delimiter)
                 .map(|str| str.to_string().into())
                 .collect();
+
+            if splitted.last() == Some(&"".to_string().into()) {
+                splitted.remove(splitted.len() - 1);
+            }
             Ok(splitted.into())
         }
         (Value::Collection(Collection::List(list)), value) => list.split(&value),

@@ -167,6 +167,8 @@ pub fn get_builtins() -> Vec<Rc<dyn Builtin>> {
             ))
     });
 
+    builtins.new_2arg("const", |_, val| Ok(val));
+
     builtins.new_2arg("push", |item, stack| match (item, stack) {
         (value, Value::Collection(Collection::List(list))) => {
             list.push(value);

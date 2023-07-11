@@ -139,6 +139,8 @@ pub fn get_builtins() -> Vec<Rc<dyn Builtin>> {
         _ => RunError::error("Argument to read must be a string".to_string()),
     });
 
+    builtins.new_1arg("id", Ok);
+
     builtins.new_1arg("rev", |arg| {
         Ok(arg.to_iter()?.rev().collect::<Vec<Value>>().into())
     });

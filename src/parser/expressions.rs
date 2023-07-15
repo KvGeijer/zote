@@ -774,7 +774,16 @@ impl ExprNode {
             Expr::Bool(x) => Ok(LValue::Constant(ExprNode::new(Expr::Bool(x), start, end))),
             Expr::String(x) => Ok(LValue::Constant(ExprNode::new(Expr::String(x), start, end))),
             Expr::Nil => Ok(LValue::Constant(ExprNode::new(Expr::Nil, start, end))),
-
+            Expr::Unary(UnOper::Sub, ast_node)
+                if matches!(*ast_node.node, Expr::Int(_) | Expr::Float(_)) =>
+            {
+                // Just wrap it in a constant. Maybe we don't have to destructure it first?
+                Ok(LValue::Constant(ExprNode::new(
+                    Expr::Unary(UnOper::Sub, ast_node),
+                    start,
+                    end,
+                )))
+            }
             other => Err(format!("Cannot convert {} to an lvalue.", other.type_of())), // TODO, no debug print
         }
     }

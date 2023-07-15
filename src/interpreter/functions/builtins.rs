@@ -179,6 +179,14 @@ pub fn get_builtins() -> Vec<Rc<dyn Builtin>> {
         (_, _) => RunError::error("Second argument to push must be a list".to_string()),
     });
 
+    builtins.new_2arg("insert", |item, stack| match (item, stack) {
+        (value, Value::Collection(Collection::Dict(dict))) => {
+            dict.assign_into(value, Value::Nil)?;
+            Ok(Value::Nil)
+        }
+        (_, _) => RunError::error("Second argument to insert must be a dict".to_string()),
+    });
+
     builtins.new_2arg("split", |base, delim| match (base, delim) {
         (
             Value::Collection(Collection::String(string)),

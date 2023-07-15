@@ -32,6 +32,15 @@ fn caced_fibonachi() {
 }
 
 #[test]
+fn pipes() {
+    let output = interpret("tests/programs/pipes.zote");
+    assert_eq!(
+        output,
+        "[1, 2, 3, 4, 5, 6, 7, 8, 9]\n[0, 1, 2, 3, 4, 5, 6, 7, 8]\n[0, 1, 2, 3, 4, 5, 6, 7, 8]\n"
+    )
+}
+
+#[test]
 fn aoc_2022_1() {
     let output = interpret("aoc-2022/day01.zote");
     assert_eq!(output, "68923\n200044\n");

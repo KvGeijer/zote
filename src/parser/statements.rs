@@ -153,13 +153,13 @@ impl<'a> Parser<'a> {
     }
 
     fn expr_stmt(&mut self, allow_expr: bool) -> Option<Either<StmtNode, ExprNode>> {
-        // expr_stmt      → expression ">>:" IDENTIFIER | epression | expression ";"
+        // expr_stmt      → expression " :>>" IDENTIFIER | epression | expression ";"
 
         let expr = self.expression()?;
         let start = expr.start_loc;
 
-        // This first case is to desugar >>: to a declaration statement, could be combined in some way
-        if self.match_token(Token::PipeColon) {
+        // This first case is to desugar  :>> to a declaration statement, could be combined in some way
+        if self.match_token(Token::ColonPipe) {
             let lvalue = self.lvalue(true)?;
             let end = *self.peek_end_loc();
             self.accept(Token::Semicolon, "Expect ';' after expression statement")?;

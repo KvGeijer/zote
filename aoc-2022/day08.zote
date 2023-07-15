@@ -1,7 +1,7 @@
 read("aoc-2022/inputs/08.txt")
 	>> split("\n")
 	>> map(\>> map(int))
-	>>: trees; 
+	 :>> trees; 
 
 
 var visible = 0;

@@ -184,14 +184,27 @@ impl<'a> Parser<'a> {
     }
 
     fn pipe(&mut self) -> Option<ExprNode> {
-        // pipe       → lambda ( ">>" lambda )* ;
+        // pipe       → lambda ( (">>" lambda | "=>>" lvalue ))* ;
         let mut expr = self.lambda()?;
 
-        while self.match_token(Token::Pipe) {
-            expr = self.add_pipe_call(expr)?;
+        loop {
+            // Do we want to add :>> here as well?
+            if self.match_token(Token::Pipe) {
+                expr = self.add_pipe_call(expr)?;
+            } else if self.match_token(Token::EqPipe) {
+                expr = self.add_pipe_assign(expr)?;
+            } else {
+                return Some(expr);
+            }
         }
+    }
 
-        Some(expr)
+    fn add_pipe_assign(&mut self, expr: ExprNode) -> Option<ExprNode> {
+        let start = expr.start_loc;
+        let lambda = self.lambda()?;
+        let end = lambda.end_loc;
+        let lvalue = self.expr_to_lvalue(lambda, false)?;
+        Some(ExprNode::new(Expr::Assign(lvalue, expr), start, end))
     }
 
     fn add_pipe_call(&mut self, expr: ExprNode) -> Option<ExprNode> {

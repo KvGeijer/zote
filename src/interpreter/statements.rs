@@ -81,7 +81,7 @@ mod tests {
                 }                           \
             };                              \
                                             \
-            6 >> fib >>: result;            \
+            6 >> fib  :>> result;            \
             result                          \
             ";
 

@@ -1,0 +1,7 @@
+var add = \x, y -> x + y;
+
+var mid;
+
+[1:10] =>> mid >> print >> map(\>> add(-1)) =>> mid >> print;
+
+print(mid);

@@ -1,7 +1,7 @@
 read("aoc-2022/inputs/07.txt")
 	>> split("\n")
 	>> map(\>> split(" "))
-	>>: instrs;
+	 :>> instrs;
 
 var tree = dict();
 var path = [];

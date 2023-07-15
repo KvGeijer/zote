@@ -1,6 +1,6 @@
 read("aoc-2022/inputs/08.txt")
 	>> split("\n")
-	>> map(\line -> line >> map(int))
+	>> map(\>> map(int))
 	>>: trees; 
 
 

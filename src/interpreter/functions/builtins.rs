@@ -210,7 +210,7 @@ pub fn get_builtins() -> Vec<Rc<dyn Builtin>> {
             .collect::<Result<Vec<Value>, _>>()?
             .into()),
         (left, right) => RunError::error(format!(
-            "Expected a collectino and a function as arguments to map, but got {} and {}",
+            "Expected a collection and a function as arguments to map, but got {} and {}",
             left.type_of(),
             right.type_of()
         )),

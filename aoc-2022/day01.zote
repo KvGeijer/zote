@@ -1,7 +1,7 @@
 read("aoc-2022/inputs/01.txt")
 	>> split("\n") 
 	>> split("") 
-	>> map(\elf -> elf >> map(int) >> sum)
+	>> map(\>> map(int) >> sum)
 	>> sort
 	>>: elfs;
 

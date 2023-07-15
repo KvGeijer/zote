@@ -19,8 +19,7 @@ fn score2((opp, res)) -> {
 [score1, score2] >> map(\score -> 
 	read("aoc-2022/inputs/02.txt") 
 		>> split("\n") 
-		>> map(\line -> line >> split(" ") >> map(to_int)) // How can this be simpler?
-		>> map(score) 
+		>> map(\>> split(" ") >> map(to_int) >> score)
 		>> sum 
 		>> print
 	);

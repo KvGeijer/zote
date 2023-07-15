@@ -1,6 +1,6 @@
 read("aoc-2022/inputs/07.txt")
 	>> split("\n")
-	>> map(\line -> line >> split(" "))
+	>> map(\>> split(" "))
 	>>: instrs;
 
 var tree = dict();

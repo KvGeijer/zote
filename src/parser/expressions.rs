@@ -188,13 +188,17 @@ impl<'a> Parser<'a> {
         let mut expr = self.lambda()?;
 
         while self.match_token(Token::Pipe) {
-            let start = expr.start_loc;
-            let (func, mut args, end) = self.accept_call()?;
-            args.insert(0, expr); // Does this really work with ownership?
-            expr = ExprNode::new(Expr::Call(func, args), start, end);
+            expr = self.add_pipe_call(expr)?;
         }
 
         Some(expr)
+    }
+
+    fn add_pipe_call(&mut self, expr: ExprNode) -> Option<ExprNode> {
+        let start = expr.start_loc;
+        let (func, mut args, end) = self.accept_call()?;
+        args.insert(0, expr); // Does this really work with ownership?
+        Some(ExprNode::new(Expr::Call(func, args), start, end))
     }
 
     fn accept_call(&mut self) -> Option<(ExprNode, Vec<ExprNode>, CodeLoc)> {
@@ -224,11 +228,10 @@ impl<'a> Parser<'a> {
     }
 
     fn lambda(&mut self) -> Option<ExprNode> {
-        // lambda     → or | "\" lvalue "->" or
+        // lambda     → or | "\" lvalue "->" or | "\>>" lambda ( ">>" lambda )*
 
+        let start = *self.peek_start_loc();
         if self.match_token(Token::Backslash) {
-            let start = *self.peek_last_end_loc().unwrap();
-
             let mut params = vec![];
             if !self.match_token(Token::RArrow) {
                 // Expect parameters
@@ -256,6 +259,27 @@ impl<'a> Parser<'a> {
                 Expr::FunctionDefinition(name, params, body),
                 start,
                 end,
+            ))
+        } else if self.match_token(Token::BackslashPipe) {
+            // Maybe not great, but treat it as syntactic sugar for "name -> name", where name is an illegal @ name
+            let name = format!(
+                "pipe chain start lambda/1 at {}:{}",
+                start.line(),
+                start.col()
+            );
+            let hidden_var_name = "@__hidden_chain_var";
+            let params = vec![LValue::Var(hidden_var_name.to_string())];
+            let var = ExprNode::new(Expr::Var(hidden_var_name.to_string()), start, start);
+
+            let mut expr = self.add_pipe_call(var)?;
+            while self.match_token(Token::Pipe) {
+                expr = self.add_pipe_call(expr)?;
+            }
+
+            Some(ExprNode::new(
+                Expr::FunctionDefinition(name, params, expr),
+                start,
+                start,
             ))
         } else {
             self.or()

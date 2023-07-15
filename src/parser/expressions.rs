@@ -167,6 +167,7 @@ impl<'a> Parser<'a> {
         }
     }
 
+    /// Also takes bool of wheter to only accept declarative lvalues
     pub fn lvalue(&mut self, decl: bool) -> Option<LValue> {
         let expr = self.expression()?;
         self.expr_to_lvalue(expr, decl)
@@ -223,21 +224,21 @@ impl<'a> Parser<'a> {
     }
 
     fn lambda(&mut self) -> Option<ExprNode> {
-        // lambda     → or | ( IDENTIFIER | tuple ) "->" or
+        // lambda     → or | "\" lvalue "->" or
 
-        let expr = self.or()?;
+        if self.match_token(Token::Backslash) {
+            let start = *self.peek_last_end_loc().unwrap();
 
-        if self.match_token(Token::RArrow) {
-            let start = expr.start_loc;
-
-            let params: Vec<LValue> = if let Expr::Tuple(tuple) = *expr.node {
-                tuple
-                    .into_iter()
-                    .map(|expr| self.expr_to_lvalue(expr, true))
-                    .collect::<Option<Vec<LValue>>>()?
-            } else {
-                vec![self.expr_to_lvalue(expr, true)?]
-            };
+            let mut params = vec![];
+            if !self.match_token(Token::RArrow) {
+                // Expect parameters
+                while {
+                    // Do-while loop
+                    params.push(self.lvalue(true)?);
+                    self.match_token(Token::Comma)
+                } {}
+                self.accept(Token::RArrow, "Expect \"->\" to follow lvalue in lambda")?;
+            }
 
             if params.len() >= MAX_ARGS {
                 self.error("Cannot have more than {MAX_ARGS} parameters");
@@ -257,7 +258,7 @@ impl<'a> Parser<'a> {
                 end,
             ))
         } else {
-            Some(expr)
+            self.or()
         }
     }
 
@@ -644,8 +645,8 @@ impl<'a> Parser<'a> {
 
             // I would have prefered -> here, but then it collides with a function def :/
             self.accept(
-                Token::WideRArrow,
-                "Expect \"=>\" to follow lvalues in match block",
+                Token::RArrow,
+                "Expect \"->\" to follow lvalues in match block",
             )?;
 
             let block = self.expression()?;
@@ -1038,6 +1039,7 @@ mod tests {
     fn lambdas() {
         // "x -> 2 + x"
         let tokens = vec![
+            fake_token(Token::Backslash),
             fake_token(Token::Identifier("x".to_string())),
             fake_token(Token::RArrow),
             fake_token(Token::Integer(2)),
@@ -1062,13 +1064,14 @@ mod tests {
             ))
         );
 
-        // "(x, y) -> max(x, y)"
+        // "\x, y -> max(x, y)"
         let tokens = vec![
-            fake_token(Token::LPar),
+            fake_token(Token::Backslash),
+            // fake_token(Token::LPar),
             fake_token(Token::Identifier("x".to_string())),
             fake_token(Token::Comma),
             fake_token(Token::Identifier("y".to_string())),
-            fake_token(Token::RPar),
+            // fake_token(Token::RPar),
             fake_token(Token::RArrow),
             fake_token(Token::Identifier("max".to_string())),
             fake_token(Token::LPar),

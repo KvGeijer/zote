@@ -1,18 +1,18 @@
 read("aoc-2022/inputs/07.txt")
 	>> split("\n")
-	>> map(line -> line >> split(" "))
+	>> map(\line -> line >> split(" "))
 	>>: instrs;
 
 var tree = dict();
 var path = [];
 for instr in instrs {
 	match instr {
-		("$", "cd", "/") =>  path = ["/"],
-		("$", "cd", "..") =>  path >> pop,
-		("$", "cd", sub) => sub >> push(path),
-		("$", "ls") => {},
-		("dir", _) => {},
-		(size, name) => tree[path ++ [name]] = int(size), 
+		("$", "cd", "/") ->  path = ["/"],
+		("$", "cd", "..") ->  path >> pop,
+		("$", "cd", sub) -> sub >> push(path),
+		("$", "ls") -> {},
+		("dir", _) -> {},
+		(size, name) -> tree[path ++ [name]] = int(size), 
 	};
 };
 
@@ -28,7 +28,7 @@ for (path, size) in tree {
 
 sizes
 	>> values
-	>> filter(size -> size <= 100000)
+	>> filter(\size -> size <= 100000)
 	>> sum
 	>> print;
 
@@ -37,6 +37,6 @@ var to_free = total - 40000000;
 
 sizes 
 	>> values 
-	>> filter(size -> size >= to_free) 
+	>> filter(\size -> size >= to_free) 
 	>> min 
 	>> print;

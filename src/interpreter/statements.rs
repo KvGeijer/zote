@@ -113,10 +113,9 @@ mod tests {
             interpret_string(program).unwrap().unwrap().unwrap(),
             Value::Nil
         ));
-        println!("RATARTART");
 
         let program = concat!(
-            "var maybe_nil_ret = x -> {\n",
+            "var maybe_nil_ret = \\x -> {\n",
             "    if x == Nil           \n",
             "        return            \n",
             "    else                  \n",

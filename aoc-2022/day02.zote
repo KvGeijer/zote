@@ -1,11 +1,11 @@
 fn to_int(char) -> 
 	match char {
-		'A' => 0,
-		'B' => 1,
-		'C' => 2,
-		'X' => 0,
-		'Y' => 1,
-		'Z' => 2,
+		'A' -> 0,
+		'B' -> 1,
+		'C' -> 2,
+		'X' -> 0,
+		'Y' -> 1,
+		'Z' -> 2,
 	};
 
 fn score1((opp, you)) -> {
@@ -16,10 +16,10 @@ fn score2((opp, res)) -> {
 	res*3 + (opp + res - 1) % 3 + 1
 };
 
-[score1, score2] >> map(score -> 
+[score1, score2] >> map(\score -> 
 	read("aoc-2022/inputs/02.txt") 
 		>> split("\n") 
-		>> map(line -> line >> split(" ") >> map(to_int)) // How can this be simpler?
+		>> map(\line -> line >> split(" ") >> map(to_int)) // How can this be simpler?
 		>> map(score) 
 		>> sum 
 		>> print

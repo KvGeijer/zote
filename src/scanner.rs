@@ -36,7 +36,8 @@ pub enum Token {
     Break,
     // In,
     RArrow,
-    WideRArrow,
+    // WideRArrow,
+    BackslashPipe,
 
     // Single chars
     LPar,
@@ -53,6 +54,7 @@ pub enum Token {
     UpArr,
     Percent,
     Colon,
+    Backslash,
 
     Eof,
 
@@ -106,7 +108,8 @@ lazy_static! {
         (r"break", |_| Token::Break),
         // (r"in", |_| Token::In),
         (r"->", |_| Token::RArrow),
-        (r"=>", |_| Token::WideRArrow),
+        // (r"=>", |_| Token::WideRArrow),
+        (r"\\>>", |_| Token::BackslashPipe),
         (r"\(", |_| Token::LPar),
         (r"\)", |_| Token::RPar),
         (r"\{", |_| Token::LBrace),
@@ -121,6 +124,7 @@ lazy_static! {
         (r"\^", |_| Token::UpArr),
         (r"%", |_| Token::Percent),
         (r":", |_| Token::Colon),
+        (r"\\", |_| Token::Backslash),
         (r"true", |_| Token::True),
         (r"false", |_| Token::False),
         (r"and", |_| Token::And),

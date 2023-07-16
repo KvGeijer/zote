@@ -2,7 +2,7 @@ read("aoc-2022/inputs/06.txt") >> list  :>> signal;
 
 for size in [4, 14]
 	for end in [size:len(signal)] {
-		var marker = signal[end - size:end];
+		marker := signal[end - size:end];
 		if len(set(marker)) == size {
 			print(end);
 			break;

@@ -1,6 +1,6 @@
-var add = \x, y -> x + y;
+add := \x, y -> x + y;
 
-var mid;
+mid := Nil;
 
 [1:10] =>> mid >> print >> map(\>> add(-1)) =>> mid >> print;
 

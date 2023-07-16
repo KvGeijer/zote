@@ -1,6 +1,6 @@
 use either::Either;
 
-use super::{expressions::MAX_ARGS, AstNode, Expr, ExprNode, LValue, Parser};
+use super::{expressions::MAX_ARGS, AstNode, ExprNode, LValue, Parser};
 use crate::scanner::Token;
 
 pub type StmtNode = AstNode<Stmt>;
@@ -57,7 +57,7 @@ impl<'a> Parser<'a> {
 
     // If allow_expr is on, it will match an expression instead of causing error if there is no closing ;
     fn statement(&mut self, allow_expr: bool) -> Either<StmtNode, ExprNode> {
-        if let Some(node) = self.top_statement(allow_expr) {
+        if let Some(node) = self.fn_statement(allow_expr) {
             node
         } else {
             // Should we propagate a result to here instead?
@@ -70,20 +70,12 @@ impl<'a> Parser<'a> {
         }
     }
 
-    fn top_statement(&mut self, allow_expr: bool) -> Option<Either<StmtNode, ExprNode>> {
-        // Statements and decl statements
-        match self.peek() {
-            Token::Var => Some(Either::Left(self.decl_stmt()?)),
-            Token::Fn => Some(Either::Left(self.fn_decl_stmt()?)),
-            _ => self.expr_stmt(allow_expr),
-        }
-    }
-
-    fn fn_decl_stmt(&mut self) -> Option<StmtNode> {
-        // "fn" var "(" parameters? ")" "->" expression ;
+    fn fn_statement(&mut self, allow_expr: bool) -> Option<Either<StmtNode, ExprNode>> {
+        // decl_stmt | "fn" var "(" parameters? ")" "->" expression ;
         let start = *self.peek_start_loc();
-        self.accept(Token::Fn, "Internal fn_decl_stmt error")?;
-        if let Token::Identifier(name) = self.peek() {
+        if !self.match_token(Token::Fn) {
+            self.rest_stmt(allow_expr)
+        } else if let Token::Identifier(name) = self.peek() {
             let name = name.to_string();
             self.take();
             self.accept(Token::LPar, "Expect '(' before function parameters")?;
@@ -105,11 +97,11 @@ impl<'a> Parser<'a> {
                 end,
             );
 
-            Some(StmtNode::new(
+            Some(Either::Left(StmtNode::new(
                 Stmt::Decl(LValue::Var(name), Some(func)),
                 start,
                 end,
-            ))
+            )))
         } else {
             self.error("Expect function name after fn");
             None
@@ -135,36 +127,29 @@ impl<'a> Parser<'a> {
         }
     }
 
-    fn decl_stmt(&mut self) -> Option<StmtNode> {
-        // TODO Add declaring multiple in a row and/or tuple based init
-        // varDecl        → "var" expression ";" ;
+    fn rest_stmt(&mut self, allow_expr: bool) -> Option<Either<StmtNode, ExprNode>> {
+        // varDecl        → (expression | lvalue ":=" expression | expression ":>>" lvalue) ";" ;
         let start = *self.peek_start_loc();
-        self.accept(Token::Var, "Expect 'var' at start of declaration");
         let expr = self.expression()?; // We can't separate lvalues and assignmen here :/
-        let end = *self.peek_end_loc();
-        if let Expr::Assign(lvalue, rvalue) = *expr.node {
-            self.accept(Token::Semicolon, "Decl statement must end with ';'")?;
-            Some(StmtNode::new(Stmt::Decl(lvalue, Some(rvalue)), start, end))
-        } else {
+        if self.match_token(Token::ColonEq) {
             let lvalue = self.expr_to_lvalue(expr, true)?;
+            let rvalue = self.expression()?;
+            let end = *self.peek_last_end_loc().unwrap();
             self.accept(Token::Semicolon, "Decl statement must end with ';'")?;
-            Some(StmtNode::new(Stmt::Decl(lvalue, None), start, end))
-        }
-    }
-
-    fn expr_stmt(&mut self, allow_expr: bool) -> Option<Either<StmtNode, ExprNode>> {
-        // expr_stmt      → expression " :>>" IDENTIFIER | epression | expression ";"
-
-        let expr = self.expression()?;
-        let start = expr.start_loc;
-
-        // This first case is to desugar  :>> to a declaration statement, could be combined in some way
-        if self.match_token(Token::ColonPipe) {
+            Some(Either::Left(StmtNode::new(
+                Stmt::Decl(lvalue, Some(rvalue)),
+                start,
+                end,
+            )))
+        } else if self.match_token(Token::ColonPipe) {
             let lvalue = self.lvalue(true)?;
             let end = *self.peek_end_loc();
-            self.accept(Token::Semicolon, "Expect ';' after expression statement")?;
-            let decl_stmt = StmtNode::new(Stmt::Decl(lvalue, Some(expr)), start, end);
-            Some(Either::Left(decl_stmt))
+            self.accept(Token::Semicolon, "Expect ';' after pipe decl statement")?;
+            Some(Either::Left(StmtNode::new(
+                Stmt::Decl(lvalue, Some(expr)),
+                start,
+                end,
+            )))
         } else if !allow_expr || self.peek() == &Token::Semicolon {
             let end = *self.peek_end_loc();
             self.accept(Token::Semicolon, "Expect ';' after expression statement")?;

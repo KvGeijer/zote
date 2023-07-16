@@ -1,6 +1,6 @@
 fn collect_points((start, end)) -> set([int(start):int(end) + 1]);
 
-var pair_ranges = read("aoc-2022/inputs/04.txt") 
+pair_ranges := read("aoc-2022/inputs/04.txt") 
 	>> split("\n")
 	>> map(\>> split(",")
 			>> map(\>> split("-") >> collect_points));

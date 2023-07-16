@@ -6,7 +6,7 @@ fn simple_overlap(left, right) -> {
 };
 
 fn priority(char) -> {
-	var ascii = to_ascii(char);
+	ascii := to_ascii(char);
 	if ascii >= to_ascii("a") {
 		ascii - to_ascii("a") + 1
 	} else {
@@ -14,14 +14,14 @@ fn priority(char) -> {
 	}
 };
 
-var lines = read("aoc-2022/inputs/03.txt")
+lines := read("aoc-2022/inputs/03.txt")
 	>> split("\n") 
 	>> map(list);
 
 // Part 1
 lines
 	>> map(\sack -> {
-		var middle = len(sack)/2;
+		middle := len(sack)/2;
 		simple_overlap(sack[:middle], sack[middle:])
 	})
 	>> map(priority)

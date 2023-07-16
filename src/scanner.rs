@@ -32,7 +32,7 @@ pub enum Token {
     Return,
     For,
     While,
-    Var, // Might want to change?
+    // Var, // Might want to change?
     Break,
     // In,
     RArrow,
@@ -66,6 +66,7 @@ pub enum Token {
     Minus,
     Mult,
     Div,
+    ColonEq,
     DoubleEq,
     BangEq,
     Lt,
@@ -105,7 +106,7 @@ lazy_static! {
         (r"return", |_| Token::Return),
         (r"for", |_| Token::For),
         (r"while", |_| Token::While),
-        (r"var", |_| Token::Var),
+        // (r"var", |_| Token::Var),
         (r"break", |_| Token::Break),
         // (r"in", |_| Token::In),
         (r"->", |_| Token::RArrow),
@@ -134,6 +135,7 @@ lazy_static! {
         (r"-", |_| Token::Minus),
         (r"\*", |_| Token::Mult),
         (r"/", |_| Token::Div),
+        (r":=", |_| Token::ColonEq),
         (r"==", |_| Token::DoubleEq),
         (r"!=", |_| Token::BangEq),
         (r"<", |_| Token::Lt),

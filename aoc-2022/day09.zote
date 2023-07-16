@@ -4,17 +4,17 @@ read("aoc-2022/inputs/09.txt")
 	:>> instrs;
 
 // Add to some stdlib
-var sgn = \x -> 
+sgn := \x -> 
 	if x > 0 {1} 
 	else if x < 0 {-1} 
 	else {0};
 
-var solve = \length -> {
-	var points = [];
+solve := \length -> {
+	points := [];
 	for _ in [0:length] {
 		[0, 0] >> push(points);
 	};
-	var visited = set();
+	visited := set();
 
 	for (dir, len) in instrs {
 		for _ in [0:int(len)] {

@@ -4,17 +4,17 @@ read("aoc-2022/inputs/08.txt")
 	 :>> trees; 
 
 
-var visible = 0;
-var scenic = 0;
+visible := 0;
+scenic := 0;
 
 for (row, tree_row) in trees >> enumerate {
 	for (col, tree) in tree_row >> enumerate {
 		// Find if it is taller than all surrounding ones
-		var vis = false;
-		var score = 1;
+		vis := false;
+		score := 1;
 
-		var count = 0;
-		var seeing = true;
+		count := 0;
+		seeing := true;
 		for row2 in rev([0:row]) {
 			count = count + 1;
 			if trees[row2][col] >= tree {
@@ -25,8 +25,8 @@ for (row, tree_row) in trees >> enumerate {
 		vis or= seeing;
 		score *= count;
 		
-		var count = 0;
-		var seeing = true;
+		count := 0;
+		seeing := true;
 		for row2 in [row+1:len(trees)] {
 			count = count + 1;
 			if trees[row2][col] >= tree {
@@ -37,8 +37,8 @@ for (row, tree_row) in trees >> enumerate {
 		vis or= seeing;
 		score *= count;
 		
-		var count = 0;
-		var seeing = true;
+		count := 0;
+		seeing := true;
 		for col2 in rev([0:col]) {
 			count = count + 1;
 			if trees[row][col2] >= tree {
@@ -49,8 +49,8 @@ for (row, tree_row) in trees >> enumerate {
 		vis or= seeing;
 		score *= count;
 		
-		var count = 0;
-		var seeing = true;
+		count := 0;
+		seeing := true;
 		for col2 in [col+1:len(tree_row)] {
 			count = count + 1;
 			if trees[row][col2] >= tree {

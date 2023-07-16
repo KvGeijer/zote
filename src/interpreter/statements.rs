@@ -115,7 +115,7 @@ mod tests {
         ));
 
         let program = concat!(
-            "var maybe_nil_ret = \\x -> {\n",
+            "maybe_nil_ret := \\x -> { \n",
             "    if x == Nil           \n",
             "        return            \n",
             "    else                  \n",
@@ -157,12 +157,12 @@ mod tests {
 
         let program = concat!(
             "fn replace_list(list, x) -> { ",
-            "    var ret = pop(list);      ",
+            "    ret := pop(list);         ",
             "    push(x, list);            ",
             "    ret                       ",
             "};                            ",
             "                              ",
-            "var list = [1,2,3,4];         ",
+            "list := [1,2,3,4];            ",
             "list[3] = 44;                 ",
             "[                             ",
             "    replace_list(list, 42),   ",

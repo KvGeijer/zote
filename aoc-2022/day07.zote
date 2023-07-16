@@ -3,8 +3,8 @@ read("aoc-2022/inputs/07.txt")
 	>> map(\>> split(" "))
 	 :>> instrs;
 
-var tree = dict();
-var path = [];
+tree := dict();
+path := [];
 for instr in instrs {
 	match instr {
 		("$", "cd", "/") ->  path = ["/"],
@@ -16,7 +16,7 @@ for instr in instrs {
 	};
 };
 
-var sizes = dict();
+sizes := dict();
 for (path, size) in tree {
 	pop(path); // remove file name
 	while path {
@@ -32,8 +32,8 @@ sizes
 	>> sum
 	>> print;
 
-var total = tree >> values >> sum;
-var to_free = total - 40000000;
+total := tree >> values >> sum;
+to_free := total - 40000000;
 
 sizes 
 	>> values 

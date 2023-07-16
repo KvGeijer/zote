@@ -9,15 +9,15 @@ fn fib(n) -> {
 	else if n == 1 
 		1
 	else {
-		var x = 2;
-		var y;
+		x := 2;
+		y := Nil;
 
 		x = fib(n-2) + (y = fib(n-1))
 	}
 };
 
 
-var serie = [];
+serie := [];
 for i in [0:20:1]
 	fib(i) >> push(serie);
 

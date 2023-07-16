@@ -1,10 +1,10 @@
-var (state_lines, move_lines) = read("aoc-2022/inputs/05.txt")
+(state_lines, move_lines) := read("aoc-2022/inputs/05.txt")
 	>> split("\n")
 	>> split("");
 
 fn simple_movement(stacks) -> {
 	for instr in move_lines {
-		var (nbr, from, to) = (instr >> split(" "))[1::2] >> map(int);
+		(nbr, from, to) := (instr >> split(" "))[1::2] >> map(int);
 
 		for _ in [0:nbr] stacks[from - 1] >> pop >> push(stacks[to - 1]);
 	};
@@ -12,7 +12,7 @@ fn simple_movement(stacks) -> {
 
 fn cool_movement(stacks) -> {
 	for instr in move_lines[:] {
-		var (nbr, from, to) = (instr >> split(" "))[1::2] >> map(int);
+		(nbr, from, to) := (instr >> split(" "))[1::2] >> map(int);
 
 		stacks[to-1] ++= stacks[from-1][-nbr:];
 		stacks[from-1] = stacks[from-1][:-nbr];
@@ -20,7 +20,7 @@ fn cool_movement(stacks) -> {
 };
 
 for movement in [simple_movement, cool_movement] {
-	var stacks = [];
+	stacks := [];
 	for i in [0:(len(state_lines[0]) + 1)/4] push([], stacks);
 
 	for row in rev(state_lines[:-1]) {

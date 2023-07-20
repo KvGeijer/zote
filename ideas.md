@@ -1,12 +1,17 @@
 # Improvement ideas for Zote
 
+* Add priority queue.
+  * Maybe just implement it in Zote in a stdlib? Would be a hassle to add it to the vm
+
+* Function definitions in pipes
+
+* List of all stdib functions/builtins
+
+* Add nice range for loops such as `for i in 1:10`
+
 * Fix += and similar shorthands. Now x op= y <-> x = x op y. But this breaks if x contains mutable calls (like C macros)
 
-* Change => to -> in match arms.
-
 * Make operations on env require it to me mutably borrowed.
-
-* Add functions to convert a value to some type. That way we can get rid of all custom pattern matching and havn nice dedicated type errors.
 
 * Add real iterators (generators) to the language.
   * Can then make slices more generic
@@ -33,5 +38,3 @@
 * Remove need for semicolons after blocks in some cases. Such as an expression statement ending with a block probably.
 
 * Start work on a real virtual machine interpreter. Could probably be a lot faster than the naive one.
-
-* Add pattern match statements.  

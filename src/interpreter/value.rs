@@ -101,6 +101,26 @@ impl Value {
             )),
         }
     }
+
+    pub fn cast_func(self, error_msg: &str) -> RunRes<Function> {
+        match self {
+            Value::Callable(callable) => Ok(callable),
+            other => RunError::error(format!(
+                "Type-error: Expect function, but got {}. {error_msg}",
+                other.type_of()
+            )),
+        }
+    }
+
+    pub fn cast_numerical(self, error_msg: &str) -> RunRes<Numerical> {
+        match self {
+            Value::Numerical(nbr) => Ok(nbr),
+            other => RunError::error(format!(
+                "Type-error: Expect numerical, but got {}. {error_msg}",
+                other.type_of()
+            )),
+        }
+    }
 }
 
 // Simple print with the value wrapped in its type, for informative prints

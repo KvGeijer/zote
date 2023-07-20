@@ -131,6 +131,14 @@ impl Numerical {
             Numerical::Bool(_) => RunError::error("Cannot negate a bool".to_string()),
         }
     }
+
+    pub fn abs(self) -> Numerical {
+        match self {
+            Numerical::Int(int) => Numerical::Int(int.abs()),
+            Numerical::Float(float) => Numerical::Float(float.abs()),
+            bool => bool,
+        }
+    }
 }
 
 impl PartialEq for Numerical {

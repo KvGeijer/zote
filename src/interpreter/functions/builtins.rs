@@ -2,7 +2,7 @@ use itertools::Itertools;
 use std::{cmp::Ordering, fs::read_to_string, rc::Rc};
 
 use crate::interpreter::{
-    collections::{Collection, Dict},
+    collections::{slice_iter, Collection, Dict, SliceValue},
     RunError, RunRes, Value,
 };
 
@@ -24,8 +24,13 @@ macro_rules! box_builtins {
 }
 
 pub fn get_builtins() -> Vec<Rc<dyn Builtin>> {
-    let mut builtins: Vec<Rc<dyn Builtin>> =
-        box_builtins![DictBuiltin, SetBuiltin, MaxBuiltin, JoinBuiltin];
+    let mut builtins: Vec<Rc<dyn Builtin>> = box_builtins![
+        DictBuiltin,
+        SetBuiltin,
+        MaxBuiltin,
+        JoinBuiltin,
+        SortBuiltin
+    ];
 
     builtins.new_0arg("time", || {
         let now = std::time::SystemTime::now()
@@ -95,14 +100,6 @@ pub fn get_builtins() -> Vec<Rc<dyn Builtin>> {
         )),
     });
 
-    builtins.new_1arg("sort", |arg| match arg {
-        Value::Collection(Collection::List(list)) => list.sort(),
-        arg => RunError::error(format!(
-            "Expected a list as argument to sort, but got {}",
-            arg.type_of(),
-        )),
-    });
-
     builtins.new_1arg("len", |arg| match arg {
         Value::Collection(coll) => Ok((coll.len() as i64).into()),
         arg => RunError::error(format!(
@@ -167,6 +164,13 @@ pub fn get_builtins() -> Vec<Rc<dyn Builtin>> {
             .ok_or(RunError::bare_error(
                 "Canot get min from empty iterator".to_string(),
             ))
+    });
+
+    builtins.new_1arg("abs", |arg| {
+        Ok(arg
+            .cast_numerical("Abs can only be callable on a numerical")?
+            .abs()
+            .into())
     });
 
     builtins.new_2arg("const", |_, val| Ok(val));
@@ -274,6 +278,24 @@ pub fn get_builtins() -> Vec<Rc<dyn Builtin>> {
             .cast_dict("In first arg to union")?
             .union(&right.cast_dict("In first arg to union")?)
             .into())
+    });
+
+    builtins.new_2arg("take", |data, nbr| {
+        let slice = slice_iter(
+            data.to_iter()?,
+            SliceValue {
+                start: None,
+                stop: Some(
+                    nbr.cast_numerical("Expect a number of items to take.")?
+                        .to_int(),
+                ),
+                step: None,
+            },
+            data.to_iter()?.len(), // TODO: Slow (Really needed?)
+        )?
+        .collect_vec()
+        .into();
+        Ok(slice)
     });
 
     builtins
@@ -407,6 +429,37 @@ impl Builtin for JoinBuiltin {
 
     fn name(&self) -> &str {
         "join"
+    }
+
+    fn arity(&self) -> &str {
+        "[1, 2]"
+    }
+}
+
+struct SortBuiltin;
+impl Builtin for SortBuiltin {
+    fn run(&self, args: Vec<Value>) -> RunRes<Value> {
+        let mut arg_iter = args.into_iter();
+        let sorting = arg_iter.next().unwrap();
+        let list = sorting.cast_list("Expect a list as first argument to sort.")?;
+
+        let sorted = if let Some(comparator) = arg_iter.next() {
+            let cmp_func =
+                comparator.cast_func("Second argument to sort reserved for sorting function.")?;
+            list.sort_by(cmp_func)?
+        } else {
+            list.sort()?
+        };
+
+        Ok(sorted)
+    }
+
+    fn accept_arity(&self, arity: usize) -> bool {
+        [1, 2].contains(&arity)
+    }
+
+    fn name(&self) -> &str {
+        "sort"
     }
 
     fn arity(&self) -> &str {

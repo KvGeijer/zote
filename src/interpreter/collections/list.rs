@@ -1,4 +1,4 @@
-use crate::interpreter::runtime_error::RunError;
+use crate::interpreter::{functions::Function, runtime_error::RunError};
 
 use super::{
     super::{numerical::Numerical, RunRes, Value},
@@ -122,7 +122,7 @@ impl List {
         let mut vec = self.vec.borrow().clone();
 
         vec.sort_by(|a, b| match a.partial_cmp(b) {
-            Some(order) => order.reverse(),
+            Some(order) => order,
             None => {
                 success = RunError::error(format!(
                     "Cannot sort a vector containing both {} and {}",
@@ -133,6 +133,74 @@ impl List {
             }
         });
         success.map(|_| vec.into())
+    }
+
+    /// Takes a function to sort by (it can in turn take 1 or 2 args)
+    pub fn sort_by(&self, cmp: Function) -> RunRes<Value> {
+        let mut errors = vec![];
+        let mut vec = self.vec.borrow().clone();
+
+        // Now prioritizes 2 args
+        if cmp.accept_arity(2) {
+            vec.sort_by(|a, b| {
+                let compared = match cmp.call(vec![a.clone(), b.clone()]) {
+                    Ok(Value::Numerical(nbr)) => nbr.to_rint(),
+                    Ok(other) => {
+                        errors.push(RunError::bare_error(format!(
+                            "When sorting by a comparator function taking two args, the output of the function must be bool/numeric, got {}", other.type_of()
+                            )));
+                        0
+                    }
+                    Err(run_err) => {
+                        errors.push(run_err);
+                        0
+                    }
+                };
+                if compared > 0 {
+                    Ordering::Greater
+                } else {
+                    Ordering::Less
+                }
+            });
+        } else if cmp.accept_arity(1) {
+            vec.sort_by(|a, b| {
+                // TODO: Reduce copied code
+                // TODO: Optimize, to only call the function once per item
+                let fa = match cmp.call(vec![a.clone()]) {
+                    Ok(res) => res,
+                    Err(run_err) => {
+                        errors.push(run_err);
+                        a.clone()
+                    }
+                };
+                let fb = match cmp.call(vec![b.clone()]) {
+                    Ok(res) => res,
+                    Err(run_err) => {
+                        errors.push(run_err);
+                        b.clone()
+                    }
+                };
+                match fa.partial_cmp(&fb) {
+                    Some(order) => order,
+                    None => {
+                        errors.push(RunError::bare_error(format!(
+                            "Cannot sort a list containing both {} and {}",
+                            a.type_of(),
+                            b.type_of()
+                        )));
+                        Ordering::Equal
+                    }
+                }
+            });
+        } else {
+            return RunError::error("Function to sort must take 1 or 2 arguments.".to_string());
+        }
+
+        if let Some(run_error) = errors.into_iter().next() {
+            Err(run_error)
+        } else {
+            Ok(vec.into())
+        }
     }
 
     pub fn slice(&self, slice: SliceValue) -> RunRes<Value> {

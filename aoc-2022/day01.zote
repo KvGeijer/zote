@@ -3,7 +3,8 @@ read("aoc-2022/inputs/01.txt")
 	>> split("") 
 	>> map(\>> map(int) >> sum)
 	>> sort
-	 :>> elfs;
+	>> rev
+	:>> elfs;
 
 elfs[0] >> print;
-elfs[0:3] >> sum >> print;
+elfs >> take(3) >> sum >> print;

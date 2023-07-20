@@ -41,6 +41,12 @@ fn pipes() {
 }
 
 #[test]
+fn sort() {
+    let output = interpret("tests/programs/sort.zote");
+    assert_eq!(output, "false\ntrue\ntrue\nfalse\ntrue\ntrue\ntrue\n")
+}
+
+#[test]
 fn aoc_2022_1() {
     let output = interpret("aoc-2022/day01.zote");
     assert_eq!(output, "68923\n200044\n");

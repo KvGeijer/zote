@@ -1,5 +1,5 @@
 window.BENCHMARK_DATA = {
-  "lastUpdate": 1689930412912,
+  "lastUpdate": 1689951278578,
   "repoUrl": "https://github.com/KvGeijer/zote",
   "entries": {
     "Rust Benchmark": [
@@ -2477,6 +2477,66 @@ window.BENCHMARK_DATA = {
             "name": "string_manips",
             "value": 213187908,
             "range": "± 2432067",
+            "unit": "ns/iter"
+          }
+        ]
+      },
+      {
+        "commit": {
+          "author": {
+            "email": "kare.kvg@gmail.com",
+            "name": "Kåre von Geijer",
+            "username": "KvGeijer"
+          },
+          "committer": {
+            "email": "kare.kvg@gmail.com",
+            "name": "Kåre von Geijer",
+            "username": "KvGeijer"
+          },
+          "distinct": true,
+          "id": "172f689a26a2221de687a8b7b200d6e5e4e5b275",
+          "message": "Add semicolon elision\n\nQuite simple, allow elision for `if`, `while`, `for`, and function decl\nif they end with a block. Also always accept match and blocks.\n\nTricky part was to seperate indexing and calls over lines. Now the\nlanguage is whitespace aware in that calls and indexing must follow\nimmediately after the thing being called/indxed. So `{x}[1];` is the same\nas `x[1]`, while `{x} [1];` is two statements in sequence `{x}` and\n`[1]`. This is a bit of a hard pill to swallow, but makes sense in how\nyou write code.",
+          "timestamp": "2023-07-21T16:49:12+02:00",
+          "tree_id": "bafc5ae199aad6d7f8f785de6ab584dd32db4d6c",
+          "url": "https://github.com/KvGeijer/zote/commit/172f689a26a2221de687a8b7b200d6e5e4e5b275"
+        },
+        "date": 1689951277520,
+        "tool": "cargo",
+        "benches": [
+          {
+            "name": "aoc_2022_1",
+            "value": 1429098,
+            "range": "± 295424",
+            "unit": "ns/iter"
+          },
+          {
+            "name": "aoc_2022_2",
+            "value": 32231371,
+            "range": "± 4523679",
+            "unit": "ns/iter"
+          },
+          {
+            "name": "aoc_2022_4",
+            "value": 42560179,
+            "range": "± 4259858",
+            "unit": "ns/iter"
+          },
+          {
+            "name": "fibonachi",
+            "value": 236964788,
+            "range": "± 13910252",
+            "unit": "ns/iter"
+          },
+          {
+            "name": "prints",
+            "value": 28514255,
+            "range": "± 3011346",
+            "unit": "ns/iter"
+          },
+          {
+            "name": "string_manips",
+            "value": 420676623,
+            "range": "± 14841518",
             "unit": "ns/iter"
           }
         ]

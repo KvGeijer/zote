@@ -177,8 +177,8 @@ pub fn get_builtins() -> Vec<Rc<dyn Builtin>> {
 
     builtins.new_2arg("push", |item, stack| match (item, stack) {
         (value, Value::Collection(Collection::List(list))) => {
-            list.push(value);
-            Ok(Value::Nil)
+            list.push(value.clone());
+            Ok(value)
         }
         (_, _) => RunError::error("Second argument to push must be a list".to_string()),
     });

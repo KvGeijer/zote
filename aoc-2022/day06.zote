@@ -6,5 +6,5 @@ for size in [4, 14]
 		if len(set(marker)) == size {
 			print(end);
 			break;
-		};
-	};
+		}
+	}

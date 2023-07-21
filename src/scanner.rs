@@ -85,7 +85,8 @@ pub struct TokenInfo {
     pub token: Token,
     pub start_loc: CodeLoc,
     pub end_loc: CodeLoc,
-    pub string: String, // Another slow thing. Could use a reference here...
+    pub string: String,  // Another slow thing. Could use a reference here...
+    pub seperated: bool, // Is there some seperation (\n or " " eg) before the token? Used for separating calls/indexing
 }
 
 type Constructor = Box<dyn Fn(&str) -> Token + Sync>;
@@ -156,13 +157,13 @@ pub fn tokenize(code: &str, error_reporter: &mut ErrorReporter) -> Vec<TokenInfo
 
     // Change to char indexes?
     while loc.index() < code.len() {
-        remove_separators(&mut loc, code);
+        let seperated = remove_separators(&mut loc, code);
 
         if loc.index() == code.len() {
             break;
         }
 
-        match parse_token(code, &mut loc) {
+        match parse_token(code, &mut loc, seperated) {
             // For now just ignore all comments
             Some(token_info) if matches!(token_info.token, Token::Comment(_)) => continue,
             Some(token_info) => tokens.push(token_info),
@@ -179,22 +180,31 @@ pub fn tokenize(code: &str, error_reporter: &mut ErrorReporter) -> Vec<TokenInfo
         start_loc: loc,
         end_loc: loc,
         string: "EOF".to_string(),
+        seperated: true,
     });
 
     tokens
 }
 
-fn remove_separators(loc: &mut CodeLoc, code: &str) {
+fn remove_separators(loc: &mut CodeLoc, code: &str) -> bool {
+    let mut matched = false;
     while loc.index() < code.len() {
         match &code[loc.index()..].chars().next() {
-            Some(' ') | Some('\t') | Some('\r') => loc.adv_col(1, 1),
-            Some('\n') => loc.adv_line(),
-            _ => return,
+            Some(' ') | Some('\t') | Some('\r') => {
+                loc.adv_col(1, 1);
+                matched = true;
+            }
+            Some('\n') => {
+                loc.adv_line();
+                matched = true;
+            }
+            _ => break,
         }
     }
+    matched
 }
 
-fn parse_token(code: &str, loc: &mut CodeLoc) -> Option<TokenInfo> {
+fn parse_token(code: &str, loc: &mut CodeLoc, sep: bool) -> Option<TokenInfo> {
     // Basically I want a longest match regex tool.
     // But it is not part of the package, so instead we have this inefficient loop
     PATTERNS
@@ -215,6 +225,7 @@ fn parse_token(code: &str, loc: &mut CodeLoc) -> Option<TokenInfo> {
                 start_loc,
                 end_loc,
                 string: cap.to_string(),
+                seperated: sep,
             }
         })
 }

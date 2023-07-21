@@ -13,7 +13,7 @@ solve := \length -> {
 	points := [];
 	for _ in [0:length] {
 		[0, 0] >> push(points);
-	};
+	}
 	visited := set();
 
 	for (dir, len) in instrs {
@@ -23,7 +23,7 @@ solve := \length -> {
 				'U' -> points[0][1] += 1,
 				'L' -> points[0][0] -= 1,
 				'R' -> points[0][0] += 1,
-			};
+			}
 
 			for (i, ((x_front, y_front), (x_back, y_back))) in enumerate(zip(points[:-1], points[1:])) {
 				match [x_back - x_front, y_back - y_front] {
@@ -44,14 +44,14 @@ solve := \length -> {
 						points[i+1][0] -= sgn(x);
 					},
 					_ -> {},
-				};
+				}
 
 				points[-1] >> insert(visited);
-			};
-		};
-	};
+			}
+		}
+	}
 
 	visited >> len >> print;
-};
+}; // TODO: Remove need for semicolon here?
 
 [2, 10] >> map(solve);

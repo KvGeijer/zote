@@ -3,7 +3,7 @@ fn simple_overlap(left, right) -> {
 		>> intersect(set(right))
 		>> keys
 		>> head
-};
+}
 
 fn priority(char) -> {
 	ascii := to_ascii(char);
@@ -12,7 +12,7 @@ fn priority(char) -> {
 	} else {
 		ascii - to_ascii("A") + 27
 	}
-};
+}
 
 lines := read("aoc-2022/inputs/03.txt")
 	>> split("\n") 
@@ -35,7 +35,7 @@ fn group_overlap((e1, e2, e3)) -> {
 		>> intersect(set(e3)) 
 		>> keys 
 		>> head
-};
+}
 
 [0:len(lines)/3] 
 	>> map(\group -> 

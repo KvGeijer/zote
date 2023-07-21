@@ -12,8 +12,8 @@ for instr in instrs {
 			current += int(val);
 		},
 		_ -> current >> push(cycle_pos), // TODO: Pattern match against singleton iter
-	};
-};
+	}
+}
 
 // Part 1
 (cycle_pos >> enumerate)[19::40] 
@@ -29,9 +29,9 @@ for row in [0:rows] {
 	for col in [0:cols] {
 		pos := cycle_pos[row*cols + col];
 		(if abs(pos - col) <= 1 '#' else ' ') >> push(line);
-	};
+	}
 	line >> join("") >> push(crt);
-};
+}
 
 crt >> join("\n") >> print;
 

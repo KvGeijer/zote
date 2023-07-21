@@ -403,6 +403,11 @@ impl<'a> Parser<'a> {
     fn add_calls(&mut self, base: ExprNode) -> Option<ExprNode> {
         // Takes a base expressions, and adds     ( "(" expr_list ")" | "[" indexing "]" )*
 
+        if self.peek_info().seperated {
+            // Only allow calls/indexing if not seperated at all
+            return Some(base);
+        }
+
         let start = base.start_loc;
         if self.match_token(Token::LPar) {
             let args = self.accept_exprs_list(&Token::RPar)?;
@@ -878,6 +883,7 @@ mod tests {
             start_loc: CodeLoc::new(0, 0, 0),
             end_loc: CodeLoc::new(0, 0, 0),
             string: "fake string".to_string(),
+            seperated: false,
         }
     }
 

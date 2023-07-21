@@ -1,6 +1,6 @@
 use either::Either;
 
-use super::{expressions::MAX_ARGS, AstNode, ExprNode, LValue, Parser};
+use super::{expressions::MAX_ARGS, AstNode, Expr, ExprNode, LValue, Parser};
 use crate::scanner::Token;
 
 pub type StmtNode = AstNode<Stmt>;
@@ -28,7 +28,10 @@ impl<'a> Parser<'a> {
 
         while self.peek() != &terminator && !self.at_end() {
             match self.statement(true) {
-                Either::Left(stmt) => stmts.stmts.push(stmt),
+                Either::Left(stmt) => {
+                    stmts.stmts.push(stmt);
+                    stmts.output = false;
+                }
                 Either::Right(expr) => {
                     let start = expr.start_loc;
                     let end = expr.end_loc;
@@ -36,14 +39,15 @@ impl<'a> Parser<'a> {
                         .stmts
                         .push(StmtNode::new(Stmt::Expr(expr), start, end));
                     stmts.output = true;
-                    if self.peek() != &terminator {
-                        self.error(&format!("Expect {:?} to terminate statements", terminator));
-                        return Err(stmts);
-                    }
+                    // if self.peek() == &terminator {
+                    //     // self.error(&format!("Expect {:?} to terminate statements", terminator));
+                    //     // return Err(stmts);
+                    // }
                 }
             }
         }
 
+        // TODO: Remove?
         if stmts
             .stmts
             .iter()
@@ -85,11 +89,11 @@ impl<'a> Parser<'a> {
             let body = self.expression()?;
             let end = body.end_loc;
 
-            // TODO Do we want to change this?
-            self.accept(
-                Token::Semicolon,
-                "Function decl statement must end with ';'",
-            )?;
+            if !self.match_token(Token::Semicolon) && !semicolon_elision(&body) {
+                // A ; was expected, but not found
+                self.error("Function decl statement with singleton expression must end with ';'");
+                return None;
+            }
             let id = format!("fn {name}/{}", params.len());
             let func = ExprNode::new(
                 super::Expr::FunctionDefinition(id, params, body),
@@ -150,12 +154,26 @@ impl<'a> Parser<'a> {
                 start,
                 end,
             )))
-        } else if !allow_expr || self.peek() == &Token::Semicolon {
-            let end = *self.peek_end_loc();
-            self.accept(Token::Semicolon, "Expect ';' after expression statement")?;
+        } else if self.match_token(Token::Semicolon) {
+            let end = *self.peek_last_end_loc().unwrap();
             Some(Either::Left(StmtNode::new(Stmt::Expr(expr), start, end)))
+        } else if !allow_expr && !semicolon_elision(&expr) {
+            // A ; was expected, but not found
+            self.error("Expect ';' after expression statement");
+            None
         } else {
             Some(Either::Right(expr))
         }
+    }
+}
+
+fn semicolon_elision(expr: &ExprNode) -> bool {
+    match expr.node.as_ref() {
+        Expr::While(_, block)
+        | Expr::For(_, _, block)
+        | Expr::If(_, block, None)
+        | Expr::If(_, _, Some(block)) => matches!(block.node.as_ref(), Expr::Block(_)),
+        Expr::Match(_, _) | Expr::Block(_) => true,
+        _ => false,
     }
 }

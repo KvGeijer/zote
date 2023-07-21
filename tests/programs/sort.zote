@@ -4,7 +4,7 @@ sorted := [0:size];
 
 for i in sorted {
 	(i + 23) * 11 % size >> push(unsorted); 
-};
+}
 
 eq := \ls, orig -> ls == orig;
 

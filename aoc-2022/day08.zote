@@ -1,7 +1,7 @@
 read("aoc-2022/inputs/08.txt")
 	>> split("\n")
 	>> map(\>> map(int))
-	 :>> trees; 
+	:>> trees; 
 
 
 visible := 0;
@@ -20,8 +20,8 @@ for (row, tree_row) in trees >> enumerate {
 			if trees[row2][col] >= tree {
 				seeing = false;
 				break;
-			};
-		};
+			}
+		}
 		vis or= seeing;
 		score *= count;
 		
@@ -32,8 +32,8 @@ for (row, tree_row) in trees >> enumerate {
 			if trees[row2][col] >= tree {
 				seeing = false;
 				break;
-			};
-		};
+			}
+		}
 		vis or= seeing;
 		score *= count;
 		
@@ -44,8 +44,8 @@ for (row, tree_row) in trees >> enumerate {
 			if trees[row][col2] >= tree {
 				seeing = false;
 				break;
-			};
-		};
+			}
+		}
 		vis or= seeing;
 		score *= count;
 		
@@ -56,15 +56,15 @@ for (row, tree_row) in trees >> enumerate {
 			if trees[row][col2] >= tree {
 				seeing = false;
 				break;
-			};
-		};
+			}
+		}
 		vis or= seeing;
 		score *= count;
 		
 		visible = visible + vis;
 		scenic = max(scenic, score);
-	};
-};
+	}
+}
 
 visible >> print;
 scenic >> print;

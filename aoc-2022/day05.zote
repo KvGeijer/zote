@@ -7,8 +7,8 @@ fn simple_movement(stacks) -> {
 		(nbr, from, to) := (instr >> split(" "))[1::2] >> map(int);
 
 		for _ in [0:nbr] stacks[from - 1] >> pop >> push(stacks[to - 1]);
-	};
-};
+	}
+}
 
 fn cool_movement(stacks) -> {
 	for instr in move_lines[:] {
@@ -16,8 +16,8 @@ fn cool_movement(stacks) -> {
 
 		stacks[to-1] ++= stacks[from-1][-nbr:];
 		stacks[from-1] = stacks[from-1][:-nbr];
-	};
-};
+	}
+}
 
 for movement in [simple_movement, cool_movement] {
 	stacks := [];
@@ -26,8 +26,8 @@ for movement in [simple_movement, cool_movement] {
 	for row in rev(state_lines[:-1]) {
 		for (stack, item) in zip(stacks, row[1::4]) {
 			if (item != " ") push(item, stack);
-		};
-	};
+		}
+	}
 
 	movement(stacks);
 

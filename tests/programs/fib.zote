@@ -2,7 +2,7 @@ fn fib(n) -> {
 	// Just testing out returns, and comments
 	if n < 0 {
 		return 0;
-	};
+	}
 	
 	if n == 0
 		1
@@ -14,7 +14,7 @@ fn fib(n) -> {
 
 		x = fib(n-2) + (y = fib(n-1))
 	}
-};
+}
 
 
 serie := [];

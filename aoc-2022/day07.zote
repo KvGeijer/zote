@@ -1,7 +1,7 @@
 read("aoc-2022/inputs/07.txt")
 	>> split("\n")
 	>> map(\>> split(" "))
-	 :>> instrs;
+	:>> instrs;
 
 tree := dict();
 path := [];
@@ -13,8 +13,8 @@ for instr in instrs {
 		("$", "ls") -> {},
 		("dir", _) -> {},
 		(size, name) -> tree[path ++ [name]] = int(size), 
-	};
-};
+	}
+}
 
 sizes := dict();
 for (path, size) in tree {
@@ -23,8 +23,8 @@ for (path, size) in tree {
 		if !in(path, sizes) sizes[path] = 0;
 		sizes[path] += size;
 		path >> pop;
-	};
-};
+	}
+}
 
 sizes
 	>> values

@@ -1,5 +1,5 @@
 window.BENCHMARK_DATA = {
-  "lastUpdate": 1689951278578,
+  "lastUpdate": 1691145757874,
   "repoUrl": "https://github.com/KvGeijer/zote",
   "entries": {
     "Rust Benchmark": [
@@ -2537,6 +2537,66 @@ window.BENCHMARK_DATA = {
             "name": "string_manips",
             "value": 420676623,
             "range": "± 14841518",
+            "unit": "ns/iter"
+          }
+        ]
+      },
+      {
+        "commit": {
+          "author": {
+            "email": "kare.kvg@gmail.com",
+            "name": "Kåre von Geijer",
+            "username": "KvGeijer"
+          },
+          "committer": {
+            "email": "kare.kvg@gmail.com",
+            "name": "Kåre von Geijer",
+            "username": "KvGeijer"
+          },
+          "distinct": true,
+          "id": "83e3c387f5abd260daa8c5adf253d50a8b0f7997",
+          "message": "Solve monkey business",
+          "timestamp": "2023-08-04T12:38:46+02:00",
+          "tree_id": "f08ba27a184a912aed23cb65563f12e7a269aa35",
+          "url": "https://github.com/KvGeijer/zote/commit/83e3c387f5abd260daa8c5adf253d50a8b0f7997"
+        },
+        "date": 1691145757418,
+        "tool": "cargo",
+        "benches": [
+          {
+            "name": "aoc_2022_1",
+            "value": 1186198,
+            "range": "± 20945",
+            "unit": "ns/iter"
+          },
+          {
+            "name": "aoc_2022_2",
+            "value": 21674494,
+            "range": "± 104530",
+            "unit": "ns/iter"
+          },
+          {
+            "name": "aoc_2022_4",
+            "value": 27572459,
+            "range": "± 55121",
+            "unit": "ns/iter"
+          },
+          {
+            "name": "fibonachi",
+            "value": 169855477,
+            "range": "± 2510530",
+            "unit": "ns/iter"
+          },
+          {
+            "name": "prints",
+            "value": 22826730,
+            "range": "± 234199",
+            "unit": "ns/iter"
+          },
+          {
+            "name": "string_manips",
+            "value": 213730886,
+            "range": "± 1250924",
             "unit": "ns/iter"
           }
         ]

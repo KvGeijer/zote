@@ -29,6 +29,7 @@ pub fn get_builtins() -> Vec<Rc<dyn Builtin>> {
         DictBuiltin,
         SetBuiltin,
         MaxBuiltin,
+        MinBuiltin,
         JoinBuiltin,
         SortBuiltin
     ];
@@ -149,22 +150,6 @@ pub fn get_builtins() -> Vec<Rc<dyn Builtin>> {
         arg.to_iter()?.next().ok_or(RunError::bare_error(
             "Cannot take head of empty iterator".to_string(),
         ))
-    });
-
-    builtins.new_1arg("min", |arg| {
-        arg.to_iter()?
-            .try_reduce(|x, y| match x.partial_cmp(&y) {
-                None => RunError::error(format!(
-                    "Cannot compare {} with {}. For finding min in an iterable.",
-                    x.type_of(),
-                    y.type_of(),
-                )),
-                Some(Ordering::Greater) => Ok(y),
-                Some(_) => Ok(x),
-            })?
-            .ok_or(RunError::bare_error(
-                "Canot get min from empty iterator".to_string(),
-            ))
     });
 
     builtins.new_1arg("abs", |arg| {
@@ -414,6 +399,43 @@ impl Builtin for MaxBuiltin {
 
     fn name(&self) -> &str {
         "max"
+    }
+
+    fn arity(&self) -> &str {
+        "[>0]"
+    }
+}
+
+/// If a single value, iterates over it to find max, and if several values, the max of them
+struct MinBuiltin;
+impl Builtin for MinBuiltin {
+    fn run(&self, args: Vec<Value>) -> RunRes<Value> {
+        let mut value_iter = if args.len() == 1 {
+            args[0].to_iter()?
+        } else {
+            args.into_iter()
+        };
+        value_iter
+            .try_reduce(|x, y| match x.partial_cmp(&y) {
+                None => RunError::error(format!(
+                    "Cannot compare {} with {}. For finding min among values.",
+                    x.type_of(),
+                    y.type_of(),
+                )),
+                Some(Ordering::Less) => Ok(x),
+                Some(_) => Ok(y),
+            })?
+            .ok_or(RunError::bare_error(
+                "Canot get min from empty iterator".to_string(),
+            ))
+    }
+
+    fn accept_arity(&self, arity: usize) -> bool {
+        arity > 0
+    }
+
+    fn name(&self) -> &str {
+        "min"
     }
 
     fn arity(&self) -> &str {

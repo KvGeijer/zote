@@ -131,3 +131,11 @@ fn aoc_2022_14() {
     let output = interpret("aoc-2022/day14.zote");
     assert_eq!(output, "1078\n30157\n");
 }
+
+// The fact that this is incredibly slow already makes me scared for future solutions (day 16 and 19)
+#[ignore]
+#[test]
+fn aoc_2022_15() {
+    let output = interpret("aoc-2022/day15.zote");
+    assert_eq!(output, "5525990\n11756174628223\n");
+}

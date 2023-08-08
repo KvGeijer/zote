@@ -27,6 +27,7 @@ pub enum Expr {
     While(ExprNode, ExprNode),
     For(LValue, ExprNode, ExprNode),
     Break, // TODO Do we want to return an optional value from this?
+    Continue,
     Return(Option<ExprNode>),
     Nil,
     List(ListContent),
@@ -114,6 +115,7 @@ impl<'a> Parser<'a> {
         match self.peek() {
             Token::Return => self.accept_return(),
             Token::Break => self.accept_break(),
+            Token::Continue => self.accept_continue(),
             _ => self.assignment(),
         }
     }
@@ -619,6 +621,13 @@ impl<'a> Parser<'a> {
         Some(ExprNode::new(Expr::Break, start, end))
     }
 
+    fn accept_continue(&mut self) -> Option<ExprNode> {
+        let start = *self.peek_start_loc();
+        let end = *self.peek_end_loc();
+        self.accept(Token::Continue, "Internal error at continue")?;
+        Some(ExprNode::new(Expr::Continue, start, end))
+    }
+
     fn accept_if(&mut self) -> Option<ExprNode> {
         let start = *self.peek_start_loc();
         self.accept(Token::If, "Internal error at if")?;
@@ -813,6 +822,7 @@ impl Expr {
             Expr::While(_, _) => "while",
             Expr::For(_, _, _) => "for",
             Expr::Break => "break",
+            Expr::Continue => "continue",
             Expr::Return(_) => "return",
             Expr::Nil => "nil",
             Expr::List(_) => "list",

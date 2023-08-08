@@ -31,6 +31,7 @@ pub fn eval(expr: &ExprNode, env: &Rc<Environment>) -> RunRes<Value> {
         Expr::While(cond, repeat) => eval_while(cond, repeat, env),
         Expr::For(lvalue, iterable, body) => eval_for(lvalue, eval(iterable, env)?, body, env),
         Expr::Break => Err(RunError::Break),
+        Expr::Continue => Err(RunError::Continue),
         Expr::Call(callee, args) => eval_call(
             eval(callee, env)?,
             args.iter()
@@ -138,6 +139,7 @@ fn eval_while(cond: &ExprNode, repeat: &ExprNode, env: &Rc<Environment>) -> RunR
     while eval(cond, env)?.truthy() {
         match eval(repeat, env) {
             Err(RunError::Break) => break,
+            Err(RunError::Continue) => continue,
             otherwise => otherwise?,
         };
     }
@@ -157,6 +159,7 @@ fn eval_for(
         lvalue.assign(value, &env)?;
         match eval(body, &env) {
             Err(RunError::Break) => break,
+            Err(RunError::Continue) => continue,
             other => other,
         }?;
     }

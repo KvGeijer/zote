@@ -39,10 +39,13 @@ pub fn interpret(program: &Stmts, error_reporter: &mut ErrorReporter, env: &mut 
         Ok(None) => (),
         Err(RunError::Error(trace)) => error_reporter.runtime_error(&format!("{trace}")),
         Err(RunError::Break) => error_reporter.runtime_panic("Break propagated to top-level scope"),
-        // Should we allow this and just print nicely?
-        Err(RunError::Return(v)) => error_reporter.runtime_panic(&format!(
-            "Return {} propagated to top-level scope",
-            v.stringify()
-        )),
+        Err(RunError::Continue) => {
+            error_reporter.runtime_panic("Continue propagated to top-level scope")
+        }
+        // Just prints and terminates
+        Err(RunError::Return(v)) => match v {
+            Value::Nil => (),
+            v => println!("{}", v.stringify()),
+        },
     }
 }

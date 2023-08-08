@@ -113,3 +113,9 @@ fn aoc_2022_11() {
     let output = interpret("aoc-2022/day11.zote");
     assert_eq!(output, "120384\n32059801242\n");
 }
+
+#[test]
+fn aoc_2022_12() {
+    let output = interpret("aoc-2022/day12.zote");
+    assert_eq!(output, "380\n375\n");
+}

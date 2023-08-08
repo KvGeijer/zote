@@ -34,6 +34,7 @@ pub enum Token {
     While,
     // Var, // Might want to change?
     Break,
+    Continue,
     // In,
     RArrow,
     // WideRArrow,
@@ -109,6 +110,7 @@ lazy_static! {
         (r"while", |_| Token::While),
         // (r"var", |_| Token::Var),
         (r"break", |_| Token::Break),
+        (r"continue", |_| Token::Continue),
         // (r"in", |_| Token::In),
         (r"->", |_| Token::RArrow),
         // (r"=>", |_| Token::WideRArrow),

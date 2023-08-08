@@ -36,6 +36,7 @@ impl<T> RunResTrait for RunRes<T> {
 pub enum RunError {
     Error(Box<Trace>),
     Break, // Maybe include code loc for error messages? Or just handle that with static analysis?
+    Continue,
     Return(Value),
 }
 

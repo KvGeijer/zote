@@ -3,7 +3,8 @@ use std::{cmp::Ordering, fs::read_to_string, rc::Rc};
 
 use crate::interpreter::{
     collections::{slice_iter, Collection, Dict, SliceValue},
-    RunError, RunRes, Value,
+    environment::Environment,
+    statements, RunError, RunRes, Value,
 };
 
 pub trait Builtin {
@@ -171,6 +172,28 @@ pub fn get_builtins() -> Vec<Rc<dyn Builtin>> {
             .cast_numerical("Abs can only be callable on a numerical")?
             .abs()
             .into())
+    });
+
+    builtins.new_1arg("typeof", |arg| Ok(arg.type_of().to_string().into()));
+
+    builtins.new_1arg("eval", |arg| {
+        // Very powerful... And probably wrong...
+        let mut error_reporter = crate::errors::ErrorReporter::new();
+        let tokens = crate::scanner::tokenize(
+            &arg.cast_string("Can only eval strings")?,
+            &mut error_reporter,
+        );
+        if let Some(stmts) = crate::parser::parse(&tokens, &mut error_reporter) {
+            // Should we look at error_reporter instead? Probably way better
+            let env = Environment::new();
+            match statements::eval_statements(&stmts, &env) {
+                Ok(Some(val)) => Ok(val),
+                Ok(None) => Ok(Value::Nil),
+                Err(err) => Err(err),
+            }
+        } else {
+            RunError::error("Failed to parse string as zote".to_string())
+        }
     });
 
     builtins.new_2arg("const", |_, val| Ok(val));

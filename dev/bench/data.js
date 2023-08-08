@@ -1,5 +1,5 @@
 window.BENCHMARK_DATA = {
-  "lastUpdate": 1691489846627,
+  "lastUpdate": 1691490247583,
   "repoUrl": "https://github.com/KvGeijer/zote",
   "entries": {
     "Rust Benchmark": [
@@ -2657,6 +2657,66 @@ window.BENCHMARK_DATA = {
             "name": "string_manips",
             "value": 395126560,
             "range": "± 12733515",
+            "unit": "ns/iter"
+          }
+        ]
+      },
+      {
+        "commit": {
+          "author": {
+            "email": "kare.kvg@gmail.com",
+            "name": "Kåre von Geijer",
+            "username": "KvGeijer"
+          },
+          "committer": {
+            "email": "kare.kvg@gmail.com",
+            "name": "Kåre von Geijer",
+            "username": "KvGeijer"
+          },
+          "distinct": true,
+          "id": "8f84c9ebcc76b1b3b3c1971ae0fee2128f933964",
+          "message": "Add ',' elision in match statements after blocks\n\nVery much inspired by Rust when it comes to syntax...",
+          "timestamp": "2023-08-08T12:19:53+02:00",
+          "tree_id": "dbb64a4f0818236576cd64316588c1a02fb78043",
+          "url": "https://github.com/KvGeijer/zote/commit/8f84c9ebcc76b1b3b3c1971ae0fee2128f933964"
+        },
+        "date": 1691490247017,
+        "tool": "cargo",
+        "benches": [
+          {
+            "name": "aoc_2022_1",
+            "value": 1205334,
+            "range": "± 19699",
+            "unit": "ns/iter"
+          },
+          {
+            "name": "aoc_2022_2",
+            "value": 21766048,
+            "range": "± 170085",
+            "unit": "ns/iter"
+          },
+          {
+            "name": "aoc_2022_4",
+            "value": 27565074,
+            "range": "± 103838",
+            "unit": "ns/iter"
+          },
+          {
+            "name": "fibonachi",
+            "value": 170182379,
+            "range": "± 1874345",
+            "unit": "ns/iter"
+          },
+          {
+            "name": "prints",
+            "value": 23231700,
+            "range": "± 249351",
+            "unit": "ns/iter"
+          },
+          {
+            "name": "string_manips",
+            "value": 216589236,
+            "range": "± 914193",
             "unit": "ns/iter"
           }
         ]

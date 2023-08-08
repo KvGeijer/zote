@@ -9,11 +9,11 @@ for row in [0:len(problem_map)] for col in [0:len(problem_map[0])] {
 		"E" -> {
 			start = [row, col];
 			problem_map[row][col] = 'z';
-		},
+		}
 		"S" -> {
 			end = [row, col];
 			problem_map[row][col] = 'a';
-		},
+		}
 		_ -> {},
 	}
 }

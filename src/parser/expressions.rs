@@ -694,7 +694,6 @@ impl<'a> Parser<'a> {
         while !self.match_token(Token::RBrace) {
             let lvalue = self.lvalue(true)?;
 
-            // I would have prefered -> here, but then it collides with a function def :/
             self.accept(
                 Token::RArrow,
                 "Expect \"->\" to follow lvalues in match block",
@@ -702,10 +701,12 @@ impl<'a> Parser<'a> {
 
             let block = self.expression()?;
 
-            self.accept(
-                Token::Comma,
-                "Expect \",\" to follow rvalues in match block",
-            )?;
+            if !self.match_token(Token::Comma)
+                && !matches!(block.node.as_ref(), Expr::Block { 0: _ })
+            {
+                self.error("Expect \",\" to follow rvalues in match block");
+                return None;
+            }
 
             arms.push((lvalue, block));
         }

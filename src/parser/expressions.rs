@@ -211,18 +211,21 @@ impl<'a> Parser<'a> {
 
     fn add_pipe_call(&mut self, expr: ExprNode) -> Option<ExprNode> {
         let start = expr.start_loc;
-        let (func, mut args, end) = self.accept_call()?;
+        let (func, mut args, end) = self.accept_call_pipe()?;
         args.insert(0, expr); // Does this really work with ownership?
         Some(ExprNode::new(Expr::Call(func, args), start, end))
     }
 
-    fn accept_call(&mut self) -> Option<(ExprNode, Vec<ExprNode>, CodeLoc)> {
-        // pipe_call   → IDENTIFIER | primary ( "(" exprs_list ")" )+
-        // Just like a call, but must be a call or id, not boil down somehow
+    fn accept_call_pipe(&mut self) -> Option<(ExprNode, Vec<ExprNode>, CodeLoc)> {
+        // call_pipe   → lambda | IDENTIFIER | primary ( "(" exprs_list ")" )+
+        // Really accepts a variable, variable with an arg list, or a lambda
 
-        // TODO This should acceps labmdas as well as variables now...
-
-        let call = self.call()?;
+        // Similar to self.call, but accepting lambda as well
+        let call = if self.peek() == &Token::Backslash {
+            self.lambda()?
+        } else {
+            self.call()?
+        };
 
         // Is it just a variable?
         if let &Expr::Var(_) = call.node.as_ref() {
@@ -236,8 +239,13 @@ impl<'a> Parser<'a> {
         } = call
         {
             Some((caller, args, end_loc))
+        } else if matches!(call.node.as_ref(), Expr::FunctionDefinition(_, _, _)) {
+            let end = call.end_loc;
+            Some((call, vec![], end))
         } else {
-            self.error("Expected variable or call expression following pipe");
+            self.error(
+                "Expected variable, partially applied function call, or lambda following pipe",
+            );
             None
         }
     }
@@ -473,14 +481,14 @@ impl<'a> Parser<'a> {
     }
 
     fn accept_exprs_list(&mut self, terminator: &Token) -> Option<Vec<ExprNode>> {
-        // exprs_list      → ( expression ( "," expression )* )? ;
+        // exprs_list      → ( expression ( "," expression )* )? ","? ;
         // The argument "terminator" will directly follow the optional list
         let mut args = if terminator == self.peek() {
             vec![]
         } else {
             vec![self.expression()?]
         };
-        while self.match_token(Token::Comma) {
+        while self.match_token(Token::Comma) && self.peek() != terminator {
             args.push(self.expression()?);
         }
         Some(args)

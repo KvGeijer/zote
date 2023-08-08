@@ -27,7 +27,7 @@ impl<'a> Parser<'a> {
         };
 
         while self.peek() != &terminator && !self.at_end() {
-            match self.statement(true) {
+            match self.statement(&terminator) {
                 Either::Left(stmt) => {
                     stmts.stmts.push(stmt);
                     stmts.output = false;
@@ -60,8 +60,8 @@ impl<'a> Parser<'a> {
     }
 
     // If allow_expr is on, it will match an expression instead of causing error if there is no closing ;
-    fn statement(&mut self, allow_expr: bool) -> Either<StmtNode, ExprNode> {
-        if let Some(node) = self.fn_statement(allow_expr) {
+    fn statement(&mut self, terminator: &Token) -> Either<StmtNode, ExprNode> {
+        if let Some(node) = self.fn_statement(terminator) {
             node
         } else {
             // Should we propagate a result to here instead?
@@ -74,11 +74,11 @@ impl<'a> Parser<'a> {
         }
     }
 
-    fn fn_statement(&mut self, allow_expr: bool) -> Option<Either<StmtNode, ExprNode>> {
+    fn fn_statement(&mut self, terminator: &Token) -> Option<Either<StmtNode, ExprNode>> {
         // decl_stmt | "fn" var "(" parameters? ")" "->" expression ;
         let start = *self.peek_start_loc();
         if !self.match_token(Token::Fn) {
-            self.rest_stmt(allow_expr)
+            self.rest_stmt(terminator)
         } else if let Token::Identifier(name) = self.peek() {
             let name = name.to_string();
             self.take();
@@ -131,7 +131,7 @@ impl<'a> Parser<'a> {
         }
     }
 
-    fn rest_stmt(&mut self, allow_expr: bool) -> Option<Either<StmtNode, ExprNode>> {
+    fn rest_stmt(&mut self, terminator: &Token) -> Option<Either<StmtNode, ExprNode>> {
         // varDecl        → (expression | lvalue ":=" expression | expression ":>>" lvalue) ";" ;
         let start = *self.peek_start_loc();
         let expr = self.expression()?; // We can't separate lvalues and assignmen here :/
@@ -157,7 +157,7 @@ impl<'a> Parser<'a> {
         } else if self.match_token(Token::Semicolon) {
             let end = *self.peek_last_end_loc().unwrap();
             Some(Either::Left(StmtNode::new(Stmt::Expr(expr), start, end)))
-        } else if !allow_expr && !semicolon_elision(&expr) {
+        } else if !semicolon_elision(&expr) && self.peek() != terminator {
             // A ; was expected, but not found
             self.error("Expect ';' after expression statement");
             None
@@ -172,7 +172,9 @@ fn semicolon_elision(expr: &ExprNode) -> bool {
         Expr::While(_, block)
         | Expr::For(_, _, block)
         | Expr::If(_, block, None)
-        | Expr::If(_, _, Some(block)) => matches!(block.node.as_ref(), Expr::Block(_)),
+        | Expr::If(_, _, Some(block)) => {
+            matches!(block.node.as_ref(), Expr::Block(_)) || semicolon_elision(block)
+        }
         Expr::Match(_, _) | Expr::Block(_) => true,
         _ => false,
     }

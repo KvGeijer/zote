@@ -1,5 +1,5 @@
 window.BENCHMARK_DATA = {
-  "lastUpdate": 1691493332075,
+  "lastUpdate": 1691496343487,
   "repoUrl": "https://github.com/KvGeijer/zote",
   "entries": {
     "Rust Benchmark": [
@@ -2777,6 +2777,66 @@ window.BENCHMARK_DATA = {
             "name": "string_manips",
             "value": 213552148,
             "range": "± 2702817",
+            "unit": "ns/iter"
+          }
+        ]
+      },
+      {
+        "commit": {
+          "author": {
+            "email": "kare.kvg@gmail.com",
+            "name": "Kåre von Geijer",
+            "username": "KvGeijer"
+          },
+          "committer": {
+            "email": "kare.kvg@gmail.com",
+            "name": "Kåre von Geijer",
+            "username": "KvGeijer"
+          },
+          "distinct": true,
+          "id": "6561609587725676c887cfaa482b715a96660086",
+          "message": "Fix semicolon elision.\n\nAllowed everywhere as we did not properly limit experssion stmts. Now\nthat is fixed (exprs without ; only before terminator now).\n\nThe Elision is also improved to recursively allow elision, like in\n`for x in y for xx in yy {}`. Sort of a nice way to do products.",
+          "timestamp": "2023-08-08T13:58:01+02:00",
+          "tree_id": "54cb1ee20968494fd1c293b548651fef21b4cfbd",
+          "url": "https://github.com/KvGeijer/zote/commit/6561609587725676c887cfaa482b715a96660086"
+        },
+        "date": 1691496342909,
+        "tool": "cargo",
+        "benches": [
+          {
+            "name": "aoc_2022_1",
+            "value": 1176465,
+            "range": "± 26888",
+            "unit": "ns/iter"
+          },
+          {
+            "name": "aoc_2022_2",
+            "value": 19817237,
+            "range": "± 38423",
+            "unit": "ns/iter"
+          },
+          {
+            "name": "aoc_2022_4",
+            "value": 27860226,
+            "range": "± 154668",
+            "unit": "ns/iter"
+          },
+          {
+            "name": "fibonachi",
+            "value": 169744636,
+            "range": "± 2570479",
+            "unit": "ns/iter"
+          },
+          {
+            "name": "prints",
+            "value": 23331066,
+            "range": "± 278640",
+            "unit": "ns/iter"
+          },
+          {
+            "name": "string_manips",
+            "value": 215666338,
+            "range": "± 1135689",
             "unit": "ns/iter"
           }
         ]

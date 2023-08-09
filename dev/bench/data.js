@@ -1,5 +1,5 @@
 window.BENCHMARK_DATA = {
-  "lastUpdate": 1691569740821,
+  "lastUpdate": 1691586287679,
   "repoUrl": "https://github.com/KvGeijer/zote",
   "entries": {
     "Rust Benchmark": [
@@ -3077,6 +3077,66 @@ window.BENCHMARK_DATA = {
             "name": "string_manips",
             "value": 214635405,
             "range": "± 2245170",
+            "unit": "ns/iter"
+          }
+        ]
+      },
+      {
+        "commit": {
+          "author": {
+            "email": "kare.kvg@gmail.com",
+            "name": "Kåre von Geijer",
+            "username": "KvGeijer"
+          },
+          "committer": {
+            "email": "kare.kvg@gmail.com",
+            "name": "Kåre von Geijer",
+            "username": "KvGeijer"
+          },
+          "distinct": true,
+          "id": "32274efb228f30392f6f30b03aa7d30f25c94910",
+          "message": "Solve day 19\n\nActually not too bad runtime.",
+          "timestamp": "2023-08-09T14:59:06+02:00",
+          "tree_id": "9fa9da493bf8b7e067672a59e3825704a46c23dc",
+          "url": "https://github.com/KvGeijer/zote/commit/32274efb228f30392f6f30b03aa7d30f25c94910"
+        },
+        "date": 1691586286536,
+        "tool": "cargo",
+        "benches": [
+          {
+            "name": "aoc_2022_1",
+            "value": 1456377,
+            "range": "± 104324",
+            "unit": "ns/iter"
+          },
+          {
+            "name": "aoc_2022_2",
+            "value": 29685045,
+            "range": "± 2274367",
+            "unit": "ns/iter"
+          },
+          {
+            "name": "aoc_2022_4",
+            "value": 42315483,
+            "range": "± 2049029",
+            "unit": "ns/iter"
+          },
+          {
+            "name": "fibonachi",
+            "value": 228104974,
+            "range": "± 9033652",
+            "unit": "ns/iter"
+          },
+          {
+            "name": "prints",
+            "value": 28351261,
+            "range": "± 1947744",
+            "unit": "ns/iter"
+          },
+          {
+            "name": "string_manips",
+            "value": 393224020,
+            "range": "± 14615411",
             "unit": "ns/iter"
           }
         ]

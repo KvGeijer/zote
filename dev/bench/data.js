@@ -1,5 +1,5 @@
 window.BENCHMARK_DATA = {
-  "lastUpdate": 1691531393200,
+  "lastUpdate": 1691569740821,
   "repoUrl": "https://github.com/KvGeijer/zote",
   "entries": {
     "Rust Benchmark": [
@@ -3017,6 +3017,66 @@ window.BENCHMARK_DATA = {
             "name": "string_manips",
             "value": 363778034,
             "range": "± 8298867",
+            "unit": "ns/iter"
+          }
+        ]
+      },
+      {
+        "commit": {
+          "author": {
+            "email": "kare.kvg@gmail.com",
+            "name": "Kåre von Geijer",
+            "username": "KvGeijer"
+          },
+          "committer": {
+            "email": "kare.kvg@gmail.com",
+            "name": "Kåre von Geijer",
+            "username": "KvGeijer"
+          },
+          "distinct": true,
+          "id": "9b36ab4b9f69b9faf2bed5167f34035dc6fd0d95",
+          "message": "Solve day 18\n\nIt is quite a simple day, but for part two I wanted to do a dfs and\ninstead ran out of stack frames around 700 function calls in. I guess\nthat for every function call we have severeal ones in Rust, but it\nis still very bad. This could be way better in a vm solution, so I\nsaved that approach so we can test if out vm can do it.",
+          "timestamp": "2023-08-09T10:23:47+02:00",
+          "tree_id": "826f8d7d8d08e127379c2e96f8bc77ce1967a701",
+          "url": "https://github.com/KvGeijer/zote/commit/9b36ab4b9f69b9faf2bed5167f34035dc6fd0d95"
+        },
+        "date": 1691569740064,
+        "tool": "cargo",
+        "benches": [
+          {
+            "name": "aoc_2022_1",
+            "value": 1174983,
+            "range": "± 22714",
+            "unit": "ns/iter"
+          },
+          {
+            "name": "aoc_2022_2",
+            "value": 19497491,
+            "range": "± 31797",
+            "unit": "ns/iter"
+          },
+          {
+            "name": "aoc_2022_4",
+            "value": 27409856,
+            "range": "± 69965",
+            "unit": "ns/iter"
+          },
+          {
+            "name": "fibonachi",
+            "value": 170040095,
+            "range": "± 2326253",
+            "unit": "ns/iter"
+          },
+          {
+            "name": "prints",
+            "value": 22865869,
+            "range": "± 301463",
+            "unit": "ns/iter"
+          },
+          {
+            "name": "string_manips",
+            "value": 214635405,
+            "range": "± 2245170",
             "unit": "ns/iter"
           }
         ]

@@ -1,15 +1,26 @@
 # Improvement ideas for Zote
 
-* Add priority queue.
-  * Maybe just implement it in Zote in a stdlib? Would be a hassle to add it to the vm
+* Improve pattern matching:
+  * Match against types (very useful!)
+  * Match against singleton iterators
+  * Add guards (just an if statement in some way)
 
-* Function definitions in pipes
+* Start work on a real virtual machine interpreter. Could probably be a lot faster than the naive one.
+
+* Add decorators
+  * Mainly builtin memoize decorator
+  * Maybe also define your own, but when would you actually want this? In this small language... But gives oportunity to obfuscate :D
+
+* Fix += and similar shorthands. Now x op= y <-> x = x op y. But this breaks if x contains mutable calls (like C macros)
+
+* Stdlib functions for all binary expressions, to use for pipes
 
 * List of all stdib functions/builtins
 
 * Add nice range for loops such as `for i in 1:10`
 
-* Fix += and similar shorthands. Now x op= y <-> x = x op y. But this breaks if x contains mutable calls (like C macros)
+* Add priority queue.
+  * Maybe just implement it in Zote in a stdlib? Would be a hassle to add it to the vm
 
 * Make operations on env require it to me mutably borrowed.
 
@@ -19,22 +30,12 @@
   * Can then add _yield_ as a keyword to create generators.
   * Can create lazy maps (Maybe all map operations on iterators are lazy while ones on collections are not?) 
 
-* Tighten up grammar to improve inconsistencies such as "if true [1]", as that will seem as an indexing into true
-
 * Add different error types
 
 * Add tests for benches, so we at least can run them without error.
-
-* Should we have tuples? They are in place. They are more suitable when using as keys for example. 
-  * Or should we use them in some way for >> instead. So that 1 >> f(2, 3) is the same as (1, 2) >> f(3) or (1,2,3) >> f? 
 
 * Implement syntactic analysis for if/else expressions. If we use the value of such an expression we might want to force it to have both if and else? Could do for eg blocks as well.
 
 * Add structs.
   * What features should they have? For example would be nice to implement some point struct for AoC...
 
-* Expand standard library
-
-* Remove need for semicolons after blocks in some cases. Such as an expression statement ending with a block probably.
-
-* Start work on a real virtual machine interpreter. Could probably be a lot faster than the naive one.

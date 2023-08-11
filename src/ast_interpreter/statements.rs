@@ -52,9 +52,9 @@ fn decl(lvalue: &LValue, expr: &Option<ExprNode>, env: &Rc<Environment>) -> RunR
 #[cfg(test)]
 mod tests {
     use super::*;
+    use crate::ast_interpreter::functions::define_builtins;
+    use crate::ast_interpreter::runtime_error::RunError;
     use crate::errors::ErrorReporter;
-    use crate::interpreter::functions::define_builtins;
-    use crate::interpreter::runtime_error::RunError;
     use crate::parser::parse;
     use crate::scanner::tokenize;
 

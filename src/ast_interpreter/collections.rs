@@ -5,7 +5,7 @@ use std::{
 };
 
 use crate::{
-    interpreter::RunError,
+    ast_interpreter::RunError,
     parser::{ExprNode, Index, Slice},
 };
 

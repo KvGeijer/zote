@@ -436,8 +436,8 @@ fn eval_logical(
 #[cfg(test)]
 mod tests {
     use super::*;
+    use crate::ast_interpreter::functions::define_builtins;
     use crate::errors::ErrorReporter;
-    use crate::interpreter::functions::define_builtins;
     use crate::parser::parse;
     use crate::scanner::tokenize;
 

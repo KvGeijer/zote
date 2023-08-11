@@ -1,13 +1,13 @@
 #![feature(box_patterns, iterator_try_reduce, let_chains)]
 
+use ast_interpreter::InterpreterState;
 use errors::ErrorReporter;
-use interpreter::InterpreterState;
 use std::fs;
 use std::io::{stdin, stdout, Write};
 
+mod ast_interpreter;
 mod code_loc;
 mod errors;
-mod interpreter;
 mod parser;
 mod scanner;
 
@@ -60,6 +60,6 @@ fn run(code: &str, error_reporter: &mut ErrorReporter, state: &mut InterpreterSt
 
     if !error_reporter.had_compilation_error && let Some(stmts) = parser::parse(&tokens, error_reporter) {
         // Should we look at error_reporter instead? Probably way better
-        interpreter::interpret(&stmts, error_reporter, state);
+        ast_interpreter::interpret(&stmts, error_reporter, state);
     }
 }

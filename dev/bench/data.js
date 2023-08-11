@@ -1,5 +1,5 @@
 window.BENCHMARK_DATA = {
-  "lastUpdate": 1691754783495,
+  "lastUpdate": 1691755253305,
   "repoUrl": "https://github.com/KvGeijer/zote",
   "entries": {
     "Rust Benchmark": [
@@ -3437,6 +3437,66 @@ window.BENCHMARK_DATA = {
             "name": "string_manips",
             "value": 394452323,
             "range": "± 21071253",
+            "unit": "ns/iter"
+          }
+        ]
+      },
+      {
+        "commit": {
+          "author": {
+            "email": "kare.kvg@gmail.com",
+            "name": "Kåre von Geijer",
+            "username": "KvGeijer"
+          },
+          "committer": {
+            "email": "kare.kvg@gmail.com",
+            "name": "Kåre von Geijer",
+            "username": "KvGeijer"
+          },
+          "distinct": true,
+          "id": "984bf999677a213ccbb60ca9239e273dec25feff",
+          "message": "Update and rerank ideas\n\nNow that the it solves all of aoc 2022 the development should go back\nto some larger qol points. Mainly pattern matching, decorators and\na vm are the larger things to work on at this stage.",
+          "timestamp": "2023-08-11T13:54:04+02:00",
+          "tree_id": "12ff84dd60ede4d988dfcfec0c5ba1aa44a01b89",
+          "url": "https://github.com/KvGeijer/zote/commit/984bf999677a213ccbb60ca9239e273dec25feff"
+        },
+        "date": 1691755252456,
+        "tool": "cargo",
+        "benches": [
+          {
+            "name": "aoc_2022_1",
+            "value": 1498072,
+            "range": "± 130377",
+            "unit": "ns/iter"
+          },
+          {
+            "name": "aoc_2022_2",
+            "value": 29919786,
+            "range": "± 2312731",
+            "unit": "ns/iter"
+          },
+          {
+            "name": "aoc_2022_4",
+            "value": 41821407,
+            "range": "± 3782955",
+            "unit": "ns/iter"
+          },
+          {
+            "name": "fibonachi",
+            "value": 236212825,
+            "range": "± 23974870",
+            "unit": "ns/iter"
+          },
+          {
+            "name": "prints",
+            "value": 28202173,
+            "range": "± 2721481",
+            "unit": "ns/iter"
+          },
+          {
+            "name": "string_manips",
+            "value": 413082058,
+            "range": "± 22891278",
             "unit": "ns/iter"
           }
         ]

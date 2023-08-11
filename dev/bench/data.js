@@ -1,5 +1,5 @@
 window.BENCHMARK_DATA = {
-  "lastUpdate": 1691745186041,
+  "lastUpdate": 1691754783495,
   "repoUrl": "https://github.com/KvGeijer/zote",
   "entries": {
     "Rust Benchmark": [
@@ -3377,6 +3377,66 @@ window.BENCHMARK_DATA = {
             "name": "string_manips",
             "value": 332561857,
             "range": "± 38737803",
+            "unit": "ns/iter"
+          }
+        ]
+      },
+      {
+        "commit": {
+          "author": {
+            "email": "kare.kvg@gmail.com",
+            "name": "Kåre von Geijer",
+            "username": "KvGeijer"
+          },
+          "committer": {
+            "email": "kare.kvg@gmail.com",
+            "name": "Kåre von Geijer",
+            "username": "KvGeijer"
+          },
+          "distinct": true,
+          "id": "5319188d936d1997f83f1a3713412aad04f04d8a",
+          "message": "Solve all of aoc 2022!\n\nThis proves the language is usable for its purpose. The stdlib lacks\na few things, but that can always be the case. Furthermore, I think\nit would be nice to have exceptions (both yourself? and for num ops),\nas well as a decorator for caching (arbitrary ones?). I have added\nTODO notes where more things felt needed.",
+          "timestamp": "2023-08-11T13:47:47+02:00",
+          "tree_id": "5645d60563263576c50282485551f1ab2d2a27c6",
+          "url": "https://github.com/KvGeijer/zote/commit/5319188d936d1997f83f1a3713412aad04f04d8a"
+        },
+        "date": 1691754782391,
+        "tool": "cargo",
+        "benches": [
+          {
+            "name": "aoc_2022_1",
+            "value": 1415231,
+            "range": "± 257757",
+            "unit": "ns/iter"
+          },
+          {
+            "name": "aoc_2022_2",
+            "value": 28752928,
+            "range": "± 4419792",
+            "unit": "ns/iter"
+          },
+          {
+            "name": "aoc_2022_4",
+            "value": 41139010,
+            "range": "± 5591848",
+            "unit": "ns/iter"
+          },
+          {
+            "name": "fibonachi",
+            "value": 224064413,
+            "range": "± 20764816",
+            "unit": "ns/iter"
+          },
+          {
+            "name": "prints",
+            "value": 26986672,
+            "range": "± 3557596",
+            "unit": "ns/iter"
+          },
+          {
+            "name": "string_manips",
+            "value": 394452323,
+            "range": "± 21071253",
             "unit": "ns/iter"
           }
         ]

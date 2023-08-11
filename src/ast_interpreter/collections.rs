@@ -20,14 +20,14 @@ mod list;
 pub enum Collection {
     List(List),
     Dict(Dict),
-    String(String), // TODO: Wrap in Rc & refcell (Should we wrap all collEnum in this?)
+    String(Rc<String>), // TODO: Wrap in Rc & refcell (Should we wrap all collEnum in this?)
 }
 
 impl Collection {
     pub fn is_empty(&self) -> bool {
         match self {
             Collection::List(list) => list.is_empty(),
-            Collection::String(string) => string.is_empty(),
+            Collection::String(string) => string.as_ref().is_empty(),
             Collection::Dict(dict) => dict.is_empty(),
         }
     }
@@ -35,7 +35,7 @@ impl Collection {
     pub fn stringify(&self) -> String {
         match self {
             Collection::List(list) => list.stringify(),
-            Collection::String(string) => string.to_string(),
+            Collection::String(string) => string.as_ref().to_string(),
             Collection::Dict(dict) => dict.stringify(),
         }
     }
@@ -46,10 +46,6 @@ impl Collection {
             Collection::String(_) => "String",
             Collection::Dict(_) => "Dict",
         }
-    }
-
-    pub fn new_string(string: String) -> Self {
-        Self::String(string)
     }
 
     pub fn new_list(values: Vec<Value>) -> Self {
@@ -74,6 +70,7 @@ impl Collection {
             (Collection::List(list), IndexValue::At(at)) => list.get(at),
             (Collection::List(list), IndexValue::Slice(slice)) => list.slice(slice),
             (Collection::String(string), IndexValue::At(Value::Numerical(num))) => string
+                .as_ref()
                 .chars()
                 .nth(num.to_rint() as usize)
                 .map(|char| char.to_string().into())
@@ -86,8 +83,8 @@ impl Collection {
                 RunError::error(format!("Cannot index into string with {}", other.type_of()))
             }
             (Collection::String(string), IndexValue::Slice(slice)) => {
-                let len = string.chars().count();
-                let sliced: String = slice_iter(string.chars(), slice, len)?.collect();
+                let len = string.as_ref().chars().count();
+                let sliced: String = slice_iter(string.as_ref().chars(), slice, len)?.collect();
                 Ok(sliced.into())
             }
             (Collection::Dict(dict), IndexValue::At(at)) => dict.get(&at),
@@ -101,6 +98,7 @@ impl Collection {
         match self {
             Collection::List(list) => list.to_iter(),
             Collection::String(string) => string
+                .as_ref()
                 .chars()
                 .map(|char| char.to_string().into())
                 .collect::<Vec<Value>>()
@@ -127,10 +125,10 @@ impl Collection {
                 Ok(clone.into())
             }
             (Collection::String(string), Value::Collection(Collection::String(other))) => {
-                Ok((string + &other).into())
+                Ok((string.as_ref().clone() + &other).into())
             }
             (Collection::String(string), Value::Numerical(num)) => {
-                Ok((string + &num.to_rint().to_string()).into())
+                Ok((string.as_ref().clone() + &num.to_rint().to_string()).into())
             }
             (left, right) => RunError::error(format!(
                 "Cannot append {} to {}",
@@ -144,7 +142,7 @@ impl Collection {
         match self {
             Collection::List(list) => list.len(),
             Collection::Dict(dict) => dict.len(),
-            Collection::String(string) => string.len(),
+            Collection::String(string) => string.as_ref().len(),
         }
     }
 }
@@ -153,7 +151,7 @@ impl PartialOrd for Collection {
     fn partial_cmp(&self, other: &Self) -> Option<std::cmp::Ordering> {
         match (self, other) {
             (Collection::List(_), Collection::List(_)) => None, // Could want to sort in some way here
-            (Collection::String(x), Collection::String(y)) => x.partial_cmp(y),
+            (Collection::String(x), Collection::String(y)) => x.as_ref().partial_cmp(y.as_ref()),
             _ => None,
         }
     }
@@ -260,6 +258,12 @@ impl From<Dict> for Collection {
 
 impl From<String> for Collection {
     fn from(value: String) -> Self {
+        Rc::new(value).into()
+    }
+}
+
+impl From<Rc<String>> for Collection {
+    fn from(value: Rc<String>) -> Self {
         Collection::String(value)
     }
 }

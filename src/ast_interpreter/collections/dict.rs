@@ -158,7 +158,7 @@ impl Hash for ValueKey {
 fn value_hash<H: std::hash::Hasher>(value: &Value, state: &mut H) {
     match value {
         Value::Numerical(num) => num.to_rint().hash(state),
-        Value::Collection(Collection::String(string)) => string.hash(state),
+        Value::Collection(Collection::String(string)) => string.as_ref().hash(state),
         Value::Collection(coll) => {
             for inner in coll.to_iter() {
                 value_hash(&inner, state);

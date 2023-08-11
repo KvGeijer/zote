@@ -1,4 +1,4 @@
-use std::{fmt, vec};
+use std::{fmt, rc::Rc, vec};
 
 use super::{
     collections::{Collection, Dict, List},
@@ -92,7 +92,7 @@ impl Value {
         }
     }
 
-    pub fn cast_string(self, error_msg: &str) -> RunRes<String> {
+    pub fn cast_string(self, error_msg: &str) -> RunRes<Rc<String>> {
         match self {
             Value::Collection(Collection::String(string)) => Ok(string),
             other => RunError::error(format!(
@@ -175,7 +175,13 @@ impl From<bool> for Value {
 
 impl From<String> for Value {
     fn from(item: String) -> Self {
-        Value::Collection(Collection::new_string(item))
+        Value::Collection(item.into())
+    }
+}
+
+impl From<Rc<String>> for Value {
+    fn from(item: Rc<String>) -> Self {
+        Value::Collection(item.into())
     }
 }
 

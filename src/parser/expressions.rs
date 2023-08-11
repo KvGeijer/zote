@@ -1,4 +1,4 @@
-use std::fmt::Debug;
+use std::{fmt::Debug, rc::Rc};
 
 use super::{AstNode, Parser, Stmts};
 use crate::{code_loc::CodeLoc, scanner::Token};
@@ -21,7 +21,7 @@ pub enum Expr {
     Int(i64),
     Float(f64),
     Bool(bool),
-    String(String),
+    String(Rc<String>),
     Block(Stmts),
     If(ExprNode, ExprNode, Option<ExprNode>),
     While(ExprNode, ExprNode),
@@ -520,7 +520,7 @@ impl<'a> Parser<'a> {
             Token::True => some_node(Expr::Bool(true), start, end),
             Token::Integer(int) => some_node(Expr::Int(*int), start, end),
             Token::Float(float) => some_node(Expr::Float(*float), start, end),
-            Token::String(str) => some_node(Expr::String(str.to_string()), start, end),
+            Token::String(str) => some_node(Expr::String(str.clone()), start, end),
             Token::Identifier(str) => some_node(Expr::Var(str.to_owned()), start, end),
             Token::Nil => some_node(Expr::Nil, start, end),
             _ => {

@@ -73,6 +73,7 @@ pub fn get_builtins() -> Vec<Rc<dyn Builtin>> {
 
     builtins.new_1arg("int", |arg| match arg {
         Value::Collection(Collection::String(string)) => string
+            .as_ref()
             .parse::<i64>()
             .map(|int| int.into())
             .map_err(|_| RunError::bare_error(format!("Cannot parse {:?} as integer", string))),
@@ -83,6 +84,7 @@ pub fn get_builtins() -> Vec<Rc<dyn Builtin>> {
 
     builtins.new_1arg("float", |arg| match arg {
         Value::Collection(Collection::String(string)) => string
+            .as_ref()
             .parse::<f64>()
             .map(|float| float.into())
             .map_err(|_| RunError::bare_error(format!("Cannot parse {:?} as float", string))),
@@ -121,7 +123,7 @@ pub fn get_builtins() -> Vec<Rc<dyn Builtin>> {
     builtins.new_1arg("to_ascii", |arg| {
         match arg {
         Value::Collection(Collection::String(string)) => {
-            if let Some(char) = string.chars().next() && char.is_ascii() {
+            if let Some(char) = string.as_ref().chars().next() && char.is_ascii() {
                 Ok((char as i64).into())
             } else {
                 RunError::error(format!("Cannot convert {string} to a single ascii value"))
@@ -132,7 +134,7 @@ pub fn get_builtins() -> Vec<Rc<dyn Builtin>> {
     });
 
     builtins.new_1arg("read", |arg| match arg {
-        Value::Collection(Collection::String(path)) => read_to_string(&path)
+        Value::Collection(Collection::String(path)) => read_to_string(&path.as_ref())
             .map(|content| content.into())
             .map_err(|_| RunError::bare_error(format!("Could not read file at {path}"))),
         _ => RunError::error("Argument to read must be a string".to_string()),
@@ -165,7 +167,7 @@ pub fn get_builtins() -> Vec<Rc<dyn Builtin>> {
         // Very powerful... And probably wrong...
         let mut error_reporter = crate::errors::ErrorReporter::new();
         let tokens = crate::scanner::tokenize(
-            &arg.cast_string("Can only eval strings")?,
+            arg.cast_string("Can only eval strings")?.as_ref(),
             &mut error_reporter,
         );
         if !error_reporter.had_compilation_error && let Some(stmts) = crate::parser::parse(&tokens, &mut error_reporter) {
@@ -205,7 +207,8 @@ pub fn get_builtins() -> Vec<Rc<dyn Builtin>> {
             Value::Collection(Collection::String(delimiter)),
         ) => {
             let mut splitted: Vec<Value> = string
-                .split(&delimiter)
+                .as_ref()
+                .split(delimiter.as_ref())
                 .map(|str| str.to_string().into())
                 .collect();
 
@@ -446,23 +449,26 @@ impl Builtin for MinBuiltin {
 struct JoinBuiltin;
 impl Builtin for JoinBuiltin {
     fn run(&self, args: Vec<Value>) -> RunRes<Value> {
+        let str_rc;
         let mut arg_iter = args.into_iter();
         let joining = arg_iter.next().unwrap();
         let delim = if let Some(joiner) = arg_iter.next() {
-            joiner.cast_string("Second arg to join should be the string to be interspersed")?
+            str_rc =
+                joiner.cast_string("Second arg to join should be the string to be interspersed")?;
+            str_rc.as_ref()
         } else {
-            "".to_string()
+            ""
         };
 
         let mut joined = String::new();
         let mut first = true;
         for value in joining.to_iter()? {
             if !first {
-                joined.push_str(&delim);
+                joined.push_str(delim);
             }
             // This way it becomes much harder to see where the error is.
             let str = value.cast_string("Expect to only be joining strings")?;
-            joined.push_str(&str);
+            joined.push_str(str.as_ref());
             first = false;
         }
         Ok(joined.into())

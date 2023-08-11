@@ -1,6 +1,7 @@
 use crate::code_loc::CodeLoc;
 use lazy_static::lazy_static;
 use regex::Regex;
+use std::rc::Rc;
 
 use crate::errors::ErrorReporter;
 
@@ -19,7 +20,7 @@ pub enum Token {
     Identifier(String),
     Float(f64),
     Integer(i64),
-    String(String),
+    String(Rc<String>),
     Comment(String),
     // Invalid(String),
 
@@ -97,8 +98,8 @@ lazy_static! {
         // Not optimal that 001 is scanned as 0 0 1
         (r"(([1-9]\d*\.\d+)|(0\.\d+))", |str| Token::Float(str.parse().unwrap())),
         (r"([1-9]\d*|0)", |str| Token::Integer(str.parse().unwrap())),
-        (r#"".*?""#, |str| Token::String(parse_string(&str[1..str.len()-1]))),
-        (r#"'.*?'"#, |str| Token::String(parse_string(&str[1..str.len()-1]))),
+        (r#"".*?""#, |str| Token::String(Rc::new(parse_string(&str[1..str.len()-1])))),
+        (r#"'.*?'"#, |str| Token::String(Rc::new(parse_string(&str[1..str.len()-1])))),
         (r"//[^\n]*", |str| Token::Comment(str[2..].to_owned())),
         (r"struct", |_| Token::Struct),
         (r"fn", |_| Token::Fn),
@@ -300,10 +301,10 @@ mod tests {
         let tokens = tokenize(code, &mut reporter);
 
         let expected_tokens = vec![
-            Token::String("first".to_string()),
-            Token::String("secondthird".to_string()),
-            Token::String("'inner'".to_string()),
-            Token::String("\"inner2\"".to_string()),
+            Token::String(Rc::new("first".to_string())),
+            Token::String(Rc::new("secondthird".to_string())),
+            Token::String(Rc::new("'inner'".to_string())),
+            Token::String(Rc::new("\"inner2\"".to_string())),
             Token::Eof,
         ];
         let scanned_tokens: Vec<_> = tokens.iter().map(|info| info.token.clone()).collect();

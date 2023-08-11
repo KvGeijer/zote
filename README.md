@@ -103,7 +103,7 @@ Zote is in development, and there is no real documentation, except reading all t
 * **Types**, there currently are Iterables (List, Dict, String), Numericals (Float, Int, Bool), Nil, and Closures. They can be created in a similar way to Python, with the difference that dicts must be created with the `dict` functions, and that there are no list comprehensions. Notably, there is no set, but its functionality is achieved with dicts and set-like functions.
 * **Variables**
   * Declare x with the value y as `x := y` or `y :>> x`,
-  * Assign y to x as `x = y` or `y =>> x`.
+  * Assign x to y as `x = y` or `y =>> x`.
 * **Functions**
   * Call f as `f(x, y, z)`, or the equivalent `x >> f(y, z)`,
   * Declare f as `fn f(x, y, z) -> _expr_` or as equivalently as a lambda `\x, y, z -> _expr_`. 

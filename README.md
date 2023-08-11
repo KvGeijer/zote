@@ -76,7 +76,7 @@ visited := set();
 part1 := false;
 
 fn dfs((x, y)) -> {
-    // Cache results, so as to not visit places already occupied by sand (or rock)
+	// Cache results, so as to not visit places already occupied by sand (or rock)
 	if ([x, y] >> in(visited)) or ([x, y] >> in(rocks)) or y >= maxy + 2 return;
 
 	if y >= maxy and !part1 {

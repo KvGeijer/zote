@@ -168,7 +168,7 @@ pub fn get_builtins() -> Vec<Rc<dyn Builtin>> {
             &arg.cast_string("Can only eval strings")?,
             &mut error_reporter,
         );
-        if let Some(stmts) = crate::parser::parse(&tokens, &mut error_reporter) {
+        if !error_reporter.had_compilation_error && let Some(stmts) = crate::parser::parse(&tokens, &mut error_reporter) {
             // Should we look at error_reporter instead? Probably way better
             let env = Environment::new();
             match statements::eval_statements(&stmts, &env) {

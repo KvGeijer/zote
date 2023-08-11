@@ -111,7 +111,7 @@ impl Numerical {
         match math_promote(&self, &other) {
             (Numerical::Float(x), Numerical::Float(y)) => Numerical::Float(x.powf(y)),
             (Numerical::Int(x), Numerical::Int(y)) if y >= 0 => {
-                let safe_x: u32 = x.unsigned_abs() as u32; // TODO Handle overflows as zote errors
+                let safe_x: u64 = x.unsigned_abs(); // TODO Handle overflows as zote errors
                 let pow = safe_x.pow(y.unsigned_abs() as u32) as i64;
                 if x >= 0 || y & 1 == 0 {
                     Numerical::Int(pow)

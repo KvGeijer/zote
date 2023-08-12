@@ -34,11 +34,10 @@ impl<'a> Parser<'a> {
     }
 
     pub fn error(&mut self, str: &str) {
-        // Ugly, makes sense why borrow checker argues unless copy, but still...
         // Should probably have the error reporter outside of the parser...
         let loc = *self.peek_start_loc();
         let error_string = format!("{} at '{}' {}", loc.line(), &self.peek_string(), str);
-        self.error_reporter.error(&loc, &error_string);
+        self.error_reporter.comp_error(&loc, &error_string);
     }
 
     pub fn synchronize_error(&mut self) {

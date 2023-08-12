@@ -1,6 +1,6 @@
 use std::fmt;
 
-use crate::code_loc::CodeLoc;
+use parser::CodeLoc;
 
 use super::value::Value;
 

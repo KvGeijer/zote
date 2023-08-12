@@ -172,8 +172,7 @@ pub fn tokenize(code: &str, error_reporter: &mut ErrorReporter) -> Vec<TokenInfo
             Some(token_info) => tokens.push(token_info),
             None => {
                 let scanned = &code[loc.index()..].chars().next().unwrap();
-                error_reporter.error(&loc, &format!("Unexpected character: {}", scanned));
-                error_reporter.had_compilation_error = true;
+                error_reporter.scan_error(&loc, &format!("Unexpected character: {}", scanned));
                 loc.adv_col(1, scanned.len_utf8());
             }
         }

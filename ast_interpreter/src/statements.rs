@@ -1,9 +1,13 @@
 use std::rc::Rc;
 
-use crate::parser::{ExprNode, LValue, Stmt, StmtNode, Stmts};
+use parser::{ExprNode, LValue, Stmt, StmtNode, Stmts};
 
 use super::{
-    environment::Environment, expressions, runtime_error::RunResTrait, value::Value, RunRes,
+    environment::Environment,
+    expressions::{self, assign, declare},
+    runtime_error::RunResTrait,
+    value::Value,
+    RunRes,
 };
 
 pub fn eval_statements(statements: &Stmts, env: &Rc<Environment>) -> RunRes<Option<Value>> {
@@ -41,10 +45,11 @@ fn eval(stmt: &StmtNode, env: &Rc<Environment>) -> RunRes<Option<Value>> {
 fn decl(lvalue: &LValue, expr: &Option<ExprNode>, env: &Rc<Environment>) -> RunRes<()> {
     if let Some(expr) = expr {
         let rvalue = expressions::eval(expr, env)?;
-        lvalue.declare(env)?;
-        lvalue.assign(rvalue, env)?;
+        declare(lvalue, env)?;
+        assign(lvalue, rvalue, env)?;
     } else {
-        lvalue.declare(env)?;
+        // TODO: This should not be possible anymore with the new declarations
+        declare(lvalue, env)?;
     }
     Ok(())
 }
@@ -52,17 +57,13 @@ fn decl(lvalue: &LValue, expr: &Option<ExprNode>, env: &Rc<Environment>) -> RunR
 #[cfg(test)]
 mod tests {
     use super::*;
-    use crate::ast_interpreter::functions::define_builtins;
-    use crate::ast_interpreter::runtime_error::RunError;
-    use crate::errors::ErrorReporter;
-    use crate::parser::parse;
-    use crate::scanner::tokenize;
+    use crate::functions::define_builtins;
+    use crate::runtime_error::RunError;
+    use parser::parse;
 
     /// Helper to interpret an expression from a string
     fn interpret_string(program: &str) -> Option<RunRes<Option<Value>>> {
-        let mut error_reporter = ErrorReporter::new();
-        let tokens = tokenize(program, &mut error_reporter);
-        let ast = parse(&tokens, &mut error_reporter)?;
+        let ast = parse(program)?;
         let env = Environment::new();
         define_builtins(&env);
         Some(eval_statements(&ast, &env))

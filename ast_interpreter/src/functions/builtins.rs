@@ -1,7 +1,7 @@
 use itertools::Itertools;
 use std::{cmp::Ordering, fs::read_to_string, rc::Rc};
 
-use crate::ast_interpreter::{
+use crate::{
     collections::{slice_iter, Collection, Dict, SliceValue},
     environment::Environment,
     statements, RunError, RunRes, Value,
@@ -165,13 +165,7 @@ pub fn get_builtins() -> Vec<Rc<dyn Builtin>> {
 
     builtins.new_1arg("eval", |arg| {
         // Very powerful... And probably wrong...
-        let mut error_reporter = crate::errors::ErrorReporter::new();
-        let tokens = crate::scanner::tokenize(
-            arg.cast_string("Can only eval strings")?.as_ref(),
-            &mut error_reporter,
-        );
-        if !error_reporter.had_compilation_error && let Some(stmts) = crate::parser::parse(&tokens, &mut error_reporter) {
-            // Should we look at error_reporter instead? Probably way better
+        if let Some(stmts) = parser::parse(arg.cast_string("Can only eval strings")?.as_ref()) {
             let env = Environment::new();
             match statements::eval_statements(&stmts, &env) {
                 Ok(Some(val)) => Ok(val),

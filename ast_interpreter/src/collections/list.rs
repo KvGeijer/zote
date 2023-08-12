@@ -1,4 +1,4 @@
-use crate::ast_interpreter::{functions::Function, runtime_error::RunError};
+use crate::{functions::Function, runtime_error::RunError};
 
 use super::{
     super::{numerical::Numerical, RunRes, Value},

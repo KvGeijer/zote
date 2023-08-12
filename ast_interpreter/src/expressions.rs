@@ -1,8 +1,7 @@
 use std::{cmp::Ordering, rc::Rc};
 
-use crate::{
-    code_loc::CodeLoc,
-    parser::{BinOper, Expr, ExprNode, Index, LValue, ListContent, LogicalOper, Stmts, UnOper},
+use parser::{
+    BinOper, CodeLoc, Expr, ExprNode, Index, LValue, ListContent, LogicalOper, Stmts, UnOper,
 };
 
 use super::{
@@ -57,8 +56,8 @@ pub fn eval(expr: &ExprNode, env: &Rc<Environment>) -> RunRes<Value> {
 fn eval_match(base: Value, arms: &Vec<(LValue, ExprNode)>, env: &Rc<Environment>) -> RunRes<Value> {
     for (lvalue, expr) in arms {
         let inner_env = Environment::nest(env);
-        lvalue.declare(&inner_env)?;
-        match lvalue.assign(base.clone(), &inner_env) {
+        declare(lvalue, &inner_env)?;
+        match assign(lvalue, base.clone(), &inner_env) {
             Ok(_) => return eval(expr, &inner_env),
             Err(_) => continue,
         }
@@ -155,8 +154,8 @@ fn eval_for(
 ) -> RunRes<Value> {
     let env = Environment::nest(outer_env);
     for value in iter.to_iter()? {
-        lvalue.declare(&env)?;
-        lvalue.assign(value, &env)?;
+        declare(lvalue, &env)?;
+        assign(lvalue, value, &env)?;
         match eval(body, &env) {
             Err(RunError::Break) => break,
             Err(RunError::Continue) => continue,
@@ -191,7 +190,7 @@ fn eval_block(stmts: &Stmts, env: &Rc<Environment>) -> RunRes<Value> {
 }
 
 fn eval_assign(lvalue: &LValue, rvalue: Value, env: &Rc<Environment>) -> RunRes<Value> {
-    lvalue.assign(rvalue, env)
+    assign(lvalue, rvalue, env)
 }
 
 fn eval_binary(left: Value, op: &BinOper, right: Value) -> RunRes<Value> {
@@ -346,75 +345,73 @@ fn eval_unary(op: &UnOper, right: Value) -> RunRes<Value> {
     }
 }
 
-impl LValue {
-    pub fn declare(&self, env: &Rc<Environment>) -> RunRes<()> {
-        match self {
-            LValue::Var(id) => {
-                env.define(id.to_string(), Value::Uninitialized);
-                Ok(())
-            }
-            LValue::Index(_expr, _index) => {
-                RunError::error("Cannot include an indexing in a declaration".to_string())
-            }
-            LValue::Tuple(lvalues) => {
-                for lvalue in lvalues {
-                    lvalue.declare(env)?;
-                }
-                Ok(())
-            }
-            LValue::Constant(_expr) => Ok(()), // TODO: This causes some strange allowed decl
+pub fn declare(lvalue: &LValue, env: &Rc<Environment>) -> RunRes<()> {
+    match lvalue {
+        LValue::Var(id) => {
+            env.define(id.to_string(), Value::Uninitialized);
+            Ok(())
         }
-    }
-
-    /// Pattern match the lvalue, and assign into rvalue if env supplied
-    pub fn assign(&self, rvalue: Value, env: &Rc<Environment>) -> RunRes<Value> {
-        match self {
-            LValue::Var(id) => env.assign(id, rvalue),
-            LValue::Index(callee_expr, index_expr) => {
-                let index = eval_index(index_expr, env)?;
-                let base = eval(callee_expr, env)?;
-                match base {
-                    Value::Collection(collection) => collection.assign_into(rvalue, index),
-                    other => error(format!(
-                        "Cannot index into {} for assignment",
-                        other.type_of()
-                    )),
-                }
+        LValue::Index(_expr, _index) => {
+            RunError::error("Cannot include an indexing in a declaration".to_string())
+        }
+        LValue::Tuple(lvalues) => {
+            for lvalue in lvalues {
+                declare(lvalue, env)?;
             }
-            LValue::Tuple(lvalues) => {
-                let mut lvalues_iter = lvalues.into_iter();
-                let mut rvalues_iter = rvalue.clone().to_iter()?;
-                loop {
-                    match (lvalues_iter.next(), rvalues_iter.next()) {
-                        (Some(lvalue), Some(rvalue)) => {
-                            lvalue.assign(rvalue, env)?;
-                        }
-                        (None, None) => break Ok(rvalue),
-                        (None, _) => {
-                            break RunError::error(format!(
-                                "{} rvalues remain after all lvalues",
-                                rvalues_iter.count() + 1
-                            ))
-                        }
-                        (_, None) => {
-                            break RunError::error(format!(
-                                "{} lvalues remain after all rvalues",
-                                lvalues_iter.count() + 1
-                            ))
-                        }
+            Ok(())
+        }
+        LValue::Constant(_expr) => Ok(()), // TODO: This causes some strange allowed decl
+    }
+}
+
+/// Pattern match the lvalue, and assign into rvalue if env supplied
+pub fn assign(lvalue: &LValue, rvalue: Value, env: &Rc<Environment>) -> RunRes<Value> {
+    match lvalue {
+        LValue::Var(id) => env.assign(id, rvalue),
+        LValue::Index(callee_expr, index_expr) => {
+            let index = eval_index(index_expr, env)?;
+            let base = eval(callee_expr, env)?;
+            match base {
+                Value::Collection(collection) => collection.assign_into(rvalue, index),
+                other => error(format!(
+                    "Cannot index into {} for assignment",
+                    other.type_of()
+                )),
+            }
+        }
+        LValue::Tuple(lvalues) => {
+            let mut lvalues_iter = lvalues.into_iter();
+            let mut rvalues_iter = rvalue.clone().to_iter()?;
+            loop {
+                match (lvalues_iter.next(), rvalues_iter.next()) {
+                    (Some(lvalue), Some(rvalue)) => {
+                        assign(lvalue, rvalue, env)?;
+                    }
+                    (None, None) => break Ok(rvalue),
+                    (None, _) => {
+                        break RunError::error(format!(
+                            "{} rvalues remain after all lvalues",
+                            rvalues_iter.count() + 1
+                        ))
+                    }
+                    (_, None) => {
+                        break RunError::error(format!(
+                            "{} lvalues remain after all rvalues",
+                            lvalues_iter.count() + 1
+                        ))
                     }
                 }
             }
-            LValue::Constant(expr) => {
-                let lvalue = eval(expr, env)?;
-                if lvalue == rvalue {
-                    Ok(rvalue)
-                } else {
-                    RunError::error(format!(
-                        "LValue did not match rvalue.\nLeft: {}\nRight: {}",
-                        lvalue, rvalue,
-                    ))
-                }
+        }
+        LValue::Constant(expr) => {
+            let lvalue = eval(expr, env)?;
+            if lvalue == rvalue {
+                Ok(rvalue)
+            } else {
+                RunError::error(format!(
+                    "LValue did not match rvalue.\nLeft: {}\nRight: {}",
+                    lvalue, rvalue,
+                ))
             }
         }
     }
@@ -436,20 +433,16 @@ fn eval_logical(
 #[cfg(test)]
 mod tests {
     use super::*;
-    use crate::ast_interpreter::functions::define_builtins;
-    use crate::errors::ErrorReporter;
-    use crate::parser::parse;
-    use crate::scanner::tokenize;
+    use crate::functions::define_builtins;
+    use parser::parse;
 
     /// Helper to interpret an expression from a string
     fn interpret_expression_string(program: &str) -> RunRes<Value> {
-        let mut error_reporter = ErrorReporter::new();
-        let tokens = tokenize(program, &mut error_reporter);
-        let ast = parse(&tokens, &mut error_reporter).unwrap();
+        let ast = parse(&program).unwrap();
         let env = Environment::new();
         define_builtins(&env);
         statements::eval_statements(&ast, &env)
-            .map(|opt_val| opt_val.expect("Expects an uncaptured expressions"))
+            .map(|opt_val| opt_val.expect("Expects an uncaptured expression"))
     }
 
     #[test]

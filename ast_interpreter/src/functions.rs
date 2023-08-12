@@ -4,7 +4,7 @@ use std::{
     rc::Rc,
 };
 
-use crate::parser::{ExprNode, LValue};
+use parser::{ExprNode, LValue};
 
 use super::{environment::Environment, expressions, runtime_error::RunError, RunRes, Value};
 
@@ -120,8 +120,8 @@ impl Closure {
     fn call(&self, args: Vec<Value>) -> RunRes<Value> {
         let env = Environment::nest(&self.env);
         for (param, arg) in self.params.iter().zip(args.into_iter()) {
-            param.declare(&env)?;
-            param.assign(arg, &env)?;
+            expressions::declare(param, &env)?;
+            expressions::assign(param, arg, &env)?;
         }
         expressions::eval(&self.body, &env)
     }

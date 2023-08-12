@@ -4,12 +4,11 @@ use std::{
     vec,
 };
 
-use crate::{
-    ast_interpreter::RunError,
-    parser::{ExprNode, Index, Slice},
-};
+use parser::{ExprNode, Index, Slice};
 
-use super::{environment::Environment, expressions, numerical::Numerical, value::Value, RunRes};
+use super::{
+    environment::Environment, expressions, numerical::Numerical, value::Value, RunError, RunRes,
+};
 
 pub use self::{dict::Dict, list::List};
 

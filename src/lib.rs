@@ -1,15 +1,8 @@
 #![feature(box_patterns, iterator_try_reduce, let_chains)]
 
 use ast_interpreter::InterpreterState;
-use errors::ErrorReporter;
 use std::fs;
 use std::io::{stdin, stdout, Write};
-
-mod ast_interpreter;
-mod code_loc;
-mod errors;
-mod parser;
-mod scanner;
 
 /// Interprets a text file as a Zote script, returning the exit code.
 pub fn run_file(file: &str) -> i32 {
@@ -24,7 +17,6 @@ pub fn run_file(file: &str) -> i32 {
 pub fn run_repl() {
     let reader = stdin();
     let mut line = String::new();
-    let mut error_reporter = errors::ErrorReporter::new();
     let mut state = InterpreterState::new();
 
     while {
@@ -34,32 +26,27 @@ pub fn run_repl() {
         reader.read_line(&mut line).unwrap_or(0) > 0
     } {
         // Does not preserve program state between calls
-        run(&line, &mut error_reporter, &mut state);
-        error_reporter.reset();
+        run(&line, &mut state);
+        state.reset_errors();
     }
 }
 
 /// Interprets the string as if from a file.
 pub fn run_str(code: &str) -> i32 {
-    let mut error_reporter = errors::ErrorReporter::new();
     let mut state = InterpreterState::new();
 
-    run(code, &mut error_reporter, &mut state);
-
-    if error_reporter.had_compilation_error {
-        65
-    } else if error_reporter.had_runtime_error {
-        70
-    } else {
-        0
-    }
+    run(code, &mut state)
 }
 
-fn run(code: &str, error_reporter: &mut ErrorReporter, state: &mut InterpreterState) {
-    let tokens = scanner::tokenize(code, error_reporter);
-
-    if !error_reporter.had_compilation_error && let Some(stmts) = parser::parse(&tokens, error_reporter) {
-        // Should we look at error_reporter instead? Probably way better
-        ast_interpreter::interpret(&stmts, error_reporter, state);
+fn run(code: &str, state: &mut InterpreterState) -> i32 {
+    if let Some(stmts) = parser::parse(code) {
+        ast_interpreter::interpret(&stmts, state);
+        if state.had_error() {
+            70
+        } else {
+            0
+        }
+    } else {
+        65
     }
 }

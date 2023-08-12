@@ -1,5 +1,5 @@
 window.BENCHMARK_DATA = {
-  "lastUpdate": 1691792682318,
+  "lastUpdate": 1691860411001,
   "repoUrl": "https://github.com/KvGeijer/zote",
   "entries": {
     "Rust Benchmark": [
@@ -3677,6 +3677,66 @@ window.BENCHMARK_DATA = {
             "name": "string_manips",
             "value": 187334790,
             "range": "± 6960152",
+            "unit": "ns/iter"
+          }
+        ]
+      },
+      {
+        "commit": {
+          "author": {
+            "email": "kare.kvg@gmail.com",
+            "name": "Kåre von Geijer",
+            "username": "KvGeijer"
+          },
+          "committer": {
+            "email": "kare.kvg@gmail.com",
+            "name": "Kåre von Geijer",
+            "username": "KvGeijer"
+          },
+          "distinct": true,
+          "id": "29d58d69d68d105ddcf4f80f63ebc44292810b74",
+          "message": "Add procedural macro for enum <-> u8\n\nIt seems to work, but the main issue is that my file organization is\ncompletely chaos. Another crate should probably not be in the src dir.\nLooking at other crates, maybe I should break out all parts of the repo\nto different crates. Such as _scanner, parses, ast_interpreter, vm_.",
+          "timestamp": "2023-08-12T19:05:56+02:00",
+          "tree_id": "bebae367033911c0c38ac091310c6f4d25d8d57b",
+          "url": "https://github.com/KvGeijer/zote/commit/29d58d69d68d105ddcf4f80f63ebc44292810b74"
+        },
+        "date": 1691860409953,
+        "tool": "cargo",
+        "benches": [
+          {
+            "name": "aoc_2022_1",
+            "value": 1184034,
+            "range": "± 259895",
+            "unit": "ns/iter"
+          },
+          {
+            "name": "aoc_2022_2",
+            "value": 27273243,
+            "range": "± 5835172",
+            "unit": "ns/iter"
+          },
+          {
+            "name": "aoc_2022_4",
+            "value": 36918290,
+            "range": "± 5554154",
+            "unit": "ns/iter"
+          },
+          {
+            "name": "fibonachi",
+            "value": 202160629,
+            "range": "± 27575804",
+            "unit": "ns/iter"
+          },
+          {
+            "name": "prints",
+            "value": 23819057,
+            "range": "± 4979863",
+            "unit": "ns/iter"
+          },
+          {
+            "name": "string_manips",
+            "value": 254077168,
+            "range": "± 23394952",
             "unit": "ns/iter"
           }
         ]

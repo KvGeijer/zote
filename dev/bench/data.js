@@ -1,5 +1,5 @@
 window.BENCHMARK_DATA = {
-  "lastUpdate": 1691860411001,
+  "lastUpdate": 1692046504293,
   "repoUrl": "https://github.com/KvGeijer/zote",
   "entries": {
     "Rust Benchmark": [
@@ -3737,6 +3737,66 @@ window.BENCHMARK_DATA = {
             "name": "string_manips",
             "value": 254077168,
             "range": "± 23394952",
+            "unit": "ns/iter"
+          }
+        ]
+      },
+      {
+        "commit": {
+          "author": {
+            "email": "kare.kvg@gmail.com",
+            "name": "Kåre von Geijer",
+            "username": "KvGeijer"
+          },
+          "committer": {
+            "email": "kare.kvg@gmail.com",
+            "name": "Kåre von Geijer",
+            "username": "KvGeijer"
+          },
+          "distinct": true,
+          "id": "de7b99d04009329a41e915e72485426145fd8152",
+          "message": "Add empty vm crate\n\nThe dependency was already there, so this makes it build correctly.\nEven though the vm has to functionality yet.",
+          "timestamp": "2023-08-14T22:49:35+02:00",
+          "tree_id": "eabcb2d026b0efa1b02cfb543e227f66d338fa29",
+          "url": "https://github.com/KvGeijer/zote/commit/de7b99d04009329a41e915e72485426145fd8152"
+        },
+        "date": 1692046503459,
+        "tool": "cargo",
+        "benches": [
+          {
+            "name": "aoc_2022_1",
+            "value": 1344483,
+            "range": "± 137876",
+            "unit": "ns/iter"
+          },
+          {
+            "name": "aoc_2022_2",
+            "value": 29100664,
+            "range": "± 2682769",
+            "unit": "ns/iter"
+          },
+          {
+            "name": "aoc_2022_4",
+            "value": 40810939,
+            "range": "± 2816061",
+            "unit": "ns/iter"
+          },
+          {
+            "name": "fibonachi",
+            "value": 213056184,
+            "range": "± 26061812",
+            "unit": "ns/iter"
+          },
+          {
+            "name": "prints",
+            "value": 24786828,
+            "range": "± 1948301",
+            "unit": "ns/iter"
+          },
+          {
+            "name": "string_manips",
+            "value": 259830629,
+            "range": "± 26176261",
             "unit": "ns/iter"
           }
         ]

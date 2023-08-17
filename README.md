@@ -16,7 +16,7 @@ Here the data is piped through a series of transformations, from left to right. 
 
 However, that code desugarizes to:
 ```python
-x := max(map(split("\n"), int));
+x := max(map(split(input, "\n"), int));
 ```
 which is also valid Zote. These two styles can be mixed depending on what mindset you are writing in. For example, if you are writing very functional code, the pipes might be more clear, but in some cases, you might want to think in a more imperative style, and use normal functions to signify the difference (I usually don't use pipes for functions with side effects).
 

@@ -1,6 +1,6 @@
-use enum_macros::TryFromPrimitive;
+use enum_macros::TryFromByte;
 
-#[derive(TryFromPrimitive, Debug, PartialEq, Eq)]
+#[derive(TryFromByte, Debug, PartialEq, Eq)]
 enum Numbers {
     Zero,
     One,

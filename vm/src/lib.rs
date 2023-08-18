@@ -1,1 +1,2 @@
-mod compiler;
+pub mod compiler;
+pub mod disassembler;

@@ -1,5 +1,5 @@
 window.BENCHMARK_DATA = {
-  "lastUpdate": 1692271695769,
+  "lastUpdate": 1692399116767,
   "repoUrl": "https://github.com/KvGeijer/zote",
   "entries": {
     "Rust Benchmark": [
@@ -3857,6 +3857,66 @@ window.BENCHMARK_DATA = {
             "name": "string_manips",
             "value": 183677224,
             "range": "± 3868674",
+            "unit": "ns/iter"
+          }
+        ]
+      },
+      {
+        "commit": {
+          "author": {
+            "email": "kare.kvg@gmail.com",
+            "name": "Kåre von Geijer",
+            "username": "KvGeijer"
+          },
+          "committer": {
+            "email": "kare.kvg@gmail.com",
+            "name": "Kåre von Geijer",
+            "username": "KvGeijer"
+          },
+          "distinct": true,
+          "id": "52e1b2ec245f3258288685d1fa4f3179739c05c0",
+          "message": "Add Return OpCode as bytecode start\n\nSort of a `Hello, World!` example for my disassembler and bytecode.",
+          "timestamp": "2023-08-19T00:46:21+02:00",
+          "tree_id": "9bea8c1914721729e16413b28745714a71adf64e",
+          "url": "https://github.com/KvGeijer/zote/commit/52e1b2ec245f3258288685d1fa4f3179739c05c0"
+        },
+        "date": 1692399115881,
+        "tool": "cargo",
+        "benches": [
+          {
+            "name": "aoc_2022_1",
+            "value": 1312090,
+            "range": "± 56352",
+            "unit": "ns/iter"
+          },
+          {
+            "name": "aoc_2022_2",
+            "value": 27142946,
+            "range": "± 1275276",
+            "unit": "ns/iter"
+          },
+          {
+            "name": "aoc_2022_4",
+            "value": 38555179,
+            "range": "± 454928",
+            "unit": "ns/iter"
+          },
+          {
+            "name": "fibonachi",
+            "value": 205627176,
+            "range": "± 2422259",
+            "unit": "ns/iter"
+          },
+          {
+            "name": "prints",
+            "value": 24188908,
+            "range": "± 597320",
+            "unit": "ns/iter"
+          },
+          {
+            "name": "string_manips",
+            "value": 183474024,
+            "range": "± 3324537",
             "unit": "ns/iter"
           }
         ]

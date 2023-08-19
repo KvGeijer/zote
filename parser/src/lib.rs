@@ -1,6 +1,6 @@
 #![feature(box_patterns, iterator_try_reduce, let_chains)]
 
-pub use code_loc::CodeLoc;
+pub use code_loc::{CodeLoc, CodeRange};
 use errors::ErrorReporter;
 use scanner::TokenInfo;
 

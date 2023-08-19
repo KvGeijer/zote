@@ -5,22 +5,3 @@ use enum_macros::TryFromByte;
 pub enum OpCode {
     Return,
 }
-
-/// A region of bytecode
-pub struct Chunk {
-    code: Vec<u8>,
-}
-
-impl Chunk {
-    pub fn new() -> Self {
-        Self { code: Vec::new() }
-    }
-
-    pub fn push(&mut self, byte: u8) {
-        self.code.push(byte);
-    }
-
-    pub fn as_bytes(&self) -> &[u8] {
-        &self.code
-    }
-}

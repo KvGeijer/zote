@@ -38,3 +38,42 @@ impl CodeLoc {
         self.col = 1;
     }
 }
+
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub struct CodeRange {
+    start: CodeLoc,
+    end: CodeLoc,
+}
+
+impl CodeRange {
+    pub fn from_locs(start: CodeLoc, end: CodeLoc) -> Self {
+        Self { start, end }
+    }
+
+    pub fn from_ints(
+        sindex: u32,
+        sline: u16,
+        scol: u16,
+        eindex: u32,
+        eline: u16,
+        ecol: u16,
+    ) -> Self {
+        Self {
+            start: CodeLoc::new(sindex as usize, sline as usize, scol as usize),
+            end: CodeLoc::new(eindex as usize, eline as usize, ecol as usize),
+        }
+    }
+
+    pub fn sl(&self) -> u16 {
+        self.start.line
+    }
+    pub fn sc(&self) -> u16 {
+        self.start.col
+    }
+    pub fn el(&self) -> u16 {
+        self.end.line
+    }
+    pub fn ec(&self) -> u16 {
+        self.end.col
+    }
+}

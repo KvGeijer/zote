@@ -36,21 +36,37 @@ pub fn disassemble_instruction<W: Write>(
     write!(out, "{:04} ", offset)?;
     write_coderange(chunk, offset, out)?;
 
-    match chunk.as_bytes()[offset].try_into() {
-        Err(_) => {
-            simple_instruction("Invalid OpCode", out)
-            // Err(DisassemblerError::CustomError(format!(
-            //     "Invalid opcode {}\n",
-            //     bytes[offset]
-            // )))
+    if let Ok(opcode) = chunk.as_bytes()[offset].try_into() {
+        match opcode {
+            OpCode::Return => simple_instruction("Return", out),
+            OpCode::Constant => constant_instruction("Constant", chunk, offset, out),
         }
-        Ok(OpCode::Return) => simple_instruction("Return", out),
+    } else {
+        simple_instruction("Invalid OpCode", out)
+        // Err(DisassemblerError::CustomError(format!(
+        //     "Invalid opcode {}\n",
+        //     bytes[offset]
+        // )))
     }
 }
 
 fn simple_instruction<W: Write>(name: &str, out: &mut W) -> io::Result<usize> {
     write!(out, "{name}\n")?;
     Ok(1)
+}
+
+fn constant_instruction<W: Write>(
+    name: &str,
+    chunk: &Chunk,
+    offset: usize,
+    out: &mut W,
+) -> io::Result<usize> {
+    let constant = chunk.as_bytes()[offset + 1];
+    let value = chunk
+        .get_constant(constant)
+        .expect("Could not find constant!");
+    write!(out, "{:<16} {:4} {:?}\n", name, constant, value)?;
+    Ok(2)
 }
 
 pub fn write_coderange<W: Write>(chunk: &Chunk, offset: usize, out: &mut W) -> io::Result<()> {

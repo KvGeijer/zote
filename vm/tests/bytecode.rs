@@ -1,8 +1,7 @@
 use parser::CodeRange;
 use std::io::Cursor;
 
-use vm::compiler::bytecode::OpCode;
-use vm::compiler::chunk::Chunk;
+use vm::compiler::{Chunk, OpCode};
 use vm::disassembler;
 
 fn new_out() -> Cursor<Vec<u8>> {

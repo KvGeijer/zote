@@ -1,7 +1,6 @@
 use std::io::{self, Write};
 
-use crate::compiler::bytecode::OpCode;
-use crate::compiler::chunk::Chunk;
+use crate::compiler::{Chunk, OpCode};
 
 #[derive(Debug)]
 pub enum DisassemblerError {

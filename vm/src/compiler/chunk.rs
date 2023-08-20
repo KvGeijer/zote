@@ -2,7 +2,7 @@ use parser::CodeRange;
 
 use std::collections::HashMap;
 
-use crate::compiler::bytecode::OpCode;
+use super::OpCode;
 
 /// A region of bytecode, with associated information
 pub struct Chunk {

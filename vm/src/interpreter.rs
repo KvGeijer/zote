@@ -55,6 +55,7 @@ impl<'a> VM<'a> {
                     let x = self.pop();
                     self.push(num_ops::negate(x)?);
                 }
+                OpCode::Not => todo!("Boolean operations"),
                 OpCode::Add => {
                     let y = self.pop();
                     let x = self.pop();
@@ -75,6 +76,22 @@ impl<'a> VM<'a> {
                     let x = self.pop();
                     self.push(num_ops::div(x, y)?);
                 }
+                OpCode::Modulo => {
+                    let y = self.pop();
+                    let x = self.pop();
+                    self.push(num_ops::modulo(x, y)?);
+                }
+                OpCode::Power => {
+                    let y = self.pop();
+                    let x = self.pop();
+                    self.push(num_ops::power(x, y)?);
+                }
+                OpCode::Equality => todo!(),
+                OpCode::NonEquality => todo!(),
+                OpCode::LessThan => todo!(),
+                OpCode::LessEqual => todo!(),
+                OpCode::GreaterThan => todo!(),
+                OpCode::GreaterEqual => todo!(),
             }
             if debug && self.stack_top > 0 {
                 println!("Top value: {:?}", self.stack[self.stack_top - 1])

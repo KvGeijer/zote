@@ -35,6 +35,11 @@ impl Chunk {
         self.constants.push(value);
     }
 
+    pub fn push_constant_plus(&mut self, value: Value, range: CodeRange) {
+        self.push_opcode(OpCode::Constant, range);
+        self.push_constant(value);
+    }
+
     pub fn as_bytes(&self) -> &[u8] {
         &self.code
     }

@@ -64,6 +64,32 @@ pub fn div(x: Value, y: Value) -> RunRes<Value> {
     }
 }
 
+pub fn modulo(x: Value, y: Value) -> RunRes<Value> {
+    match promote(x, y)? {
+        (Value::Float(x), Value::Float(y)) => Ok(Value::Float(x.rem_euclid(y))),
+        (Value::Int(x), Value::Int(y)) => Ok(Value::Int(x.rem_euclid(y))),
+        (_, _) => panic!("Internal error with promote arms"),
+    }
+}
+
+// ERROR: There might be a problem with overflow here?
+pub fn power(x: Value, y: Value) -> RunRes<Value> {
+    match promote(x, y)? {
+        (Value::Float(x), Value::Float(y)) => Ok(Value::Float(x.powf(y))),
+        (Value::Int(x), Value::Int(y)) if y >= 0 => {
+            let safe_x: u64 = x.unsigned_abs(); // TODO Handle overflows as zote errors
+            let pow = safe_x.pow(y.unsigned_abs() as u32) as i64;
+            if x >= 0 || y & 1 == 0 {
+                Ok(Value::Int(pow))
+            } else {
+                Ok(Value::Int(-pow))
+            }
+        }
+        (Value::Int(x), Value::Int(y)) => Ok(Value::Float((x as f64).powf(y as f64))),
+        (_, _) => panic!("Internal error with promote arms"),
+    }
+}
+
 pub fn negate(x: Value) -> RunRes<Value> {
     match x {
         Value::Nil => return RunRes::new_err("Cannot negate Nil".to_string()),

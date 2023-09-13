@@ -45,6 +45,15 @@ pub fn disassemble_instruction<W: Write>(
             OpCode::Subtract => simple_instruction("Subtract", out),
             OpCode::Multiply => simple_instruction("Multiply", out),
             OpCode::Divide => simple_instruction("Divide", out),
+            OpCode::Not => simple_instruction("Not", out),
+            OpCode::Modulo => simple_instruction("Modulo", out),
+            OpCode::Power => simple_instruction("Power", out),
+            OpCode::Equality => simple_instruction("Equality", out),
+            OpCode::NonEquality => simple_instruction("NonEquality", out),
+            OpCode::LessThan => simple_instruction("LessThan", out),
+            OpCode::LessEqual => simple_instruction("LessEqual", out),
+            OpCode::GreaterThan => simple_instruction("GreaterThan", out),
+            OpCode::GreaterEqual => simple_instruction("GreaterEqual", out),
         }
     } else {
         simple_instruction("Invalid OpCode", out)

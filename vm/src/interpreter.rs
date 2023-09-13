@@ -1,6 +1,9 @@
+mod num_ops;
+
 use crate::{
     compiler::{Chunk, OpCode},
     disassembler::disassemble_instruction,
+    error::RunRes,
     value::Value,
 };
 
@@ -14,15 +17,9 @@ struct VM<'a> {
     stack: [Value; STACK_SIZE],
 }
 
-#[derive(Debug, Clone, Copy)]
-pub enum InterpreterError {
-    CompileError,
-    RuntimeError,
-}
-
 const NIL: Value = Value::Nil;
 
-pub fn interpret(chunk: &Chunk, debug: bool) -> Result<(), InterpreterError> {
+pub fn interpret(chunk: &Chunk, debug: bool) -> RunRes<()> {
     let mut vm = VM {
         chunk,
         ip: 0,
@@ -33,27 +30,54 @@ pub fn interpret(chunk: &Chunk, debug: bool) -> Result<(), InterpreterError> {
 }
 
 impl<'a> VM<'a> {
-    fn run(&mut self, debug: bool) -> Result<(), InterpreterError> {
+    fn run(&mut self, debug: bool) -> RunRes<()> {
         while self.ip < self.chunk.as_bytes().len() {
             if debug {
                 disassemble_instruction(&self.chunk, self.ip, &mut std::io::stdout())
-                    .map_err(|_| InterpreterError::RuntimeError)?;
+                    .expect("Could not disassemble an opcode");
             }
 
             let opcode = self.chunk.as_bytes()[self.ip]
                 .try_into()
-                .map_err(|_| InterpreterError::RuntimeError)?;
+                .expect("Cannot read opcode at expected ip");
             self.ip += 1;
             match opcode {
                 OpCode::Return => {
-                    println!("Return {:?}", self.pop());
+                    println!("{:?}", self.pop());
                     return Ok(());
                 }
                 OpCode::Constant => {
                     // Deserialize the constant
-                    let constant = self.read_constant().clone();
+                    let constant = self.read_constant();
                     self.push(constant);
                 }
+                OpCode::Negate => {
+                    let x = self.pop();
+                    self.push(num_ops::negate(x)?);
+                }
+                OpCode::Add => {
+                    let y = self.pop();
+                    let x = self.pop();
+                    self.push(num_ops::add(x, y)?);
+                }
+                OpCode::Subtract => {
+                    let y = self.pop();
+                    let x = self.pop();
+                    self.push(num_ops::sub(x, y)?);
+                }
+                OpCode::Multiply => {
+                    let y = self.pop();
+                    let x = self.pop();
+                    self.push(num_ops::mult(x, y)?);
+                }
+                OpCode::Divide => {
+                    let y = self.pop();
+                    let x = self.pop();
+                    self.push(num_ops::div(x, y)?);
+                }
+            }
+            if debug && self.stack_top > 0 {
+                println!("Top value: {:?}", self.stack[self.stack_top - 1])
             }
         }
         Ok(())
@@ -65,10 +89,11 @@ impl<'a> VM<'a> {
         ip
     }
 
-    fn read_constant(&mut self) -> &Value {
+    fn read_constant(&mut self) -> Value {
         self.chunk
             .get_constant(self.chunk.as_bytes()[self.read_byte()])
             .expect("Could not find constant!")
+            .clone()
     }
 
     fn push(&mut self, value: Value) {
@@ -76,8 +101,8 @@ impl<'a> VM<'a> {
         self.stack_top += 1;
     }
 
-    fn pop(&mut self) -> &Value {
+    fn pop(&mut self) -> Value {
         self.stack_top -= 1;
-        &self.stack[self.stack_top + 1]
+        self.stack[self.stack_top].clone()
     }
 }

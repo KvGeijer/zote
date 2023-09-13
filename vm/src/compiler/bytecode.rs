@@ -5,4 +5,9 @@ use enum_macros::TryFromByte;
 pub enum OpCode {
     Return,
     Constant,
+    Negate,
+    Add,
+    Subtract,
+    Multiply,
+    Divide,
 }

@@ -3,6 +3,6 @@
 pub enum Value {
     Nil,
     Bool(bool),
-    Float(f64),
     Int(i64),
+    Float(f64),
 }

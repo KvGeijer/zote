@@ -1,3 +1,5 @@
+mod cmp_ops;
+mod logic_ops;
 mod num_ops;
 
 use crate::{
@@ -83,7 +85,10 @@ impl<'a> VM<'a> {
                 let x = self.pop();
                 self.push(num_ops::negate(x)?);
             }
-            OpCode::Not => todo!("Boolean operations"),
+            OpCode::Not => {
+                let x = self.pop();
+                self.push(logic_ops::not(x)?);
+            }
             OpCode::Add => {
                 let y = self.pop();
                 let x = self.pop();
@@ -114,12 +119,36 @@ impl<'a> VM<'a> {
                 let x = self.pop();
                 self.push(num_ops::power(x, y)?);
             }
-            OpCode::Equality => todo!(),
-            OpCode::NonEquality => todo!(),
-            OpCode::LessThan => todo!(),
-            OpCode::LessEqual => todo!(),
-            OpCode::GreaterThan => todo!(),
-            OpCode::GreaterEqual => todo!(),
+            OpCode::Equality => {
+                let y = self.pop();
+                let x = self.pop();
+                self.push(cmp_ops::equal(x, y)?);
+            }
+            OpCode::NonEquality => {
+                let y = self.pop();
+                let x = self.pop();
+                self.push(cmp_ops::not_equal(x, y)?);
+            }
+            OpCode::LessThan => {
+                let y = self.pop();
+                let x = self.pop();
+                self.push(cmp_ops::less(x, y)?);
+            }
+            OpCode::LessEqual => {
+                let y = self.pop();
+                let x = self.pop();
+                self.push(cmp_ops::less_eq(x, y)?);
+            }
+            OpCode::GreaterThan => {
+                let y = self.pop();
+                let x = self.pop();
+                self.push(cmp_ops::greater(x, y)?);
+            }
+            OpCode::GreaterEqual => {
+                let y = self.pop();
+                let x = self.pop();
+                self.push(cmp_ops::greater_eq(x, y)?);
+            }
         }
 
         Ok(InstrResult::Ok)

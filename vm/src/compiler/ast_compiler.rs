@@ -33,13 +33,13 @@ fn compile_expression(expr: &ExprNode, chunk: &mut Chunk) -> Option<()> {
         Expr::Call(_, _) => todo!(),
         Expr::IndexInto(_, _) => todo!(),
         Expr::Binary(x, binop, y) => {
-            compile_expression(x, chunk);
-            compile_expression(y, chunk);
+            compile_expression(x, chunk)?;
+            compile_expression(y, chunk)?;
             let opcode = binop_opcode_conv(binop);
             chunk.push_opcode(opcode, range);
         }
         Expr::Unary(unop, x) => {
-            compile_expression(x, chunk);
+            compile_expression(x, chunk)?;
             let opcode = unop_opcode_conv(unop);
             chunk.push_opcode(opcode, range);
         }
@@ -56,7 +56,15 @@ fn compile_expression(expr: &ExprNode, chunk: &mut Chunk) -> Option<()> {
         Expr::For(_, _, _) => todo!(),
         Expr::Break => todo!(),
         Expr::Continue => todo!(),
-        Expr::Return(_) => todo!(),
+        Expr::Return(opt_expr) => {
+            if let Some(expr) = opt_expr {
+                compile_expression(expr, chunk)?;
+            } else {
+                // TODO: How do we handle this? Two different return types? Or just use registers...
+                chunk.push_constant_plus(Value::Nil, range.clone());
+            }
+            chunk.push_opcode(OpCode::Return, range);
+        }
         Expr::Nil => chunk.push_constant_plus(Value::Nil, range),
         Expr::List(_) => todo!(),
         Expr::Tuple(_) => todo!(),

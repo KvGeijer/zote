@@ -22,7 +22,8 @@ pub fn main() {
 }
 
 fn test_num_ops_str() {
-    let string = "5+2^2*3 - 4 % 5";
+    // let string = "5+2^2*3 - 4 % 5";
+    let string = "true";
     let stmts = parser::parse(string).unwrap();
     let chunk = compile(&stmts).unwrap();
     disassembler::disassemble_chunk(&chunk, "main chunk", &mut std::io::stdout()).unwrap();

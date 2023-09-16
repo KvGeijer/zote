@@ -76,6 +76,9 @@ impl<'a> VM<'a> {
                 let constant = self.read_constant();
                 self.push(constant);
             }
+            OpCode::Nil => self.push(Value::Nil),
+            OpCode::True => self.push(Value::Bool(true)),
+            OpCode::False => self.push(Value::Bool(false)),
             OpCode::Negate => {
                 let x = self.pop();
                 self.push(num_ops::negate(x)?);

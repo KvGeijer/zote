@@ -40,6 +40,9 @@ pub fn disassemble_instruction<W: Write>(
         match opcode {
             OpCode::Return => simple_instruction("Return", out),
             OpCode::Constant => constant_instruction("Constant", chunk, offset, out),
+            OpCode::Nil => simple_instruction("Nil", out),
+            OpCode::True => simple_instruction("True", out),
+            OpCode::False => simple_instruction("False", out),
             OpCode::Negate => simple_instruction("Negate", out),
             OpCode::Add => simple_instruction("Add", out),
             OpCode::Subtract => simple_instruction("Subtract", out),

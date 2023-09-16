@@ -40,6 +40,10 @@ impl RuntimeError {
             trace: Box::new(Trace::new(reason)),
         }
     }
+
+    pub fn add_trace(&mut self, function: String, range: CodeRange) {
+        self.trace.add_call(function, range);
+    }
 }
 
 #[derive(Debug)]

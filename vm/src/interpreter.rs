@@ -26,6 +26,7 @@ pub fn interpret(chunk: &Chunk, debug: bool) -> RunRes<()> {
         stack_top: 0,
         stack: [NIL; STACK_SIZE],
     };
+    // TODO: Where do we handle the error print?
     vm.run(debug)
 }
 
@@ -37,67 +38,88 @@ impl<'a> VM<'a> {
                     .expect("Could not disassemble an opcode");
             }
 
-            let opcode = self.chunk.as_bytes()[self.ip]
+            let opcode_ip = self.ip;
+            let opcode = self.chunk.as_bytes()[opcode_ip]
                 .try_into()
                 .expect("Cannot read opcode at expected ip");
             self.ip += 1;
-            match opcode {
-                OpCode::Return => {
-                    println!("{:?}", self.pop());
-                    return Ok(());
+            match self.handle_opcode(opcode) {
+                Ok(InstrResult::Ok) => (),
+                Ok(InstrResult::Return) => return Ok(()),
+                Err(mut error) => {
+                    // TODO: Add whole stack trace
+                    error.add_trace(
+                        "script".to_string(),
+                        self.chunk
+                            .get_range(opcode_ip)
+                            .expect("OpCodes should have code loc debug info stored")
+                            .clone(),
+                    );
+                    return Err(error);
                 }
-                OpCode::Constant => {
-                    // Deserialize the constant
-                    let constant = self.read_constant();
-                    self.push(constant);
-                }
-                OpCode::Negate => {
-                    let x = self.pop();
-                    self.push(num_ops::negate(x)?);
-                }
-                OpCode::Not => todo!("Boolean operations"),
-                OpCode::Add => {
-                    let y = self.pop();
-                    let x = self.pop();
-                    self.push(num_ops::add(x, y)?);
-                }
-                OpCode::Subtract => {
-                    let y = self.pop();
-                    let x = self.pop();
-                    self.push(num_ops::sub(x, y)?);
-                }
-                OpCode::Multiply => {
-                    let y = self.pop();
-                    let x = self.pop();
-                    self.push(num_ops::mult(x, y)?);
-                }
-                OpCode::Divide => {
-                    let y = self.pop();
-                    let x = self.pop();
-                    self.push(num_ops::div(x, y)?);
-                }
-                OpCode::Modulo => {
-                    let y = self.pop();
-                    let x = self.pop();
-                    self.push(num_ops::modulo(x, y)?);
-                }
-                OpCode::Power => {
-                    let y = self.pop();
-                    let x = self.pop();
-                    self.push(num_ops::power(x, y)?);
-                }
-                OpCode::Equality => todo!(),
-                OpCode::NonEquality => todo!(),
-                OpCode::LessThan => todo!(),
-                OpCode::LessEqual => todo!(),
-                OpCode::GreaterThan => todo!(),
-                OpCode::GreaterEqual => todo!(),
             }
             if debug && self.stack_top > 0 {
                 println!("Top value: {:?}", self.stack[self.stack_top - 1])
             }
         }
         Ok(())
+    }
+
+    fn handle_opcode(&mut self, opcode: OpCode) -> RunRes<InstrResult> {
+        match opcode {
+            OpCode::Return => {
+                println!("{:?}", self.pop());
+                return Ok(InstrResult::Return);
+            }
+            OpCode::Constant => {
+                // Deserialize the constant
+                let constant = self.read_constant();
+                self.push(constant);
+            }
+            OpCode::Negate => {
+                let x = self.pop();
+                self.push(num_ops::negate(x)?);
+            }
+            OpCode::Not => todo!("Boolean operations"),
+            OpCode::Add => {
+                let y = self.pop();
+                let x = self.pop();
+                self.push(num_ops::add(x, y)?);
+            }
+            OpCode::Subtract => {
+                let y = self.pop();
+                let x = self.pop();
+                self.push(num_ops::sub(x, y)?);
+            }
+            OpCode::Multiply => {
+                let y = self.pop();
+                let x = self.pop();
+                self.push(num_ops::mult(x, y)?);
+            }
+            OpCode::Divide => {
+                let y = self.pop();
+                let x = self.pop();
+                self.push(num_ops::div(x, y)?);
+            }
+            OpCode::Modulo => {
+                let y = self.pop();
+                let x = self.pop();
+                self.push(num_ops::modulo(x, y)?);
+            }
+            OpCode::Power => {
+                let y = self.pop();
+                let x = self.pop();
+                self.push(num_ops::power(x, y)?);
+            }
+            OpCode::Equality => todo!(),
+            OpCode::NonEquality => todo!(),
+            OpCode::LessThan => todo!(),
+            OpCode::LessEqual => todo!(),
+            OpCode::GreaterThan => todo!(),
+            OpCode::GreaterEqual => todo!(),
+        }
+
+        Ok(InstrResult::Ok)
     }
 
     fn read_byte(&mut self) -> usize {
@@ -122,4 +144,10 @@ impl<'a> VM<'a> {
         self.stack_top -= 1;
         self.stack[self.stack_top].clone()
     }
+}
+
+// The different results from a sucsesfully evaled opcode
+enum InstrResult {
+    Ok,
+    Return,
 }

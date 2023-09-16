@@ -1,19 +1,19 @@
-use parser::CodeRange;
+// use parser::CodeRange;
 
-use vm::compiler::OpCode;
-use vm::compiler::{compile, Chunk};
+// use vm::compiler::OpCode;
+use vm::compiler::compile;
 use vm::disassembler;
 use vm::interpreter::interpret;
-use vm::value::Value;
+// use vm::value::Value;
 
-fn push_opcode(chunk: &mut Chunk, opcode: OpCode) {
-    chunk.push_opcode(opcode, CodeRange::from_ints(0, 0, 0, 0, 0, 0));
-}
+// fn push_opcode(chunk: &mut Chunk, opcode: OpCode) {
+//     chunk.push_opcode(opcode, CodeRange::from_ints(0, 0, 0, 0, 0, 0));
+// }
 
-fn push_const(chunk: &mut Chunk, constant: Value) {
-    push_opcode(chunk, OpCode::Constant);
-    chunk.push_constant(constant);
-}
+// fn push_const(chunk: &mut Chunk, constant: Value) {
+//     push_opcode(chunk, OpCode::Constant);
+//     chunk.push_constant(constant);
+// }
 
 pub fn main() {
     test_num_ops_str();

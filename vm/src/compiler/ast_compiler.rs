@@ -13,14 +13,16 @@ impl Compiler {
         let range = CodeRange::from_locs(*start_loc, *end_loc);
 
         let res = match node.as_ref() {
-            Stmt::Decl(lvalue, expr) => self.compile_declaration(lvalue, expr, range, chunk),
+            Stmt::Decl(lvalue, expr) => {
+                self.compile_declaration(lvalue, expr, range.clone(), chunk)
+            }
             Stmt::Expr(expr) => self.compile_expression(expr, chunk),
             Stmt::Invalid => todo!(),
         };
 
         if let Err(reason) = res {
             // TODO: Push some garbage opcode?
-            eprintln!("COMPILER ERROR: {reason}");
+            eprintln!("COMPILER ERROR: [{range}] {reason}");
         }
     }
 
@@ -36,11 +38,8 @@ impl Compiler {
             LValue::Index(_, _) => todo!(),
             LValue::Var(name) => {
                 self.compile_opt_expression(expr, chunk)?;
-                // TODO: Only when at top-level
-                // let offset = self.declare_global(name, chunk); // Should already have been done
-                let offset = *self.globals.get(name).expect("Should have been declared");
-                chunk.push_opcode(OpCode::AssignGlobal, range); // Maybe bad range choice
-                chunk.push_u8_offset(offset as u8);
+                // TODO: declare as local if not top-level
+                self.compile_assign(name, range, chunk)?;
             }
             LValue::Tuple(_) => todo!(),
             LValue::Constant(_) => todo!(),
@@ -77,7 +76,9 @@ impl Compiler {
                 chunk.push_opcode(opcode, range);
             }
             Expr::Logical(_, _, _) => todo!(),
-            Expr::Assign(_, _) => todo!(),
+            Expr::Assign(lvalue, expr) => {
+                self.compile_lvalue_assignment(lvalue, expr, range, chunk)?
+            }
             Expr::Var(name) => self.compile_var(name, range, chunk)?,
             Expr::Int(x) => chunk.push_constant_plus(Value::Int(*x), range),
             Expr::Float(x) => chunk.push_constant_plus(Value::Float(*x), range),
@@ -101,6 +102,38 @@ impl Compiler {
         };
 
         Ok(())
+    }
+
+    fn compile_lvalue_assignment(
+        &mut self,
+        lvalue: &LValue,
+        expr: &ExprNode,
+        range: CodeRange,
+        chunk: &mut Chunk,
+    ) -> Result<(), String> {
+        self.compile_expression(expr, chunk)?;
+        match lvalue {
+            LValue::Index(_, _) => todo!(),
+            LValue::Var(name) => self.compile_assign(name, range, chunk),
+            LValue::Tuple(_) => todo!(),
+            LValue::Constant(_) => todo!(),
+        }
+    }
+
+    fn compile_assign(
+        &mut self,
+        name: &str,
+        range: CodeRange,
+        chunk: &mut Chunk,
+    ) -> Result<(), String> {
+        // TODO: Check for local variable
+        if let Some(&offset) = self.globals.get(name) {
+            chunk.push_opcode(OpCode::AssignGlobal, range); // Maybe bad range choice
+            chunk.push_u8_offset(offset as u8);
+            Ok(())
+        } else {
+            Err(format!("Var '{name}' is not declared"))
+        }
     }
 
     /// Compiles the expression, or just push Nil (without location) if no expression
@@ -132,7 +165,7 @@ impl Compiler {
             Ok(())
         } else {
             // ERROR: Compile error!
-            Err(format!("Var '{name}' at {range} is not declared"))
+            Err(format!("Var '{name}' is not declared"))
         }
     }
 

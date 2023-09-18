@@ -1,3 +1,5 @@
+use std::fmt::Display;
+
 #[derive(Debug, Clone, PartialEq, Eq, Copy)]
 pub struct CodeLoc {
     index: u32,
@@ -75,5 +77,18 @@ impl CodeRange {
     }
     pub fn ec(&self) -> u16 {
         self.end.col
+    }
+}
+
+impl Display for CodeRange {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        write!(
+            f,
+            "{}:{} - {}:{}",
+            self.sl(),
+            self.sc(),
+            self.el(),
+            self.ec()
+        )
     }
 }

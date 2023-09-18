@@ -22,7 +22,7 @@ pub fn disassemble_chunk<W: Write>(
     let mut offset = 0;
 
     write!(out, "== {name} ==\n")?;
-    while offset < chunk.as_bytes().len() {
+    while offset < chunk.len() {
         offset += disassemble_instruction(chunk, offset, out)?;
     }
     Ok(())
@@ -36,7 +36,7 @@ pub fn disassemble_instruction<W: Write>(
     write!(out, "{:04} ", offset)?;
     write_coderange(chunk, offset, out)?;
 
-    if let Ok(opcode) = chunk.as_bytes()[offset].try_into() {
+    if let Ok(opcode) = chunk[offset].try_into() {
         match opcode {
             OpCode::Return => simple_instruction("Return", out),
             OpCode::Constant => constant_instruction("Constant", chunk, offset, out),
@@ -57,6 +57,8 @@ pub fn disassemble_instruction<W: Write>(
             OpCode::LessEqual => simple_instruction("LessEqual", out),
             OpCode::GreaterThan => simple_instruction("GreaterThan", out),
             OpCode::GreaterEqual => simple_instruction("GreaterEqual", out),
+            OpCode::AssignGlobal => offset_instruction("AssignGlobal", chunk, offset, out),
+            OpCode::ReadGlobal => offset_instruction("ReadGlobal", chunk, offset, out),
         }
     } else {
         simple_instruction("Invalid OpCode", out)
@@ -78,11 +80,22 @@ fn constant_instruction<W: Write>(
     offset: usize,
     out: &mut W,
 ) -> io::Result<usize> {
-    let constant = chunk.as_bytes()[offset + 1];
+    let constant = chunk[offset + 1];
     let value = chunk
         .get_constant(constant)
         .expect("Could not find constant!");
     write!(out, "{:<16} {:4} {:?}\n", name, constant, value)?;
+    Ok(2)
+}
+
+fn offset_instruction<W: Write>(
+    name: &str,
+    chunk: &Chunk,
+    op_offset: usize,
+    out: &mut W,
+) -> io::Result<usize> {
+    let offset = chunk[op_offset + 1];
+    write!(out, "{:<16} {:4}\n", name, offset)?;
     Ok(2)
 }
 

@@ -1,6 +1,6 @@
 use parser::CodeRange;
 
-use std::collections::HashMap;
+use std::{collections::HashMap, ops::Index};
 
 use crate::value::Value;
 
@@ -27,6 +27,10 @@ impl Chunk {
         self.code.push(opcode as u8);
     }
 
+    pub fn push_u8_offset(&mut self, u8: u8) {
+        self.code.push(u8);
+    }
+
     pub fn push_constant(&mut self, value: Value) {
         if self.constants.len() > u8::MAX as usize {
             panic!("Cannot have more than 255 constants, as we store index in u8");
@@ -40,15 +44,24 @@ impl Chunk {
         self.push_constant(value);
     }
 
-    pub fn as_bytes(&self) -> &[u8] {
-        &self.code
-    }
-
     pub fn get_constant(&self, index: u8) -> Option<&Value> {
         self.constants.get(index as usize)
     }
 
     pub fn get_range(&self, offset: usize) -> Option<&CodeRange> {
         self.opcode_ranges.get(&offset)
+    }
+
+    pub fn len(&self) -> usize {
+        self.code.len()
+    }
+}
+
+// To be able to directly index into the code
+impl Index<usize> for Chunk {
+    type Output = u8;
+
+    fn index(&self, index: usize) -> &Self::Output {
+        &self.code[index]
     }
 }

@@ -22,4 +22,6 @@ pub enum OpCode {
     LessEqual,
     GreaterThan,
     GreaterEqual,
+    AssignGlobal,
+    ReadGlobal,
 }

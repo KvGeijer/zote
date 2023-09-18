@@ -10,12 +10,14 @@ use crate::{
 };
 
 const STACK_SIZE: usize = 4096;
+const GLOBALS_SIZE: usize = 256;
 
 struct VM<'a> {
     chunk: &'a Chunk,
     ip: usize, // Could be &[u8] pointing somewhere into the chunk code as well. TODO: Try this instead
     /// The first emply location on the stack
     stack_top: usize,
+    globals: [Value; GLOBALS_SIZE], // Similar to having a region for globals
     stack: [Value; STACK_SIZE],
 }
 
@@ -26,6 +28,7 @@ pub fn interpret(chunk: &Chunk, debug: bool) -> RunRes<()> {
         chunk,
         ip: 0,
         stack_top: 0,
+        globals: [NIL; GLOBALS_SIZE],
         stack: [NIL; STACK_SIZE],
     };
     // TODO: Where do we handle the error print?
@@ -34,17 +37,17 @@ pub fn interpret(chunk: &Chunk, debug: bool) -> RunRes<()> {
 
 impl<'a> VM<'a> {
     fn run(&mut self, debug: bool) -> RunRes<()> {
-        while self.ip < self.chunk.as_bytes().len() {
+        while self.ip < self.chunk.len() {
             if debug {
                 disassemble_instruction(&self.chunk, self.ip, &mut std::io::stdout())
                     .expect("Could not disassemble an opcode");
             }
 
             let opcode_ip = self.ip;
-            let opcode = self.chunk.as_bytes()[opcode_ip]
+            let opcode = self
+                .read_byte()
                 .try_into()
                 .expect("Cannot read opcode at expected ip");
-            self.ip += 1;
             match self.handle_opcode(opcode) {
                 Ok(InstrResult::Ok) => (),
                 Ok(InstrResult::Return) => return Ok(()),
@@ -149,20 +152,31 @@ impl<'a> VM<'a> {
                 let x = self.pop();
                 self.push(cmp_ops::greater_eq(x, y)?);
             }
+            OpCode::AssignGlobal => {
+                let offset = self.read_byte();
+                let x = self.pop();
+                self.globals[offset as usize] = x;
+            }
+            OpCode::ReadGlobal => {
+                let offset = self.read_byte();
+                let global = self.globals[offset as usize].clone();
+                self.push(global)
+            }
         }
 
         Ok(InstrResult::Ok)
     }
 
-    fn read_byte(&mut self) -> usize {
+    fn read_byte(&mut self) -> u8 {
         let ip = self.ip;
+        let byte = self.chunk[ip];
         self.ip += 1;
-        ip
+        byte
     }
 
     fn read_constant(&mut self) -> Value {
         self.chunk
-            .get_constant(self.chunk.as_bytes()[self.read_byte()])
+            .get_constant(self.read_byte())
             .expect("Could not find constant!")
             .clone()
     }

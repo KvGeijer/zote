@@ -7,10 +7,24 @@ mod error;
 pub mod interpreter;
 pub mod value;
 
+use compiler::compile;
 pub use error::Trace;
+use interpreter::interpret;
+use parser::Stmts;
 
 #[derive(Debug)]
 pub enum VMError {
     CompileError,
     RuntimeError(Trace),
+}
+
+pub fn interpret_once(ast: &Stmts) -> i32 {
+    let Some(chunk) = compile(ast) else {
+        return 65; // ? Which error to use? Should we send back trace?
+    };
+
+    match interpret(&chunk, false) {
+        Ok(_) => 0,
+        Err(_) => 70,
+    }
 }

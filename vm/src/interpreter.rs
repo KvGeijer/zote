@@ -38,6 +38,7 @@ pub fn interpret(chunk: &Chunk, debug: bool) -> RunRes<()> {
 impl<'a> VM<'a> {
     fn run(&mut self, debug: bool) -> RunRes<()> {
         while self.ip < self.chunk.len() {
+            // TODO: Change to compile feature?
             if debug {
                 disassemble_instruction(&self.chunk, self.ip, &mut std::io::stdout())
                     .expect("Could not disassemble an opcode");

@@ -14,6 +14,11 @@ pub struct Compiler {
     had_error: bool,
 }
 
+pub fn compile(stmts: &Stmts) -> Option<Chunk> {
+    let mut compiler = Compiler::new();
+    compiler.compile(stmts)
+}
+
 impl Compiler {
     pub fn new() -> Self {
         Self {

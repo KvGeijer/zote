@@ -1,5 +1,5 @@
 window.BENCHMARK_DATA = {
-  "lastUpdate": 1694872598249,
+  "lastUpdate": 1695046668202,
   "repoUrl": "https://github.com/KvGeijer/zote",
   "entries": {
     "Rust Benchmark": [
@@ -4217,6 +4217,66 @@ window.BENCHMARK_DATA = {
             "name": "string_manips",
             "value": 162546094,
             "range": "± 4407100",
+            "unit": "ns/iter"
+          }
+        ]
+      },
+      {
+        "commit": {
+          "author": {
+            "email": "kare.kvg@gmail.com",
+            "name": "Kåre von Geijer",
+            "username": "KvGeijer"
+          },
+          "committer": {
+            "email": "kare.kvg@gmail.com",
+            "name": "Kåre von Geijer",
+            "username": "KvGeijer"
+          },
+          "distinct": true,
+          "id": "f80d8dab7140b461d42ccb2c2b26ccf521d15938",
+          "message": "Add global variables\n\nAs I want global variables to be late binding, I cannot handle them\nthe same way as local ones, so I do like this instead. It should also\nbe much better than the way the book does it with a hash table as well.",
+          "timestamp": "2023-09-18T16:13:03+02:00",
+          "tree_id": "d925e736c31043c81ba28bb177073156e8a97f0c",
+          "url": "https://github.com/KvGeijer/zote/commit/f80d8dab7140b461d42ccb2c2b26ccf521d15938"
+        },
+        "date": 1695046667452,
+        "tool": "cargo",
+        "benches": [
+          {
+            "name": "aoc_2022_1",
+            "value": 1126860,
+            "range": "± 5232",
+            "unit": "ns/iter"
+          },
+          {
+            "name": "aoc_2022_2",
+            "value": 24221407,
+            "range": "± 79588",
+            "unit": "ns/iter"
+          },
+          {
+            "name": "aoc_2022_4",
+            "value": 33757061,
+            "range": "± 495269",
+            "unit": "ns/iter"
+          },
+          {
+            "name": "fibonachi",
+            "value": 175588800,
+            "range": "± 2184592",
+            "unit": "ns/iter"
+          },
+          {
+            "name": "prints",
+            "value": 20103856,
+            "range": "± 366743",
+            "unit": "ns/iter"
+          },
+          {
+            "name": "string_manips",
+            "value": 154065531,
+            "range": "± 2281312",
             "unit": "ns/iter"
           }
         ]

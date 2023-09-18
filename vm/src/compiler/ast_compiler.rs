@@ -140,23 +140,23 @@ impl Compiler {
     pub fn declare_globals(&mut self, stmts: &Stmts) {
         for stmt in stmts.stmts.iter() {
             if let Stmt::Decl(lvalue, _) = stmt.node.as_ref() {
-                self.declare_lvalue(lvalue);
+                self.declare_global_lvalue(lvalue);
             }
         }
     }
 
-    fn declare_lvalue(&mut self, lvalue: &LValue) {
+    fn declare_global_lvalue(&mut self, lvalue: &LValue) {
         match lvalue {
-            LValue::Index(_, _) => todo!(),
+            LValue::Index(_, _) => (),
             LValue::Var(name) => {
                 self.declare_global(name);
             }
             LValue::Tuple(lvalues) => {
                 for lvalue in lvalues.iter() {
-                    self.declare_lvalue(lvalue);
+                    self.declare_global_lvalue(lvalue);
                 }
             }
-            LValue::Constant(_) => todo!(),
+            LValue::Constant(_) => (),
         }
     }
 }

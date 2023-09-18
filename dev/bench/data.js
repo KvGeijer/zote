@@ -1,5 +1,5 @@
 window.BENCHMARK_DATA = {
-  "lastUpdate": 1695049601998,
+  "lastUpdate": 1695067843778,
   "repoUrl": "https://github.com/KvGeijer/zote",
   "entries": {
     "Rust Benchmark": [
@@ -4337,6 +4337,42 @@ window.BENCHMARK_DATA = {
             "name": "string_manips",
             "value": 183232513,
             "range": "± 4585372",
+            "unit": "ns/iter"
+          }
+        ]
+      },
+      {
+        "commit": {
+          "author": {
+            "email": "kare.kvg@gmail.com",
+            "name": "Kåre von Geijer",
+            "username": "KvGeijer"
+          },
+          "committer": {
+            "email": "kare.kvg@gmail.com",
+            "name": "Kåre von Geijer",
+            "username": "KvGeijer"
+          },
+          "distinct": true,
+          "id": "bdf13093b27b6fa8a252a99fbdc7aef168d167a2",
+          "message": "Conditionally compile ast-interpreter or vm\n\nThe VM does still not store any state between repl lines.",
+          "timestamp": "2023-09-18T22:07:00+02:00",
+          "tree_id": "a246587e90d80de278dd9606db49f69b2695f08e",
+          "url": "https://github.com/KvGeijer/zote/commit/bdf13093b27b6fa8a252a99fbdc7aef168d167a2"
+        },
+        "date": 1695067843255,
+        "tool": "cargo",
+        "benches": [
+          {
+            "name": "aoc_2022_2",
+            "value": 23213996,
+            "range": "± 153022",
+            "unit": "ns/iter"
+          },
+          {
+            "name": "aoc_2022_4",
+            "value": 32385711,
+            "range": "± 201724",
             "unit": "ns/iter"
           }
         ]

@@ -1,4 +1,5 @@
 mod cmp_ops;
+mod locals;
 mod logic_ops;
 mod num_ops;
 
@@ -11,14 +12,17 @@ use crate::{
 
 const STACK_SIZE: usize = 4096;
 const GLOBALS_SIZE: usize = 256;
+const TEMP_STACK_SIZE: usize = 1024;
 
 struct VM<'a> {
     chunk: &'a Chunk,
-    ip: usize, // Could be &[u8] pointing somewhere into the chunk code as well. TODO: Try this instead
+    pc: usize, // Could be &[u8] pointing somewhere into the chunk code as well. TODO: Try this instead
     /// The first emply location on the stack
-    stack_top: usize,
+    rbp: usize, // Base pointers points to the base of the current stack frame
+    temp_top: usize,
     globals: [Value; GLOBALS_SIZE], // Similar to having a region for globals
-    stack: [Value; STACK_SIZE],
+    temp_stack: [Value; TEMP_STACK_SIZE], // Stores all temporary values for executing expressions
+    stack: [Value; STACK_SIZE], // Stores variables, as the C stack (can't merge with temps due to stmts in exprs)
 }
 
 const NIL: Value = Value::Nil;
@@ -26,10 +30,12 @@ const NIL: Value = Value::Nil;
 pub fn interpret(chunk: &Chunk, debug: bool) -> RunRes<()> {
     let mut vm = VM {
         chunk,
-        ip: 0,
-        stack_top: 0,
+        pc: 0,
+        temp_top: 0,
+        rbp: 0,
         globals: [NIL; GLOBALS_SIZE],
         stack: [NIL; STACK_SIZE],
+        temp_stack: [NIL; TEMP_STACK_SIZE],
     };
     // TODO: Where do we handle the error print?
     vm.run(debug)
@@ -37,14 +43,14 @@ pub fn interpret(chunk: &Chunk, debug: bool) -> RunRes<()> {
 
 impl<'a> VM<'a> {
     fn run(&mut self, debug: bool) -> RunRes<()> {
-        while self.ip < self.chunk.len() {
+        while self.pc < self.chunk.len() {
             // TODO: Change to compile feature?
             if debug {
-                disassemble_instruction(&self.chunk, self.ip, &mut std::io::stdout())
+                disassemble_instruction(&self.chunk, self.pc, &mut std::io::stdout())
                     .expect("Could not disassemble an opcode");
             }
 
-            let opcode_ip = self.ip;
+            let opcode_ip = self.pc;
             let opcode = self
                 .read_byte()
                 .try_into()
@@ -64,8 +70,8 @@ impl<'a> VM<'a> {
                     return Err(error);
                 }
             }
-            if debug && self.stack_top > 0 {
-                println!("Top value: {:?}", self.stack[self.stack_top - 1])
+            if debug && self.temp_top > 0 {
+                println!("Top value: {:?}", self.temp_stack[self.temp_top - 1])
             }
         }
         Ok(())
@@ -163,15 +169,30 @@ impl<'a> VM<'a> {
                 let global = self.globals[offset as usize].clone();
                 self.push(global)
             }
+            OpCode::AssignLocal => {
+                let offset = self.read_byte();
+                let x = self.pop();
+                self.stack[self.rbp + offset as usize] = x;
+            }
+            OpCode::ReadLocal => {
+                let offset = self.read_byte();
+                let local = self.stack[self.rbp + offset as usize].clone();
+                self.push(local)
+            }
+            OpCode::Print => {
+                let x = self.pop();
+                println!("{:?}", x);
+                self.push(x);
+            }
         }
 
         Ok(InstrResult::Ok)
     }
 
     fn read_byte(&mut self) -> u8 {
-        let ip = self.ip;
+        let ip = self.pc;
         let byte = self.chunk[ip];
-        self.ip += 1;
+        self.pc += 1;
         byte
     }
 
@@ -182,14 +203,16 @@ impl<'a> VM<'a> {
             .clone()
     }
 
+    /// Pushes the topmost temp value
     fn push(&mut self, value: Value) {
-        self.stack[self.stack_top] = value;
-        self.stack_top += 1;
+        self.temp_stack[self.temp_top] = value;
+        self.temp_top += 1;
     }
 
+    /// Pops the topmost temp value
     fn pop(&mut self) -> Value {
-        self.stack_top -= 1;
-        self.stack[self.stack_top].clone()
+        self.temp_top -= 1;
+        self.temp_stack[self.temp_top].clone()
     }
 }
 

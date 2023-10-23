@@ -3,6 +3,8 @@ use parser::{BinOper, CodeRange, Expr, ExprNode, LValue, Stmt, StmtNode, Stmts, 
 use super::{Chunk, Compiler, OpCode};
 use crate::value::Value;
 
+type CompRes<T> = Result<T, String>;
+
 impl Compiler {
     pub fn compile_statement(&mut self, statement: &StmtNode, chunk: &mut Chunk) {
         let StmtNode {
@@ -32,13 +34,15 @@ impl Compiler {
         expr: &Option<ExprNode>,
         range: CodeRange,
         chunk: &mut Chunk,
-    ) -> Result<(), String> {
-        // For now just declares it as a global variable
+    ) -> CompRes<()> {
+        // TODO: Pattern matching more
         match lvalue {
             LValue::Index(_, _) => todo!(),
             LValue::Var(name) => {
                 self.compile_opt_expression(expr, chunk)?;
-                // TODO: declare as local if not top-level
+                if !self.locals.is_global() {
+                    self.locals.add_local(name.to_string())
+                }
                 self.compile_assign(name, range, chunk)?;
             }
             LValue::Tuple(_) => todo!(),
@@ -62,7 +66,7 @@ impl Compiler {
         let range = CodeRange::from_locs(*start_loc, *end_loc);
 
         match node.as_ref() {
-            Expr::Call(_, _) => todo!(),
+            Expr::Call(func, args) => self.compile_call(func, args, range, chunk),
             Expr::IndexInto(_, _) => todo!(),
             Expr::Binary(x, binop, y) => {
                 self.compile_expression(x, chunk)?;
@@ -84,7 +88,7 @@ impl Compiler {
             Expr::Float(x) => chunk.push_constant_plus(Value::Float(*x), range),
             Expr::Bool(x) => chunk.push_constant_plus(Value::Bool(*x), range),
             Expr::String(_) => todo!(),
-            Expr::Block(_) => todo!(),
+            Expr::Block(stmts) => self.compile_block(stmts, chunk),
             Expr::If(_, _, _) => todo!(),
             Expr::While(_, _) => todo!(),
             Expr::For(_, _, _) => todo!(),
@@ -120,19 +124,24 @@ impl Compiler {
         }
     }
 
+    /// Assigns the topmost temp value to the named variable
     fn compile_assign(
         &mut self,
         name: &str,
         range: CodeRange,
         chunk: &mut Chunk,
     ) -> Result<(), String> {
-        // TODO: Check for local variable
-        if let Some(&offset) = self.globals.get(name) {
+        // First checks if it is local
+        if let Some(offset) = self.locals.get(name) {
+            chunk.push_opcode(OpCode::AssignLocal, range);
+            chunk.push_u8_offset(offset);
+            Ok(())
+        } else if let Some(&offset) = self.globals.get(name) {
             chunk.push_opcode(OpCode::AssignGlobal, range); // Maybe bad range choice
             chunk.push_u8_offset(offset as u8);
             Ok(())
         } else {
-            Err(format!("Var '{name}' is not declared"))
+            Err(format!("Global var '{name}' is not declared"))
         }
     }
 
@@ -150,16 +159,18 @@ impl Compiler {
         Ok(())
     }
 
-    /// Compiles the read of a var. Now only global
+    /// Compiles the read of a var.
     fn compile_var(
         &mut self,
         name: &str,
         range: CodeRange,
         chunk: &mut Chunk,
     ) -> Result<(), String> {
-        // TODO: Check if a local one exists first
-
-        if let Some(offset) = self.globals.get(name) {
+        if let Some(offset) = self.locals.get(name) {
+            chunk.push_opcode(OpCode::ReadLocal, range);
+            chunk.push_u8_offset(offset);
+            Ok(())
+        } else if let Some(offset) = self.globals.get(name) {
             chunk.push_opcode(OpCode::ReadGlobal, range);
             chunk.push_u8_offset(*offset as u8);
             Ok(())
@@ -191,6 +202,32 @@ impl Compiler {
             }
             LValue::Constant(_) => (),
         }
+    }
+
+    /// Compiles the block of statements. Does not throw, as errors are printed and escaped within.
+    fn compile_block(&mut self, stmts: &Stmts, chunk: &mut Chunk) {
+        self.locals.enter();
+        self.compile_stmts(stmts, chunk);
+        self.locals.exit();
+    }
+
+    /// So far can only handle hard-coded print calls
+    fn compile_call(
+        &mut self,
+        func: &ExprNode,
+        args: &[ExprNode],
+        range: CodeRange,
+        chunk: &mut Chunk,
+    ) {
+        if let Expr::Var(name) = func.node.as_ref() {
+            if name == "print" {
+                // TODO: Fix
+                let _ = self.compile_expression(&args[0], chunk);
+                chunk.push_opcode(OpCode::Print, range);
+                return;
+            }
+        }
+        todo!("Only print calls implemented yet")
     }
 }
 

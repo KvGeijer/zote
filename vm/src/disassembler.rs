@@ -59,6 +59,9 @@ pub fn disassemble_instruction<W: Write>(
             OpCode::GreaterEqual => simple_instruction("GreaterEqual", out),
             OpCode::AssignGlobal => offset_instruction("AssignGlobal", chunk, offset, out),
             OpCode::ReadGlobal => offset_instruction("ReadGlobal", chunk, offset, out),
+            OpCode::AssignLocal => offset_instruction("AssignLocal", chunk, offset, out),
+            OpCode::ReadLocal => offset_instruction("ReadLocal", chunk, offset, out),
+            OpCode::Print => simple_instruction("Print", out),
         }
     } else {
         simple_instruction("Invalid OpCode", out)

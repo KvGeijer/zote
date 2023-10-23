@@ -24,4 +24,7 @@ pub enum OpCode {
     GreaterEqual,
     AssignGlobal,
     ReadGlobal,
+    AssignLocal,
+    ReadLocal,
+    Print,
 }

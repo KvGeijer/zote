@@ -1,6 +1,7 @@
 mod ast_compiler;
 mod bytecode;
 mod chunk;
+mod locals;
 
 use std::collections::HashMap;
 
@@ -8,9 +9,12 @@ pub use bytecode::OpCode;
 pub use chunk::Chunk;
 use parser::Stmts;
 
+use self::locals::LocalState;
+
 /// Struct to store metadata during and between compilations
 pub struct Compiler {
     globals: HashMap<String, usize>,
+    locals: LocalState,
     had_error: bool,
 }
 
@@ -23,6 +27,7 @@ impl Compiler {
     pub fn new() -> Self {
         Self {
             globals: HashMap::with_capacity(32),
+            locals: LocalState::new(),
             had_error: false,
         }
     }

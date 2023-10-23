@@ -1,5 +1,5 @@
 window.BENCHMARK_DATA = {
-  "lastUpdate": 1695067843778,
+  "lastUpdate": 1698072706630,
   "repoUrl": "https://github.com/KvGeijer/zote",
   "entries": {
     "Rust Benchmark": [
@@ -4373,6 +4373,42 @@ window.BENCHMARK_DATA = {
             "name": "aoc_2022_4",
             "value": 32385711,
             "range": "± 201724",
+            "unit": "ns/iter"
+          }
+        ]
+      },
+      {
+        "commit": {
+          "author": {
+            "email": "kare.kvg@gmail.com",
+            "name": "Kåre von Geijer",
+            "username": "KvGeijer"
+          },
+          "committer": {
+            "email": "kare.kvg@gmail.com",
+            "name": "Kåre von Geijer",
+            "username": "KvGeijer"
+          },
+          "distinct": true,
+          "id": "44c97ee713d4bf4ba708224da538ff46637b8e61",
+          "message": "Add local variables and blocks",
+          "timestamp": "2023-10-23T16:49:50+02:00",
+          "tree_id": "d618bd067afc93ed07c229e96b1b3813c37d2d38",
+          "url": "https://github.com/KvGeijer/zote/commit/44c97ee713d4bf4ba708224da538ff46637b8e61"
+        },
+        "date": 1698072705563,
+        "tool": "cargo",
+        "benches": [
+          {
+            "name": "aoc_2022_2",
+            "value": 29086154,
+            "range": "± 97077",
+            "unit": "ns/iter"
+          },
+          {
+            "name": "aoc_2022_4",
+            "value": 40394081,
+            "range": "± 147598",
             "unit": "ns/iter"
           }
         ]

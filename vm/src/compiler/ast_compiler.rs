@@ -1,4 +1,6 @@
-use parser::{BinOper, CodeRange, Expr, ExprNode, LValue, Stmt, StmtNode, Stmts, UnOper};
+use parser::{
+    BinOper, CodeRange, Expr, ExprNode, LValue, LogicalOper, Stmt, StmtNode, Stmts, UnOper,
+};
 
 use super::{Chunk, Compiler, OpCode};
 use crate::value::Value;
@@ -89,7 +91,10 @@ impl Compiler {
                 let opcode = unop_opcode_conv(unop);
                 chunk.push_opcode(opcode, range);
             }
-            Expr::Logical(_, _, _) => todo!(),
+            Expr::Logical(lhs, LogicalOper::And, rhs) => {
+                self.compile_and(lhs, rhs, range, chunk)?
+            }
+            Expr::Logical(lhs, LogicalOper::Or, rhs) => self.compile_or(lhs, rhs, range, chunk)?,
             Expr::Assign(lvalue, expr) => {
                 self.compile_lvalue_assignment(lvalue, expr, range, chunk)?
             }

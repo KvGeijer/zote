@@ -1,5 +1,5 @@
 window.BENCHMARK_DATA = {
-  "lastUpdate": 1698138931388,
+  "lastUpdate": 1698159725742,
   "repoUrl": "https://github.com/KvGeijer/zote",
   "entries": {
     "Rust Benchmark": [
@@ -4445,6 +4445,42 @@ window.BENCHMARK_DATA = {
             "name": "aoc_2022_4",
             "value": 37411629,
             "range": "± 5970612",
+            "unit": "ns/iter"
+          }
+        ]
+      },
+      {
+        "commit": {
+          "author": {
+            "email": "kare.kvg@gmail.com",
+            "name": "Kåre von Geijer",
+            "username": "KvGeijer"
+          },
+          "committer": {
+            "email": "kare.kvg@gmail.com",
+            "name": "Kåre von Geijer",
+            "username": "KvGeijer"
+          },
+          "distinct": true,
+          "id": "1f8ea19277682e3fd6662ad330a77a4a9169879a",
+          "message": "Add `if` and `and` statements",
+          "timestamp": "2023-10-24T16:59:58+02:00",
+          "tree_id": "cc92614c32c30091dcfab1d86ee4b1795d6d5609",
+          "url": "https://github.com/KvGeijer/zote/commit/1f8ea19277682e3fd6662ad330a77a4a9169879a"
+        },
+        "date": 1698159724400,
+        "tool": "cargo",
+        "benches": [
+          {
+            "name": "aoc_2022_2",
+            "value": 32201255,
+            "range": "± 5891111",
+            "unit": "ns/iter"
+          },
+          {
+            "name": "aoc_2022_4",
+            "value": 42764730,
+            "range": "± 3825489",
             "unit": "ns/iter"
           }
         ]

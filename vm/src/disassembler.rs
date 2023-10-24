@@ -62,6 +62,9 @@ pub fn disassemble_instruction<W: Write>(
             OpCode::AssignLocal => offset_instruction("AssignLocal", chunk, offset, out),
             OpCode::ReadLocal => offset_instruction("ReadLocal", chunk, offset, out),
             OpCode::Print => simple_instruction("Print", out),
+            OpCode::JumpIfFalse => jump_instruction("JumpIfFalse", chunk, offset, out),
+            OpCode::Jump => jump_instruction("Jump", chunk, offset, out),
+            OpCode::Discard => simple_instruction("Discard", out),
         }
     } else {
         simple_instruction("Invalid OpCode", out)
@@ -100,6 +103,17 @@ fn offset_instruction<W: Write>(
     let offset = chunk[op_offset + 1];
     write!(out, "{:<16} {:4}\n", name, offset)?;
     Ok(2)
+}
+
+fn jump_instruction<W: Write>(
+    name: &str,
+    chunk: &Chunk,
+    op_offset: usize,
+    out: &mut W,
+) -> io::Result<usize> {
+    let offset = i16::from_be_bytes([chunk[op_offset + 1], chunk[op_offset + 2]]);
+    write!(out, "{:<16} {:4}\n", name, offset)?;
+    Ok(3)
 }
 
 pub fn write_coderange<W: Write>(chunk: &Chunk, offset: usize, out: &mut W) -> io::Result<()> {

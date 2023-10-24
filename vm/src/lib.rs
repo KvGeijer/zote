@@ -23,6 +23,7 @@ pub fn interpret_once(ast: &Stmts) -> i32 {
         return 65; // ? Which error to use? Should we send back trace?
     };
 
+    disassembler::disassemble_chunk(&chunk, "main", &mut std::io::stdout()).unwrap();
     match interpret(&chunk, false) {
         Ok(_) => 0,
         Err(_) => 70,

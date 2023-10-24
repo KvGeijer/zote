@@ -17,7 +17,6 @@ const TEMP_STACK_SIZE: usize = 1024;
 struct VM<'a> {
     chunk: &'a Chunk,
     pc: usize, // Could be &[u8] pointing somewhere into the chunk code as well. TODO: Try this instead
-    /// The first emply location on the stack
     rbp: usize, // Base pointers points to the base of the current stack frame
     temp_top: usize,
     globals: [Value; GLOBALS_SIZE], // Similar to having a region for globals
@@ -161,7 +160,7 @@ impl<'a> VM<'a> {
             }
             OpCode::AssignGlobal => {
                 let offset = self.read_byte();
-                let x = self.pop();
+                let x = self.peek();
                 self.globals[offset as usize] = x;
             }
             OpCode::ReadGlobal => {
@@ -171,7 +170,7 @@ impl<'a> VM<'a> {
             }
             OpCode::AssignLocal => {
                 let offset = self.read_byte();
-                let x = self.pop();
+                let x = self.peek();
                 self.stack[self.rbp + offset as usize] = x;
             }
             OpCode::ReadLocal => {
@@ -180,9 +179,22 @@ impl<'a> VM<'a> {
                 self.push(local)
             }
             OpCode::Print => {
-                let x = self.pop();
+                let x = self.peek();
                 println!("{:?}", x);
-                self.push(x);
+            }
+            OpCode::JumpIfFalse => {
+                let pred = self.pop();
+                let jump = i16::from_be_bytes(self.read_2bytes());
+                if !pred.truthy()? {
+                    self.pc = add_i16_to_usize(self.pc, jump);
+                }
+            }
+            OpCode::Jump => {
+                let jump = i16::from_be_bytes(self.read_2bytes());
+                self.pc = add_i16_to_usize(self.pc, jump);
+            }
+            OpCode::Discard => {
+                self.pop();
             }
         }
 
@@ -194,6 +206,13 @@ impl<'a> VM<'a> {
         let byte = self.chunk[ip];
         self.pc += 1;
         byte
+    }
+
+    fn read_2bytes(&mut self) -> [u8; 2] {
+        let ip = self.pc;
+        let bytes = [self.chunk[ip], self.chunk[ip + 1]];
+        self.pc += 2;
+        bytes
     }
 
     fn read_constant(&mut self) -> Value {
@@ -214,10 +233,23 @@ impl<'a> VM<'a> {
         self.temp_top -= 1;
         self.temp_stack[self.temp_top].clone()
     }
+
+    /// Peeks the topmost temp value
+    fn peek(&mut self) -> Value {
+        self.temp_stack[self.temp_top - 1].clone()
+    }
 }
 
 // The different results from a sucsesfully evaled opcode
 enum InstrResult {
     Ok,
     Return,
+}
+
+fn add_i16_to_usize(value: usize, diff: i16) -> usize {
+    if diff.is_positive() {
+        value + diff as usize
+    } else {
+        value - diff.abs() as usize
+    }
 }

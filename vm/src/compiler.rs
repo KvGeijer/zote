@@ -47,9 +47,12 @@ impl Compiler {
     }
 
     pub fn compile_stmts(&mut self, stmts: &Stmts, chunk: &mut Chunk) {
-        // TODO: Implement output field (Just push Nil if no output?)
-        for stmt in stmts.stmts.iter() {
-            self.compile_statement(stmt, chunk);
+        for (ind, stmt) in stmts.stmts.iter().enumerate() {
+            self.compile_statement(
+                stmt,
+                chunk,
+                stmts.output && (ind == (stmts.stmts.len() - 1)),
+            );
         }
     }
 }

@@ -27,4 +27,7 @@ pub enum OpCode {
     AssignLocal,
     ReadLocal,
     Print,
+    JumpIfFalse,
+    Jump,
+    Discard,
 }

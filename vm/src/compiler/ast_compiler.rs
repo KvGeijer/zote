@@ -3,10 +3,12 @@ use parser::{BinOper, CodeRange, Expr, ExprNode, LValue, Stmt, StmtNode, Stmts, 
 use super::{Chunk, Compiler, OpCode};
 use crate::value::Value;
 
+mod control_flow;
+
 type CompRes<T> = Result<T, String>;
 
 impl Compiler {
-    pub fn compile_statement(&mut self, statement: &StmtNode, chunk: &mut Chunk) {
+    pub fn compile_statement(&mut self, statement: &StmtNode, chunk: &mut Chunk, output: bool) {
         let StmtNode {
             node,
             start_loc,
@@ -18,7 +20,14 @@ impl Compiler {
             Stmt::Decl(lvalue, expr) => {
                 self.compile_declaration(lvalue, expr, range.clone(), chunk)
             }
-            Stmt::Expr(expr) => self.compile_expression(expr, chunk),
+            Stmt::Expr(expr) => {
+                let res = self.compile_expression(expr, chunk);
+                if !output {
+                    // Keep the value if the statement should keep output
+                    chunk.push_opcode(OpCode::Discard, range.clone());
+                }
+                res
+            }
             Stmt::Invalid => todo!(),
         };
 
@@ -39,7 +48,8 @@ impl Compiler {
         match lvalue {
             LValue::Index(_, _) => todo!(),
             LValue::Var(name) => {
-                self.compile_opt_expression(expr, chunk)?;
+                // Important to compile RHS before declaring the variable
+                self.compile_opt_expression(expr.as_ref(), chunk)?;
                 if !self.locals.is_global() {
                     self.locals.add_local(name.to_string())
                 }
@@ -88,14 +98,16 @@ impl Compiler {
             Expr::Float(x) => chunk.push_constant_plus(Value::Float(*x), range),
             Expr::Bool(x) => chunk.push_constant_plus(Value::Bool(*x), range),
             Expr::String(_) => todo!(),
-            Expr::Block(stmts) => self.compile_block(stmts, chunk),
-            Expr::If(_, _, _) => todo!(),
+            Expr::Block(stmts) => self.compile_block(stmts, range, chunk),
+            Expr::If(pred, then, otherwise) => {
+                self.compile_if(pred, then, otherwise.as_ref(), range, chunk)?
+            }
             Expr::While(_, _) => todo!(),
             Expr::For(_, _, _) => todo!(),
             Expr::Break => todo!(),
             Expr::Continue => todo!(),
             Expr::Return(opt_expr) => {
-                self.compile_opt_expression(opt_expr, chunk)?;
+                self.compile_opt_expression(opt_expr.as_ref(), chunk)?;
                 chunk.push_opcode(OpCode::Return, range);
             }
             Expr::Nil => chunk.push_constant_plus(Value::Nil, range),
@@ -148,7 +160,7 @@ impl Compiler {
     /// Compiles the expression, or just push Nil (without location) if no expression
     fn compile_opt_expression(
         &mut self,
-        expr: &Option<ExprNode>,
+        expr: Option<&ExprNode>,
         chunk: &mut Chunk,
     ) -> Result<(), String> {
         // Maybe we should be smarter and never push such a Nil value
@@ -205,9 +217,12 @@ impl Compiler {
     }
 
     /// Compiles the block of statements. Does not throw, as errors are printed and escaped within.
-    fn compile_block(&mut self, stmts: &Stmts, chunk: &mut Chunk) {
+    fn compile_block(&mut self, stmts: &Stmts, range: CodeRange, chunk: &mut Chunk) {
         self.locals.enter();
         self.compile_stmts(stmts, chunk);
+        if !stmts.output || stmts.stmts.is_empty() {
+            chunk.push_opcode(OpCode::Nil, range);
+        }
         self.locals.exit();
     }
 

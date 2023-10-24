@@ -31,6 +31,27 @@ impl Chunk {
         self.code.push(u8);
     }
 
+    /// Reserves two bytes at the index for a future jump
+    pub fn reserve_jump(&mut self) -> usize {
+        self.code.push(255);
+        self.code.push(255);
+        self.code.len()
+    }
+
+    /// Set the jump offset at the given reserved index.
+    ///
+    /// Panics if the index is not already reserved
+    pub fn set_reserved_jump(&mut self, reserved: usize, target: usize) {
+        let offset = (target as i64 - reserved as i64) as i16;
+        if self.code[reserved - 2] == 255 && self.code[reserved - 1] == 255 {
+            let bytes = offset.to_be_bytes();
+            self.code[reserved - 2] = bytes[0];
+            self.code[reserved - 1] = bytes[1];
+        } else {
+            panic!("Tried to set values which were not reserved")
+        }
+    }
+
     pub fn push_constant(&mut self, value: Value) {
         if self.constants.len() > u8::MAX as usize {
             panic!("Cannot have more than 255 constants, as we store index in u8");

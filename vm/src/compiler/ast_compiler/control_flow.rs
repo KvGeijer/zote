@@ -89,4 +89,24 @@ impl Compiler {
 
         Ok(())
     }
+
+    pub fn compile_while(
+        &mut self,
+        pred: &ExprNode,
+        body: &ExprNode,
+        range: CodeRange,
+        chunk: &mut Chunk,
+    ) -> CompRes<()> {
+        let start_label = chunk.len();
+        self.compile_expression(pred, chunk)?;
+        chunk.push_opcode(OpCode::JumpIfFalse, range.clone());
+        let reserved_exit = chunk.reserve_jump();
+
+        self.compile_expression(body, chunk)?;
+        chunk.push_opcode(OpCode::Jump, range);
+        chunk.push_jump_offset(start_label);
+        chunk.set_reserved_jump(reserved_exit, chunk.len());
+
+        Ok(())
+    }
 }

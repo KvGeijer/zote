@@ -107,7 +107,7 @@ impl Compiler {
             Expr::If(pred, then, otherwise) => {
                 self.compile_if(pred, then, otherwise.as_ref(), range, chunk)?
             }
-            Expr::While(_, _) => todo!(),
+            Expr::While(pred, body) => self.compile_while(pred, body, range, chunk)?,
             Expr::For(_, _, _) => todo!(),
             Expr::Break => todo!(),
             Expr::Continue => todo!(),

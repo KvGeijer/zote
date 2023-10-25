@@ -52,6 +52,11 @@ impl Chunk {
         }
     }
 
+    pub fn push_jump_offset(&mut self, target: usize) {
+        let current = self.reserve_jump();
+        self.set_reserved_jump(current, target);
+    }
+
     pub fn push_constant(&mut self, value: Value) {
         if self.constants.len() > u8::MAX as usize {
             panic!("Cannot have more than 255 constants, as we store index in u8");

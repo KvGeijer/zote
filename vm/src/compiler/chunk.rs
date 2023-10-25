@@ -41,7 +41,11 @@ impl Chunk {
     /// Set the jump offset at the given reserved index.
     ///
     /// Panics if the index is not already reserved
-    pub fn set_reserved_jump(&mut self, reserved: usize, target: usize) {
+    pub fn patch_reserved_jump(&mut self, reserved: usize) {
+        self.set_reserved_jump(reserved, self.len())
+    }
+
+    fn set_reserved_jump(&mut self, reserved: usize, target: usize) {
         let offset = (target as i64 - reserved as i64) as i16;
         if self.code[reserved - 2] == 255 && self.code[reserved - 1] == 255 {
             let bytes = offset.to_be_bytes();

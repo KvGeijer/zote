@@ -56,7 +56,7 @@ impl Chunk {
         }
     }
 
-    pub fn push_jump_offset(&mut self, target: usize) {
+    pub fn push_jump(&mut self, target: usize) {
         let current = self.reserve_jump();
         self.set_reserved_jump(current, target);
     }

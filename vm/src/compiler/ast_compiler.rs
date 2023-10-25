@@ -2,12 +2,10 @@ use parser::{
     BinOper, CodeRange, Expr, ExprNode, LValue, LogicalOper, Stmt, StmtNode, Stmts, UnOper,
 };
 
-use super::{Chunk, Compiler, OpCode};
+use super::{Chunk, CompRes, Compiler, OpCode};
 use crate::value::Value;
 
-mod control_flow;
-
-type CompRes<T> = Result<T, String>;
+mod conditionals;
 
 impl Compiler {
     pub fn compile_statement(&mut self, statement: &StmtNode, chunk: &mut Chunk, output: bool) {
@@ -45,7 +43,7 @@ impl Compiler {
         expr: &Option<ExprNode>,
         range: CodeRange,
         chunk: &mut Chunk,
-    ) -> CompRes<()> {
+    ) -> CompRes {
         // TODO: Pattern matching more
         match lvalue {
             LValue::Index(_, _) => todo!(),
@@ -69,7 +67,7 @@ impl Compiler {
     }
 
     // TODO: Variable resolution
-    fn compile_expression(&mut self, expr: &ExprNode, chunk: &mut Chunk) -> Result<(), String> {
+    fn compile_expression(&mut self, expr: &ExprNode, chunk: &mut Chunk) -> CompRes {
         let ExprNode {
             node,
             start_loc,
@@ -109,8 +107,8 @@ impl Compiler {
             }
             Expr::While(pred, body) => self.compile_while(pred, body, range, chunk)?,
             Expr::For(_, _, _) => todo!(),
-            Expr::Break => todo!(),
-            Expr::Continue => todo!(),
+            Expr::Break => self.compile_break(range, chunk)?,
+            Expr::Continue => self.compile_continue(range, chunk)?,
             Expr::Return(opt_expr) => {
                 self.compile_opt_expression(opt_expr.as_ref(), chunk)?;
                 chunk.push_opcode(OpCode::Return, range);
@@ -131,7 +129,7 @@ impl Compiler {
         expr: &ExprNode,
         range: CodeRange,
         chunk: &mut Chunk,
-    ) -> Result<(), String> {
+    ) -> CompRes {
         self.compile_expression(expr, chunk)?;
         match lvalue {
             LValue::Index(_, _) => todo!(),
@@ -142,12 +140,7 @@ impl Compiler {
     }
 
     /// Assigns the topmost temp value to the named variable
-    fn compile_assign(
-        &mut self,
-        name: &str,
-        range: CodeRange,
-        chunk: &mut Chunk,
-    ) -> Result<(), String> {
+    fn compile_assign(&mut self, name: &str, range: CodeRange, chunk: &mut Chunk) -> CompRes {
         // First checks if it is local
         if let Some(offset) = self.locals.get(name) {
             chunk.push_opcode(OpCode::AssignLocal, range);
@@ -163,11 +156,7 @@ impl Compiler {
     }
 
     /// Compiles the expression, or just push Nil (without location) if no expression
-    fn compile_opt_expression(
-        &mut self,
-        expr: Option<&ExprNode>,
-        chunk: &mut Chunk,
-    ) -> Result<(), String> {
+    fn compile_opt_expression(&mut self, expr: Option<&ExprNode>, chunk: &mut Chunk) -> CompRes {
         // Maybe we should be smarter and never push such a Nil value
         match expr {
             Some(expr) => self.compile_expression(expr, chunk)?,
@@ -177,12 +166,7 @@ impl Compiler {
     }
 
     /// Compiles the read of a var.
-    fn compile_var(
-        &mut self,
-        name: &str,
-        range: CodeRange,
-        chunk: &mut Chunk,
-    ) -> Result<(), String> {
+    fn compile_var(&mut self, name: &str, range: CodeRange, chunk: &mut Chunk) -> CompRes {
         if let Some(offset) = self.locals.get(name) {
             chunk.push_opcode(OpCode::ReadLocal, range);
             chunk.push_u8_offset(offset);

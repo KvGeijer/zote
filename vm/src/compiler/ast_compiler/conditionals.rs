@@ -15,7 +15,7 @@ impl Compiler {
         otherwise: Option<&ExprNode>,
         range: CodeRange,
         chunk: &mut Chunk,
-    ) -> CompRes<()> {
+    ) -> CompRes {
         self.compile_expression(pred, chunk)?;
         chunk.push_opcode(OpCode::JumpIfFalse, range.clone());
         let reserved_else = chunk.reserve_jump();
@@ -37,7 +37,7 @@ impl Compiler {
         rhs: &ExprNode,
         range: CodeRange,
         chunk: &mut Chunk,
-    ) -> CompRes<()> {
+    ) -> CompRes {
         self.compile_expression(lhs, chunk)?;
 
         // If false, abort
@@ -65,7 +65,7 @@ impl Compiler {
         rhs: &ExprNode,
         range: CodeRange,
         chunk: &mut Chunk,
-    ) -> CompRes<()> {
+    ) -> CompRes {
         self.compile_expression(lhs, chunk)?;
 
         // If false, look at rhs as well
@@ -96,17 +96,36 @@ impl Compiler {
         body: &ExprNode,
         range: CodeRange,
         chunk: &mut Chunk,
-    ) -> CompRes<()> {
+    ) -> CompRes {
+        // Start of every loop iteration
         let start_label = chunk.len();
+        self.flow_points.push_loop_entry(start_label);
+
+        // Evaluate predicate, potentially exiting
         self.compile_expression(pred, chunk)?;
         chunk.push_opcode(OpCode::JumpIfFalse, range.clone());
-        let reserved_exit = chunk.reserve_jump();
+        self.flow_points.push_loop_exit(chunk.reserve_jump());
 
+        // Evaluate body, potentially containing wierd control flow
         self.compile_expression(body, chunk)?;
-        chunk.push_opcode(OpCode::Jump, range);
-        chunk.push_jump_offset(start_label);
-        chunk.patch_reserved_jump(reserved_exit);
 
+        // Jump back to the start
+        chunk.push_opcode(OpCode::Jump, range);
+        chunk.push_jump(start_label);
+
+        // Close the loop
+        self.flow_points.close_loop(chunk)
+    }
+
+    pub fn compile_break(&mut self, range: CodeRange, chunk: &mut Chunk) -> CompRes {
+        chunk.push_opcode(OpCode::Jump, range);
+        self.flow_points.push_break_exit(chunk.reserve_jump())
+    }
+
+    pub fn compile_continue(&mut self, range: CodeRange, chunk: &mut Chunk) -> CompRes {
+        chunk.push_opcode(OpCode::Jump, range);
+        let loop_entry = self.flow_points.get_loop_entry()?;
+        chunk.push_jump(loop_entry);
         Ok(())
     }
 }

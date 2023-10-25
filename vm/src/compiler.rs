@@ -1,6 +1,7 @@
 mod ast_compiler;
 mod bytecode;
 mod chunk;
+mod control_flow;
 mod locals;
 
 use std::collections::HashMap;
@@ -9,12 +10,17 @@ pub use bytecode::OpCode;
 pub use chunk::Chunk;
 use parser::Stmts;
 
-use self::locals::LocalState;
+use self::{control_flow::FlowPoints, locals::LocalState};
+
+/// Error type when compiling
+type CompRetRes<T> = Result<T, String>;
+type CompRes = CompRetRes<()>;
 
 /// Struct to store metadata during and between compilations
 pub struct Compiler {
     globals: HashMap<String, usize>,
     locals: LocalState,
+    flow_points: FlowPoints,
     had_error: bool,
 }
 
@@ -28,6 +34,7 @@ impl Compiler {
         Self {
             globals: HashMap::with_capacity(32),
             locals: LocalState::new(),
+            flow_points: FlowPoints::new(),
             had_error: false,
         }
     }

@@ -1,5 +1,5 @@
 window.BENCHMARK_DATA = {
-  "lastUpdate": 1698217336325,
+  "lastUpdate": 1698223850178,
   "repoUrl": "https://github.com/KvGeijer/zote",
   "entries": {
     "Rust Benchmark": [
@@ -4517,6 +4517,42 @@ window.BENCHMARK_DATA = {
             "name": "aoc_2022_4",
             "value": 39457653,
             "range": "± 1293068",
+            "unit": "ns/iter"
+          }
+        ]
+      },
+      {
+        "commit": {
+          "author": {
+            "email": "kare.kvg@gmail.com",
+            "name": "Kåre von Geijer",
+            "username": "KvGeijer"
+          },
+          "committer": {
+            "email": "kare.kvg@gmail.com",
+            "name": "Kåre von Geijer",
+            "username": "KvGeijer"
+          },
+          "distinct": true,
+          "id": "d92d29c9515a4cfa1acced156ddb4d12413883a8",
+          "message": "Add `continue` and `break`\n\nNow I should really add better tests...",
+          "timestamp": "2023-10-25T10:48:54+02:00",
+          "tree_id": "9339ebcf8d06da6f6570fcf87a693a1ab05b3b31",
+          "url": "https://github.com/KvGeijer/zote/commit/d92d29c9515a4cfa1acced156ddb4d12413883a8"
+        },
+        "date": 1698223849667,
+        "tool": "cargo",
+        "benches": [
+          {
+            "name": "aoc_2022_2",
+            "value": 28073128,
+            "range": "± 114235",
+            "unit": "ns/iter"
+          },
+          {
+            "name": "aoc_2022_4",
+            "value": 39134362,
+            "range": "± 355243",
             "unit": "ns/iter"
           }
         ]

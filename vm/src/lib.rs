@@ -7,6 +7,8 @@ mod error;
 pub mod interpreter;
 pub mod value;
 
+use std::rc::Rc;
+
 use compiler::compile;
 pub use error::Trace;
 use interpreter::interpret;
@@ -24,7 +26,7 @@ pub fn interpret_once(ast: &Stmts) -> i32 {
     };
 
     disassembler::disassemble_chunk(&chunk, "main", &mut std::io::stdout()).unwrap();
-    match interpret(&chunk, false) {
+    match interpret(Rc::new(chunk), false) {
         Ok(_) => 0,
         Err(_) => 70,
     }

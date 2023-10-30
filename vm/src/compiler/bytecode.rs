@@ -26,8 +26,9 @@ pub enum OpCode {
     ReadGlobal,
     AssignLocal,
     ReadLocal,
-    Print,
     JumpIfFalse,
     Jump,
     Discard,
+    Call,
+    FromTemp, // Moves a value from the temporary stack to the ordinary one
 }

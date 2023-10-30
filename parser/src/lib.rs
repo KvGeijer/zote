@@ -44,3 +44,9 @@ struct Parser<'a> {
     current: usize,
     error_reporter: &'a mut ErrorReporter,
 }
+
+impl<T> AstNode<T> {
+    pub fn range(&self) -> CodeRange {
+        CodeRange::from_locs(self.start_loc.clone(), self.end_loc.clone())
+    }
+}

@@ -7,4 +7,5 @@ edition = "2021"
 
 [dependencies]
 enum_macros = { path = "enum_macros" }
+itertools = "0.11.0"
 parser = { path = "../parser" }

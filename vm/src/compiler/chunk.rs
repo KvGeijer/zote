@@ -7,6 +7,7 @@ use crate::value::Value;
 use super::OpCode;
 
 /// A region of bytecode, with associated information
+#[derive(Debug)]
 pub struct Chunk {
     code: Vec<u8>,
     constants: Vec<Value>,
@@ -69,6 +70,7 @@ impl Chunk {
         self.constants.push(value);
     }
 
+    /// Pushes a constant and its opcode to the bytecode
     pub fn push_constant_plus(&mut self, value: Value, range: CodeRange) {
         self.push_opcode(OpCode::Constant, range);
         self.push_constant(value);

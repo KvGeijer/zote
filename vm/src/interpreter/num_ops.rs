@@ -92,9 +92,11 @@ pub fn power(x: Value, y: Value) -> RunRes<Value> {
 
 pub fn negate(x: Value) -> RunRes<Value> {
     match x {
-        Value::Nil => return RunRes::new_err("Cannot negate Nil".to_string()),
+        Value::Nil => RunRes::new_err("Cannot negate Nil".to_string()),
         Value::Bool(x) => Ok(Value::Int(-(x as i64))),
         Value::Float(x) => Ok(Value::Float(-x)),
         Value::Int(x) => Ok(Value::Int(-x)),
+        Value::Function(_) => RunRes::new_err("Cannot negate a function".to_string()),
+        Value::Native(_) => RunRes::new_err("Cannot negate a function".to_string()),
     }
 }

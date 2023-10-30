@@ -15,7 +15,7 @@ dependencies = [
 name = "ast_interpreter"
 version = "0.1.0"
 dependencies = [
- "itertools",
+ "itertools 0.10.5",
  "parser",
 ]
 
@@ -150,6 +150,15 @@ dependencies = [
 ]
 
 [[package]]
+name = "itertools"
+version = "0.11.0"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "b1c173a5686ce8bfa551b3563d0c2170bf24ca44da99c7ca4bfdab5418c3fe57"
+dependencies = [
+ "either",
+]
+
+[[package]]
 name = "lazy_static"
 version = "1.4.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -190,7 +199,7 @@ name = "parser"
 version = "0.1.0"
 dependencies = [
  "either",
- "itertools",
+ "itertools 0.10.5",
  "lazy_static",
  "regex",
 ]
@@ -311,6 +320,7 @@ name = "vm"
 version = "0.1.0"
 dependencies = [
  "enum_macros",
+ "itertools 0.11.0",
  "parser",
 ]
 

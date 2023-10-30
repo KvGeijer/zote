@@ -1,6 +1,9 @@
 use std::io::{self, Write};
 
-use crate::compiler::{Chunk, OpCode};
+use crate::{
+    compiler::{Chunk, OpCode},
+    value::Value,
+};
 
 #[derive(Debug)]
 pub enum DisassemblerError {
@@ -21,10 +24,11 @@ pub fn disassemble_chunk<W: Write>(
 ) -> Result<(), DisassemblerError> {
     let mut offset = 0;
 
-    write!(out, "== {name} ==\n")?;
+    write!(out, "\n====== <{name}> ======\n")?;
     while offset < chunk.len() {
         offset += disassemble_instruction(chunk, offset, out)?;
     }
+    write!(out, "===== <!{name}> =====\n\n")?;
     Ok(())
 }
 
@@ -32,7 +36,7 @@ pub fn disassemble_instruction<W: Write>(
     chunk: &Chunk,
     offset: usize,
     out: &mut W,
-) -> io::Result<usize> {
+) -> Result<usize, DisassemblerError> {
     write!(out, "{:04} ", offset)?;
     write_coderange(chunk, offset, out)?;
 
@@ -61,21 +65,18 @@ pub fn disassemble_instruction<W: Write>(
             OpCode::ReadGlobal => offset_instruction("ReadGlobal", chunk, offset, out),
             OpCode::AssignLocal => offset_instruction("AssignLocal", chunk, offset, out),
             OpCode::ReadLocal => offset_instruction("ReadLocal", chunk, offset, out),
-            OpCode::Print => simple_instruction("Print", out),
             OpCode::JumpIfFalse => jump_instruction("JumpIfFalse", chunk, offset, out),
             OpCode::Jump => jump_instruction("Jump", chunk, offset, out),
             OpCode::Discard => simple_instruction("Discard", out),
+            OpCode::Call => offset_instruction("Call", chunk, offset, out),
+            OpCode::FromTemp => simple_instruction("FromTemp", out),
         }
     } else {
         simple_instruction("Invalid OpCode", out)
-        // Err(DisassemblerError::CustomError(format!(
-        //     "Invalid opcode {}\n",
-        //     bytes[offset]
-        // )))
     }
 }
 
-fn simple_instruction<W: Write>(name: &str, out: &mut W) -> io::Result<usize> {
+fn simple_instruction<W: Write>(name: &str, out: &mut W) -> Result<usize, DisassemblerError> {
     write!(out, "{name}\n")?;
     Ok(1)
 }
@@ -85,12 +86,17 @@ fn constant_instruction<W: Write>(
     chunk: &Chunk,
     offset: usize,
     out: &mut W,
-) -> io::Result<usize> {
+) -> Result<usize, DisassemblerError> {
     let constant = chunk[offset + 1];
     let value = chunk
         .get_constant(constant)
         .expect("Could not find constant!");
-    write!(out, "{:<16} {:4} {:?}\n", name, constant, value)?;
+    if let Value::Function(func) = value {
+        write!(out, "{:<16} {:4} {:?}\n", name, constant, func.name())?;
+        disassemble_chunk(func.chunk_ref(), func.name(), out)?;
+    } else {
+        write!(out, "{:<16} {:4} {:?}\n", name, constant, value)?;
+    }
     Ok(2)
 }
 
@@ -99,7 +105,7 @@ fn offset_instruction<W: Write>(
     chunk: &Chunk,
     op_offset: usize,
     out: &mut W,
-) -> io::Result<usize> {
+) -> Result<usize, DisassemblerError> {
     let offset = chunk[op_offset + 1];
     write!(out, "{:<16} {:4}\n", name, offset)?;
     Ok(2)
@@ -110,7 +116,7 @@ fn jump_instruction<W: Write>(
     chunk: &Chunk,
     op_offset: usize,
     out: &mut W,
-) -> io::Result<usize> {
+) -> Result<usize, DisassemblerError> {
     let offset = i16::from_be_bytes([chunk[op_offset + 1], chunk[op_offset + 2]]);
     write!(out, "{:<16} {:4}\n", name, offset)?;
     Ok(3)

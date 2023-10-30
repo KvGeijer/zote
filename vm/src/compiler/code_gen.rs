@@ -6,6 +6,7 @@ use super::{Chunk, CompRes, Compiler, OpCode};
 use crate::value::Value;
 
 mod conditionals;
+mod function;
 
 impl Compiler {
     pub fn compile_statement(&mut self, statement: &StmtNode, chunk: &mut Chunk, output: bool) {
@@ -18,7 +19,7 @@ impl Compiler {
 
         let res = match node.as_ref() {
             Stmt::Decl(lvalue, expr) => {
-                self.compile_declaration(lvalue, expr, range.clone(), chunk)
+                self.compile_declaration(lvalue, expr.as_ref(), range.clone(), chunk)
             }
             Stmt::Expr(expr) => {
                 let res = self.compile_expression(expr, chunk);
@@ -34,34 +35,41 @@ impl Compiler {
         if let Err(reason) = res {
             // TODO: Push some garbage opcode?
             eprintln!("COMPILER ERROR: [{range}] {reason}");
+            self.had_error = true;
         }
     }
 
     fn compile_declaration(
         &mut self,
         lvalue: &LValue,
-        expr: &Option<ExprNode>,
+        expr: Option<&ExprNode>,
         range: CodeRange,
         chunk: &mut Chunk,
     ) -> CompRes {
-        // TODO: Pattern matching more
-        match lvalue {
-            LValue::Index(_, _) => todo!(),
-            LValue::Var(name) => {
-                // Important to compile RHS before declaring the variable
-                self.compile_opt_expression(expr.as_ref(), chunk)?;
-                if !self.locals.is_global() {
-                    self.locals.add_local(name.to_string())
-                }
-                self.compile_assign(name, range, chunk)?;
-            }
-            LValue::Tuple(_) => todo!(),
-            LValue::Constant(_) => todo!(),
-        };
+        if !self.is_global() {
+            self.declare_local(lvalue, true)?;
+        }
+        if let Some(expr) = expr {
+            self.compile_lvalue_assignment(lvalue, expr, range, chunk)?;
+        }
         Ok(())
     }
 
-    fn declare_global(&mut self, name: &str) -> usize {
+    /// Declares a local (no codegen)
+    ///
+    /// lvalue_top specifies if this is the topmost lvalue in a declaration
+    fn declare_local(&mut self, lvalue: &LValue, lvalue_top: bool) -> CompRes {
+        match lvalue {
+            LValue::Index(_, _) => todo!(),
+            LValue::Var(name) => self.locals.add_local(name.to_owned()),
+            LValue::Tuple(_) => todo!(),
+            LValue::Constant(_) if lvalue_top => return Err(format!("Cannot declare a constant")),
+            LValue::Constant(_) => (),
+        }
+        Ok(())
+    }
+
+    pub fn declare_global(&mut self, name: &str) -> usize {
         let len = self.globals.len();
         *self.globals.entry(name.to_string()).or_insert(len)
     }
@@ -76,7 +84,7 @@ impl Compiler {
         let range = CodeRange::from_locs(*start_loc, *end_loc);
 
         match node.as_ref() {
-            Expr::Call(func, args) => self.compile_call(func, args, range, chunk),
+            Expr::Call(func, args) => self.compile_call(func, args, range, chunk)?,
             Expr::IndexInto(_, _) => todo!(),
             Expr::Binary(x, binop, y) => {
                 self.compile_expression(x, chunk)?;
@@ -94,7 +102,7 @@ impl Compiler {
             }
             Expr::Logical(lhs, LogicalOper::Or, rhs) => self.compile_or(lhs, rhs, range, chunk)?,
             Expr::Assign(lvalue, expr) => {
-                self.compile_lvalue_assignment(lvalue, expr, range, chunk)?
+                self.compile_lvalue_assignment(lvalue, expr, range, chunk)?;
             }
             Expr::Var(name) => self.compile_var(name, range, chunk)?,
             Expr::Int(x) => chunk.push_constant_plus(Value::Int(*x), range),
@@ -110,13 +118,18 @@ impl Compiler {
             Expr::Break => self.compile_break(range, chunk)?,
             Expr::Continue => self.compile_continue(range, chunk)?,
             Expr::Return(opt_expr) => {
+                if self.is_global() {
+                    return Err("Cannot return from top-level scope".to_string());
+                }
                 self.compile_opt_expression(opt_expr.as_ref(), chunk)?;
                 chunk.push_opcode(OpCode::Return, range);
             }
             Expr::Nil => chunk.push_constant_plus(Value::Nil, range),
             Expr::List(_) => todo!(),
             Expr::Tuple(_) => todo!(),
-            Expr::FunctionDefinition(_, _, _) => todo!(),
+            Expr::FunctionDefinition(name, params, body) => {
+                self.compile_function_def(name, params, body, range, chunk)?;
+            }
             Expr::Match(_, _) => todo!(),
         };
 
@@ -213,25 +226,6 @@ impl Compiler {
             chunk.push_opcode(OpCode::Nil, range);
         }
         self.locals.exit();
-    }
-
-    /// So far can only handle hard-coded print calls
-    fn compile_call(
-        &mut self,
-        func: &ExprNode,
-        args: &[ExprNode],
-        range: CodeRange,
-        chunk: &mut Chunk,
-    ) {
-        if let Expr::Var(name) = func.node.as_ref() {
-            if name == "print" {
-                // TODO: Fix
-                let _ = self.compile_expression(&args[0], chunk);
-                chunk.push_opcode(OpCode::Print, range);
-                return;
-            }
-        }
-        todo!("Only print calls implemented yet")
     }
 }
 

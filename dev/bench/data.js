@@ -1,5 +1,5 @@
 window.BENCHMARK_DATA = {
-  "lastUpdate": 1698223850178,
+  "lastUpdate": 1698656962544,
   "repoUrl": "https://github.com/KvGeijer/zote",
   "entries": {
     "Rust Benchmark": [
@@ -4553,6 +4553,42 @@ window.BENCHMARK_DATA = {
             "name": "aoc_2022_4",
             "value": 39134362,
             "range": "± 355243",
+            "unit": "ns/iter"
+          }
+        ]
+      },
+      {
+        "commit": {
+          "author": {
+            "email": "kare.kvg@gmail.com",
+            "name": "Kåre von Geijer",
+            "username": "KvGeijer"
+          },
+          "committer": {
+            "email": "kare.kvg@gmail.com",
+            "name": "Kåre von Geijer",
+            "username": "KvGeijer"
+          },
+          "distinct": true,
+          "id": "31ff291c544e96842705137b0c05198be3b75f37",
+          "message": "Implement functions and natives in the vm\n\nBig commit, which probably still has some errors. Especially when\nit comes to nesting call frames.",
+          "timestamp": "2023-10-30T10:07:04+01:00",
+          "tree_id": "aafc3a73d4c341ec6b24810e075e85a3935b4556",
+          "url": "https://github.com/KvGeijer/zote/commit/31ff291c544e96842705137b0c05198be3b75f37"
+        },
+        "date": 1698656961673,
+        "tool": "cargo",
+        "benches": [
+          {
+            "name": "aoc_2022_2",
+            "value": 27552146,
+            "range": "± 709460",
+            "unit": "ns/iter"
+          },
+          {
+            "name": "aoc_2022_4",
+            "value": 38640212,
+            "range": "± 602782",
             "unit": "ns/iter"
           }
         ]

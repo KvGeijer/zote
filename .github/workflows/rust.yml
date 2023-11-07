@@ -33,35 +33,35 @@ jobs:
       with:
         command: test
 
-  benchmark:
-    # Only run this job for pushes, as pull requests would cause strange overwrites
-    if: github.event_name == 'push'
+  # benchmark:
+  #   # Only run this job for pushes, as pull requests would cause strange overwrites
+  #   if: github.event_name == 'push'
     
-    runs-on: ubuntu-latest
-    steps:
-      - uses: actions/checkout@v2
+  #   runs-on: ubuntu-latest
+  #   steps:
+  #     - uses: actions/checkout@v2
 
-      - name: Seput Rust
-        uses: actions-rs/toolchain@v1
-        with:
-          toolchain: nightly-2023-06-01
-          override: true
+  #     - name: Seput Rust
+  #       uses: actions-rs/toolchain@v1
+  #       with:
+  #         toolchain: nightly-2023-06-01
+  #         override: true
 
-      # - run: rustup toolchain update nightly-2023-06-01 && rustup default nightly-2023-06-01
+  #     # - run: rustup toolchain update nightly-2023-06-01 && rustup default nightly-2023-06-01
 
-      - name: Run benchmark
-        run: cargo bench | tee bench-output.txt
+  #     - name: Run benchmark
+  #       run: cargo bench | tee bench-output.txt
 
-      - name: Store benchmark result
-        uses: benchmark-action/github-action-benchmark@v1
-        with:
-          name: Rust Benchmark
-          tool: 'cargo'
-          output-file-path: bench-output.txt
-          github-token: ${{ secrets.GH_PAGES_PAT }}
-          auto-push: true
-          # Show alert with commit comment on detecting possible performance regression
-          alert-threshold: '200%'
-          comment-on-alert: true
-          fail-on-alert: true
-          alert-comment-cc-users: '@KvGeijer'
+  #     - name: Store benchmark result
+  #       uses: benchmark-action/github-action-benchmark@v1
+  #       with:
+  #         name: Rust Benchmark
+  #         tool: 'cargo'
+  #         output-file-path: bench-output.txt
+  #         github-token: ${{ secrets.GH_PAGES_PAT }}
+  #         auto-push: true
+  #         # Show alert with commit comment on detecting possible performance regression
+  #         alert-threshold: '200%'
+  #         comment-on-alert: true
+  #         fail-on-alert: true
+  #         alert-comment-cc-users: '@KvGeijer'

@@ -278,6 +278,13 @@ dependencies = [
 ]
 
 [[package]]
+name = "semantic_analyzer"
+version = "0.1.0"
+dependencies = [
+ "parser",
+]
+
+[[package]]
 name = "strsim"
 version = "0.10.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -419,5 +426,6 @@ dependencies = [
  "ast_interpreter",
  "clap",
  "parser",
+ "semantic_analyzer",
  "vm",
 ]

@@ -11,3 +11,4 @@ clap = { version = "4.1", features = ["derive"] }
 parser = { path = "parser"}
 ast_interpreter = { path = "ast_interpreter" }
 vm = { path = "vm" }
+semantic_analyzer = { path = "semantic_analyzer" }

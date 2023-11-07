@@ -35,7 +35,7 @@ pub trait AstVisitor {
             Expr::Unary(op, x) => self.visit_unary(op, x),
             Expr::Logical(x, op, y) => self.visit_logical(x, op, y),
             Expr::Assign(lvalue, value) => self.visit_assign(lvalue, value),
-            Expr::Var(name) => self.visit_var(name),
+            Expr::Var(name) => self.visit_var(name, false),
             Expr::Int(int) => self.visit_int(*int),
             Expr::Float(float) => self.visit_float(*float),
             Expr::Bool(bool) => self.visit_bool(*bool),
@@ -92,11 +92,11 @@ pub trait AstVisitor {
         self.visit_expr(value);
     }
 
-    fn visit_var(&mut self, name: &str) {}
-    fn visit_int(&mut self, int: i64) {}
-    fn visit_float(&mut self, float: f64) {}
-    fn visit_bool(&mut self, bool: bool) {}
-    fn visit_string(&mut self, string: &Rc<String>) {}
+    fn visit_var(&mut self, _name: &String, _declaration: bool) {} // String instead of str to be more sure of pointer magic
+    fn visit_int(&mut self, _int: i64) {}
+    fn visit_float(&mut self, _float: f64) {}
+    fn visit_bool(&mut self, _bool: bool) {}
+    fn visit_string(&mut self, _string: &Rc<String>) {}
 
     fn visit_block(&mut self, stmts: &Stmts) {
         self.visit_stmts(stmts)
@@ -150,7 +150,7 @@ pub trait AstVisitor {
         }
     }
 
-    fn visit_function_definition(&mut self, name: &str, params: &[LValue], body: &ExprNode) {
+    fn visit_function_definition(&mut self, _name: &str, params: &[LValue], body: &ExprNode) {
         for param in params {
             self.visit_lvalue(param, true);
         }
@@ -172,14 +172,14 @@ pub trait AstVisitor {
         }
     }
 
-    fn visit_binary_oper(&mut self, op: &BinOper) {}
-    fn visit_unary_oper(&mut self, op: &UnOper) {}
-    fn visit_logical_oper(&mut self, op: &LogicalOper) {}
+    fn visit_binary_oper(&mut self, _op: &BinOper) {}
+    fn visit_unary_oper(&mut self, _op: &UnOper) {}
+    fn visit_logical_oper(&mut self, _op: &LogicalOper) {}
 
     fn visit_lvalue(&mut self, lvalue: &LValue, declaration: bool) {
         match lvalue {
             LValue::Index(indexee, at) => self.visit_index_into(indexee, at),
-            LValue::Var(name) => self.visit_var(name),
+            LValue::Var(name) => self.visit_var(name, declaration),
             LValue::Tuple(lvalues) => {
                 for lvalue in lvalues {
                     self.visit_lvalue(lvalue, declaration)
@@ -189,5 +189,5 @@ pub trait AstVisitor {
         }
     }
 
-    fn visit_slice(&mut self, slice: &Slice) {}
+    fn visit_slice(&mut self, _slice: &Slice) {}
 }

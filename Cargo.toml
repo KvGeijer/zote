@@ -2,6 +2,7 @@
 name = "zote"
 version = "0.1.0"
 edition = "2021"
+default-run = "zote"
 
 [features]
 ast-interpreter = []
@@ -12,3 +13,11 @@ parser = { path = "parser"}
 ast_interpreter = { path = "ast_interpreter" }
 vm = { path = "vm" }
 semantic_analyzer = { path = "semantic_analyzer" }
+
+[[bin]]
+name = "zote"
+path = "src/vm-main.rs"
+
+[[bin]]
+name = "ast-zote"
+path = "src/ast-main.rs"

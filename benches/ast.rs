@@ -1,9 +1,15 @@
 #![feature(test)]
 
 use test::Bencher;
-use zote::run_str;
 
 extern crate test;
+
+fn run_str(code: &str) {
+    let mut state = ast_interpreter::InterpreterState::new();
+    let stmts = parser::parse(code).unwrap();
+    ast_interpreter::interpret(&stmts, &mut state);
+    assert!(!state.had_error());
+}
 
 #[bench]
 fn fibonachi(bench: &mut Bencher) {
@@ -31,12 +37,12 @@ fn aoc_2022_1(bench: &mut Bencher) {
 
 #[bench]
 fn aoc_2022_2(bench: &mut Bencher) {
-    let code = include_str!("../aoc-2022/inputs/02.txt");
+    let code = include_str!("../aoc-2022/day02.zote");
     bench.iter(|| run_str(code));
 }
 
 #[bench]
 fn aoc_2022_4(bench: &mut Bencher) {
-    let code = include_str!("../aoc-2022/inputs/04.txt");
+    let code = include_str!("../aoc-2022/day04.zote");
     bench.iter(|| run_str(code));
 }

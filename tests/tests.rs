@@ -3,8 +3,8 @@ use std::process::Command;
 fn interpret(program: &str) -> String {
     let output = Command::new("cargo")
         .arg("run")
-        .arg("--features")
-        .arg("ast-interpreter")
+        .arg("--bin")
+        .arg("ast-zote")
         .arg("--")
         .arg(program)
         .output()

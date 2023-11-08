@@ -12,7 +12,7 @@ use std::rc::Rc;
 use compiler::compile;
 pub use error::Trace;
 use interpreter::interpret;
-use parser::Stmts;
+use semantic_analyzer::AttributedAst;
 
 #[derive(Debug)]
 pub enum VMError {
@@ -20,7 +20,7 @@ pub enum VMError {
     RuntimeError(Trace),
 }
 
-pub fn interpret_once(ast: &Stmts) -> i32 {
+pub fn interpret_once(ast: &AttributedAst) -> i32 {
     let Some(chunk) = compile(ast) else {
         return 65; // ? Which error to use? Should we send back trace?
     };

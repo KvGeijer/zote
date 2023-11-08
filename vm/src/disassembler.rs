@@ -24,7 +24,7 @@ pub fn disassemble_chunk<W: Write>(
 ) -> Result<(), DisassemblerError> {
     let mut offset = 0;
 
-    write!(out, "\n====== <{name}> ======\n")?;
+    write!(out, "====== <{name}> ======\n")?;
     while offset < chunk.len() {
         offset += disassemble_instruction(chunk, offset, out)?;
     }
@@ -70,6 +70,13 @@ pub fn disassemble_instruction<W: Write>(
             OpCode::Discard => simple_instruction("Discard", out),
             OpCode::Call => offset_instruction("Call", chunk, offset, out),
             OpCode::FromTemp => simple_instruction("FromTemp", out),
+            OpCode::AssignUpValue => offset_instruction("AssignUpValue", chunk, offset, out),
+            OpCode::ReadUpValue => offset_instruction("AssignUpValue", chunk, offset, out),
+            OpCode::InitClosure => closure_init(chunk, offset, out),
+            OpCode::AssignPointer => offset_instruction("AssignPointer", chunk, offset, out),
+            OpCode::ReadPointer => offset_instruction("ReadPointer", chunk, offset, out),
+            OpCode::Drop => offset_instruction("Drop", chunk, offset, out),
+            OpCode::EmptyPointer => simple_instruction("EmptyPointer", out),
         }
     } else {
         simple_instruction("Invalid OpCode", out)
@@ -135,4 +142,47 @@ pub fn write_coderange<W: Write>(chunk: &Chunk, offset: usize, out: &mut W) -> i
     } else {
         write!(out, "{:15} ", "?No location?")
     }
+}
+
+fn closure_init<W: Write>(
+    chunk: &Chunk,
+    op_offset: usize,
+    out: &mut W,
+) -> Result<usize, DisassemblerError> {
+    let offset = chunk[op_offset + 1];
+    let function_value = chunk
+        .get_constant(offset)
+        .ok_or(DisassemblerError::CustomError(
+            "Could not find function for closure".to_string(),
+        ))?;
+    let Value::Function(function) = function_value else {
+        return Err(DisassemblerError::CustomError(
+            "Trying to init closure from non-function!".to_string(),
+        ));
+    };
+
+    let nbr_upvalues = chunk[op_offset + 2] as usize;
+    write!(
+        out,
+        "{:<19} {:<3} {:<}\n",
+        "InitClosure",
+        nbr_upvalues,
+        function.name()
+    )?;
+    for offset in 0..nbr_upvalues {
+        let from_upvalue = chunk[op_offset + 3 + 2 * offset] != 0;
+        let stack_offset = chunk[op_offset + 4 + 2 * offset];
+        write!(out, "{:04} ", op_offset + 4 + 2 * offset)?;
+        write!(
+            out,
+            "{:15} {:<19} {:<7} {}\n",
+            "",
+            " |",
+            if from_upvalue { "upvalue" } else { "local" },
+            stack_offset
+        )?;
+    }
+    disassemble_chunk(function.chunk_ref(), function.name(), out)?;
+
+    Ok(3 + 2 * nbr_upvalues)
 }

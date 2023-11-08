@@ -9,6 +9,7 @@ use std::collections::HashMap;
 pub use bytecode::OpCode;
 pub use chunk::Chunk;
 use parser::{CodeRange, Stmts};
+use semantic_analyzer::AttributedAst;
 
 use crate::value::get_natives;
 
@@ -19,40 +20,40 @@ type CompRetRes<T> = Result<T, String>;
 type CompRes = CompRetRes<()>;
 
 /// Struct to store metadata during and between compilations
-pub struct Compiler {
+pub struct Compiler<'a> {
+    attributes: &'a AttributedAst<'a>,
     globals: HashMap<String, usize>,
     locals: LocalState,
     flow_points: FlowPoints,
     had_error: bool,
-    top_level: bool, // Is it compiling the script, or within a function def?
 }
 
 /// Compile AST to bytecode (top-level)
-pub fn compile(stmts: &Stmts) -> Option<Chunk> {
-    let mut compiler = Compiler::new(true);
-    compiler.compile(stmts)
+pub fn compile<'a>(ast: &'a AttributedAst<'a>) -> Option<Chunk> {
+    let mut compiler = Compiler::new(ast);
+    compiler.compile()
 }
 
-impl Compiler {
-    pub fn new(top_level: bool) -> Self {
+impl<'a> Compiler<'a> {
+    pub fn new(attributes: &'a AttributedAst) -> Self {
         Self {
+            attributes,
             globals: HashMap::with_capacity(32),
             locals: LocalState::new(),
             flow_points: FlowPoints::new(),
             had_error: false,
-            top_level,
         }
     }
 
     // TODO: How do we do things in part when using REPL?
     /// Compile AST to bytecode (top-level)
-    fn compile(&mut self, stmts: &Stmts) -> Option<Chunk> {
+    fn compile(&mut self) -> Option<Chunk> {
         let mut chunk = Chunk::new(); // TODO: Take as arg instead? How do we then handle errors?
 
         self.declare_natives(&mut chunk);
-        self.declare_globals(stmts);
+        self.declare_globals(self.attributes.stmts());
 
-        self.compile_stmts(stmts, &mut chunk);
+        self.compile_stmts(self.attributes.stmts(), &mut chunk);
 
         match self.had_error {
             false => Some(chunk),
@@ -71,7 +72,7 @@ impl Compiler {
     }
 
     fn is_global(&self) -> bool {
-        self.top_level && self.locals.is_global()
+        self.locals.is_global()
     }
 
     pub fn declare_natives(&mut self, chunk: &mut Chunk) {
@@ -86,6 +87,7 @@ impl Compiler {
             // Assign it to a global
             chunk.push_opcode(OpCode::AssignGlobal, range.clone());
             chunk.push_u8_offset(offset as u8);
+            chunk.push_opcode(OpCode::Discard, range.clone());
         }
     }
 }

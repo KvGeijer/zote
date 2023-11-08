@@ -13,27 +13,44 @@ impl VM {
             ));
         }
 
-        if let Value::Function(func) = callee {
-            // Create the next call frame
-            let new_rbp = self.stack_top - arg_count - 1;
-            let current_rtp = self.temp_top;
+        match callee {
+            Value::Function(_func) => {
+                panic!("Should now not allow calls of raw functions")
+                // // Create the next call frame
+                // let new_rbp = self.stack_top - arg_count - 1;
+                // let current_rtp = self.temp_top;
 
-            // Change to it, and init
-            self.frame_count += 1;
-            self.frame_mut().init(func.chunk_rc(), new_rbp, current_rtp);
+                // // Change to it, and init
+                // self.frame_count += 1;
+                // self.frame_mut().init(func.chunk_rc(), new_rbp, current_rtp);
 
-            Ok(())
-        } else if let Value::Native(native) = callee {
-            let args = self.stack[(self.stack_top - arg_count)..self.stack_top].to_vec();
-            let ret = native.call(args)?;
-            self.push(ret);
+                // Ok(())
+            }
+            Value::Closure(closure) => {
+                // Create the next call frame
+                // The closure and args should be pushed on the stack
+                let new_rbp = self.stack_top - 1 - arg_count;
+                let current_rtp = self.temp_top;
 
-            // Remove the args and function from the stack
-            self.stack_top -= arg_count + 1;
+                // Change to it, and init
+                self.frame_count += 1;
+                self.frame_mut()
+                    .init(closure.chunk_rc(), new_rbp, current_rtp);
 
-            Ok(())
-        } else {
-            RunRes::new_err(format!("Can only call functions, not {}", callee.type_of()))
+                Ok(())
+            }
+            Value::Native(native) => {
+                let args = self.stack[(self.stack_top - arg_count)..self.stack_top].to_vec();
+                let ret = native.call(args)?;
+                self.push(ret);
+
+                // Remove the args and function from the stack
+                // ERROR: If there are Upvalues here, this will destroy shit, but that should not be the case
+                self.stack_top -= arg_count + 1;
+
+                Ok(())
+            }
+            _ => RunRes::new_err(format!("Can only call functions, not {}", callee.type_of())),
         }
     }
 }

@@ -4,13 +4,13 @@ mod cmp_ops;
 mod logic_ops;
 mod num_ops;
 
-use std::rc::Rc;
+use std::{mem, rc::Rc};
 
 use crate::{
     compiler::{Chunk, OpCode},
     disassembler::disassemble_instruction,
     error::RunRes,
-    value::Value,
+    value::{Closure, Value, ValuePointer},
 };
 
 use self::call_frame::CallFrame;
@@ -48,11 +48,11 @@ pub fn interpret(chunk: Rc<Chunk>, debug: bool) -> RunRes<()> {
         frame_count: 1,
         // TODO: Unsafe or array_init, or custom macro like `vec!`?
         call_frames: vec![CallFrame::new(chunk); FRAMES_SIZE].try_into().unwrap(),
-        temp_top: 0,
         globals: [NIL; GLOBALS_SIZE],
         stack: [NIL; STACK_SIZE],
         stack_top: 0,
         temp_stack: [NIL; TEMP_STACK_SIZE],
+        temp_top: 0,
     };
     vm.run(debug)
 }
@@ -108,7 +108,11 @@ impl VM {
                     // self.pop(); // TODO: Book pushes a script func here, which we should push in case we also do
                     return Ok(InstrResult::Return);
                 }
-                self.stack_top = self.frame().rbp;
+                while self.stack_top > self.frame().rbp {
+                    // Must de-allocate stack at return to not keep pointers which would confuse the program, assigning through them
+                    self.stack_top -= 1;
+                    self.stack[self.stack_top] = NIL;
+                }
                 self.temp_top = self.frame().root_temp_pointer;
                 self.push(ret_val);
 
@@ -211,6 +215,26 @@ impl VM {
                 let local = self.stack[self.rbp() + offset as usize].clone();
                 self.push(local)
             }
+            OpCode::AssignUpValue => {
+                let index = self.read_byte();
+                let x = self.peek();
+                let closure = self.stack[self.rbp()]
+                    .clone()
+                    .to_closure()
+                    .expect("Closure should be at rbp in stack");
+                closure.set_upvalue(index, x);
+            }
+            OpCode::ReadUpValue => {
+                let index = self.read_byte();
+                let closure = self.stack[self.rbp()]
+                    .clone()
+                    .to_closure()
+                    .expect("Closure should be at rbp in stack");
+                let value_pointer = closure
+                    .get_upvalue(index)
+                    .expect("Should never reference invalid upvalue");
+                self.push(value_pointer.get_clone())
+            }
             OpCode::JumpIfFalse => {
                 let pred = self.pop();
                 let jump = i16::from_be_bytes(self.read_2bytes());
@@ -234,6 +258,44 @@ impl VM {
                 self.stack[self.stack_top] = self.temp_stack[self.temp_top - 1].clone();
                 self.temp_top -= 1;
                 self.stack_top += 1;
+            }
+            OpCode::InitClosure => {
+                // Deserialize the constant function
+                let function = self
+                    .read_constant()
+                    .to_function()
+                    .expect("A function must be pushed after init closure");
+                let upvalues = self.read_upvalues();
+
+                // create the closure over the function
+                let closure = Closure::new(function, upvalues);
+                self.push(closure.into());
+            }
+            OpCode::AssignPointer => {
+                let offset = self.read_byte();
+                let x = self.peek();
+                let Value::Pointer(pointer) = &self.stack[self.stack_top + offset as usize] else {
+                    panic!(
+                        "No pointer found after assign pointer instruction. Instead {:?}",
+                        self.stack[self.stack_top + offset as usize]
+                    );
+                };
+                pointer.set(x);
+            }
+            OpCode::ReadPointer => {
+                let offset = self.read_byte();
+                let Value::Pointer(pointer) = &self.stack[self.stack_top + offset as usize] else {
+                    panic!("No pointer found after read pointer instruction")
+                };
+                self.push(pointer.get_clone());
+            }
+            OpCode::Drop => {
+                let offset = self.read_byte();
+                self.stack[self.rbp() + offset as usize] = NIL;
+            }
+            OpCode::EmptyPointer => {
+                let pointer = Value::Pointer(ValuePointer::new());
+                self.push(pointer);
             }
         }
 
@@ -262,6 +324,35 @@ impl VM {
             .clone()
     }
 
+    /// Reads the upvalues for initiating a closure
+    fn read_upvalues(&mut self) -> Vec<ValuePointer> {
+        let mut upvalues = vec![];
+        let nbr_upvalues = self.read_byte();
+        for _ in 0..nbr_upvalues {
+            if self.read_byte() != 0 {
+                // It is an upvalue in the current function
+                let index = self.read_byte();
+                let upvalue = self.stack[self.rbp()]
+                    .clone()
+                    .to_closure()
+                    .expect("Call frame should start with a closure (at least when containing upvalues)")
+                    .get_upvalue(index)
+                    .expect("The upvalue should exist")
+                    .clone();
+                upvalues.push(upvalue);
+            } else {
+                // It is a local in the current function
+                let offset = self.read_byte();
+                let Value::Pointer(upvalue) = self.stack[self.rbp() + offset as usize].clone()
+                else {
+                    panic!("Local captured for upvalue is not declared as upvalue")
+                };
+                upvalues.push(upvalue);
+            }
+        }
+        upvalues
+    }
+
     /// Pushes the topmost temp value
     fn push(&mut self, value: Value) {
         self.temp_stack[self.temp_top] = value;
@@ -271,7 +362,9 @@ impl VM {
     /// Pops the topmost temp value
     fn pop(&mut self) -> Value {
         self.temp_top -= 1;
-        self.temp_stack[self.temp_top].clone()
+        // ERROR: There should not be pointers on the temp stack
+        // Otherwise we have to read the result
+        mem::replace(&mut self.temp_stack[self.temp_top], NIL)
     }
 
     /// Peeks the topmost temp value
@@ -281,6 +374,7 @@ impl VM {
 
     /// Peeks a value further back on the stack
     fn peek_many(&mut self, offset: usize) -> Value {
+        // Should be able to just clone from temp stack
         self.temp_stack[self.temp_top - offset].clone()
     }
 

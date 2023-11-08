@@ -27,7 +27,7 @@ pub trait AstVisitor {
         }
     }
 
-    fn visit_expr(&mut self, expr: &ExprNode) {
+    fn visit_expr_delegation(&mut self, expr: &ExprNode) {
         match expr.node.as_ref() {
             Expr::Call(callee, args) => self.visit_call(callee, args),
             Expr::IndexInto(indexee, at) => self.visit_index_into(indexee, at),
@@ -55,6 +55,10 @@ pub trait AstVisitor {
             }
             Expr::Match(matched, options) => self.visit_match(matched, options),
         }
+    }
+
+    fn visit_expr(&mut self, expr: &ExprNode) {
+        self.visit_expr_delegation(expr)
     }
 
     fn visit_call(&mut self, callee: &ExprNode, args: &[ExprNode]) {

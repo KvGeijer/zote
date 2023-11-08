@@ -31,8 +31,8 @@ fn run_file(file: &str) -> i32 {
 /// Interprets the string as if from a file.
 fn run_str(code: &str) -> i32 {
     if let Some(stmts) = parser::parse(code) {
-        semantic_analyzer::analyze_ast(&stmts);
-        vm::interpret_once(&stmts)
+        let ast = semantic_analyzer::analyze_ast(&stmts);
+        vm::interpret_once(&ast)
     } else {
         65
     }

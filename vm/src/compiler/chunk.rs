@@ -32,6 +32,10 @@ impl Chunk {
         self.code.push(u8);
     }
 
+    pub fn push_bool(&mut self, bool: bool) {
+        self.code.push(bool as u8);
+    }
+
     /// Reserves two bytes at the index for a future jump
     pub fn reserve_jump(&mut self) -> usize {
         self.code.push(255);

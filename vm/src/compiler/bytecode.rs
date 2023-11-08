@@ -87,6 +87,27 @@ pub enum OpCode {
     /// Reads the offset of the variable from the rbp from the next bytecode byte.
     ReadLocal,
 
+    /// Assigns to a value closed over by a function
+    ///
+    /// The next byte specifies the index of the upvalue in the current closure.
+    /// The value is read from the temp stack, and it is kept on the stack.
+    AssignUpValue,
+
+    /// Reads a value closed over by a function onto the temp stack
+    ///
+    /// The next byte specifies the index of the upvalue in the current closure.
+    ReadUpValue,
+
+    /// Assigns to a value behind a pointer
+    ///
+    /// The next byte specifies the offset of the pointer from the rbp.
+    AssignPointer,
+
+    /// Reads the value behind a value pointer
+    ///
+    /// The next byte specifies the offset of the pointer from the rbp.
+    ReadPointer,
+
     /// Jumps if the top value is false
     ///
     /// The jump offset for the pc is read as the next i16 in bytecode.
@@ -111,4 +132,22 @@ pub enum OpCode {
 
     /// Moves the top value on the temp stack to the ordinary stack
     FromTemp,
+
+    /// Intiates a closure from a function and upvalues
+    ///
+    /// The next byte specifies the constant index of the function to use init from.
+    /// For every upvalue, there follows a byte for the index of the upvalue in the
+    /// enclosing function (can only capture enclosing upvalues, which must be detected
+    /// with semantic analysis).
+    InitClosure,
+
+    /// Drops the value at the next bytes offset
+    ///
+    /// Will be replaced by NIL, to not keep around pointers to old data.
+    Drop,
+
+    /// Pushes a new pointer to the temp-stack
+    ///
+    /// Used when declaring new pointers for future upvalues.
+    EmptyPointer,
 }

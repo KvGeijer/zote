@@ -8,7 +8,7 @@ use crate::value::Value;
 mod conditionals;
 mod function;
 
-impl Compiler {
+impl Compiler<'_> {
     pub fn compile_statement(&mut self, statement: &StmtNode, chunk: &mut Chunk, output: bool) {
         let StmtNode {
             node,
@@ -47,21 +47,45 @@ impl Compiler {
         chunk: &mut Chunk,
     ) -> CompRes {
         if !self.is_global() {
-            self.declare_local(lvalue, true)?;
+            self.declare_local(lvalue, range.clone(), chunk, true)?;
         }
         if let Some(expr) = expr {
-            self.compile_lvalue_assignment(lvalue, expr, range, chunk)?;
+            self.compile_lvalue_assignment(lvalue, expr, range.clone(), chunk)?;
+            chunk.push_opcode(OpCode::Discard, range);
         }
         Ok(())
     }
 
-    /// Declares a local (no codegen)
+    /// Declares a local
     ///
+    /// Mostly no codegen, but it assigns pointers to NIL for declared pointers.
     /// lvalue_top specifies if this is the topmost lvalue in a declaration
-    fn declare_local(&mut self, lvalue: &LValue, lvalue_top: bool) -> CompRes {
+    fn declare_local(
+        &mut self,
+        lvalue: &LValue,
+        range: CodeRange,
+        chunk: &mut Chunk,
+        lvalue_top: bool,
+    ) -> CompRes {
         match lvalue {
             LValue::Index(_, _) => todo!(),
-            LValue::Var(name) => self.locals.add_local(name.to_owned()),
+            LValue::Var(name) => {
+                if self.attributes.is_upvalue(name) {
+                    // Declares the local as a pointer insteal of a flat value
+                    let offset = self.locals.add_local(name.to_owned(), true);
+
+                    // TODO: THis could be done with eg semantic analysis help in the first assignment
+                    // which would save computation, and remove codegen from this function.
+
+                    // Assign it a new empty pointer
+                    chunk.push_opcode(OpCode::EmptyPointer, range.clone());
+                    chunk.push_opcode(OpCode::AssignLocal, range.clone());
+                    chunk.push_u8_offset(offset);
+                    chunk.push_opcode(OpCode::Discard, range.clone()); // TODO: This is not that nice
+                } else {
+                    self.locals.add_local(name.to_owned(), false);
+                }
+            }
             LValue::Tuple(_) => todo!(),
             LValue::Constant(_) if lvalue_top => return Err(format!("Cannot declare a constant")),
             LValue::Constant(_) => (),
@@ -117,18 +141,14 @@ impl Compiler {
             Expr::For(_, _, _) => todo!(),
             Expr::Break => self.compile_break(range, chunk)?,
             Expr::Continue => self.compile_continue(range, chunk)?,
-            Expr::Return(opt_expr) => {
-                if self.is_global() {
-                    return Err("Cannot return from top-level scope".to_string());
-                }
-                self.compile_opt_expression(opt_expr.as_ref(), chunk)?;
-                chunk.push_opcode(OpCode::Return, range);
-            }
+            Expr::Return(opt_expr) => self.compile_return(opt_expr.as_ref(), range, chunk)?,
             Expr::Nil => chunk.push_constant_plus(Value::Nil, range),
             Expr::List(_) => todo!(),
             Expr::Tuple(_) => todo!(),
             Expr::FunctionDefinition(name, params, body) => {
-                self.compile_function_def(name, params, body, range, chunk)?;
+                let upvalues = self.attributes.upvalue_names(node.as_ref()).unwrap_or(&[]);
+
+                self.compile_function_def(name, params, body, upvalues, range, chunk)?;
             }
             Expr::Match(_, _) => todo!(),
         };
@@ -155,9 +175,17 @@ impl Compiler {
     /// Assigns the topmost temp value to the named variable
     fn compile_assign(&mut self, name: &str, range: CodeRange, chunk: &mut Chunk) -> CompRes {
         // First checks if it is local
-        if let Some(offset) = self.locals.get(name) {
-            chunk.push_opcode(OpCode::AssignLocal, range);
+        if let Some((offset, pointer)) = self.locals.get_local(name) {
+            if !pointer {
+                chunk.push_opcode(OpCode::AssignLocal, range);
+            } else {
+                chunk.push_opcode(OpCode::AssignPointer, range);
+            }
             chunk.push_u8_offset(offset);
+            Ok(())
+        } else if let Some(offset) = self.locals.get_upvalue(name) {
+            chunk.push_opcode(OpCode::AssignUpValue, range);
+            chunk.push_u8_offset(offset as u8);
             Ok(())
         } else if let Some(&offset) = self.globals.get(name) {
             chunk.push_opcode(OpCode::AssignGlobal, range); // Maybe bad range choice
@@ -180,9 +208,17 @@ impl Compiler {
 
     /// Compiles the read of a var.
     fn compile_var(&mut self, name: &str, range: CodeRange, chunk: &mut Chunk) -> CompRes {
-        if let Some(offset) = self.locals.get(name) {
-            chunk.push_opcode(OpCode::ReadLocal, range);
+        if let Some((offset, pointer)) = self.locals.get_local(name) {
+            if !pointer {
+                chunk.push_opcode(OpCode::ReadLocal, range);
+            } else {
+                chunk.push_opcode(OpCode::ReadPointer, range);
+            }
             chunk.push_u8_offset(offset);
+            Ok(())
+        } else if let Some(offset) = self.locals.get_upvalue(name) {
+            chunk.push_opcode(OpCode::ReadUpValue, range);
+            chunk.push_u8_offset(offset as u8);
             Ok(())
         } else if let Some(offset) = self.globals.get(name) {
             chunk.push_opcode(OpCode::ReadGlobal, range);
@@ -223,9 +259,19 @@ impl Compiler {
         self.locals.enter();
         self.compile_stmts(stmts, chunk);
         if !stmts.output || stmts.stmts.is_empty() {
-            chunk.push_opcode(OpCode::Nil, range);
+            chunk.push_opcode(OpCode::Nil, range.clone());
         }
-        self.locals.exit();
+
+        let pointer_offsets = self.locals.exit();
+        self.drop_pointers(&pointer_offsets, range, chunk);
+    }
+
+    /// Explicitly drops pointers at the specified offsets from rbp
+    fn drop_pointers(&mut self, offsets: &[u8], range: CodeRange, chunk: &mut Chunk) {
+        for &offset in offsets {
+            chunk.push_opcode(OpCode::Drop, range.clone());
+            chunk.push_u8_offset(offset);
+        }
     }
 }
 

@@ -98,5 +98,8 @@ pub fn negate(x: Value) -> RunRes<Value> {
         Value::Int(x) => Ok(Value::Int(-x)),
         Value::Function(_) => RunRes::new_err("Cannot negate a function".to_string()),
         Value::Native(_) => RunRes::new_err("Cannot negate a function".to_string()),
+        // Value::UpValue(pointer) => negate(pointer.get_clone()),
+        Value::Pointer(_) => panic!("We should never operate on value pointers"),
+        Value::Closure(_) => RunRes::new_err("Cannot negate a closure".to_string()),
     }
 }

@@ -3,10 +3,14 @@ use std::{fmt::Display, rc::Rc};
 use crate::error::{RunRes, RuntimeError};
 
 mod builtins;
+mod closure;
 mod function;
+mod value_pointer;
 
 pub use builtins::get_natives;
+pub use closure::Closure;
 pub use function::Function;
+pub use value_pointer::ValuePointer;
 
 use self::builtins::Native;
 
@@ -18,7 +22,11 @@ pub enum Value {
     Int(i64),
     Float(f64),
     Function(Rc<Function>),
+    Closure(Rc<Closure>),
     Native(Native),
+
+    /// A value closed over by a function must be stored on the heap
+    Pointer(ValuePointer),
 }
 
 pub enum ValueType {
@@ -28,6 +36,7 @@ pub enum ValueType {
     Float,
     Function,
     Builtin,
+    Closure,
 }
 
 impl Value {
@@ -39,6 +48,8 @@ impl Value {
             Value::Float(_) => ValueType::Float,
             Value::Function(_) => ValueType::Function,
             Value::Native(_) => ValueType::Builtin,
+            Value::Pointer(pointer) => pointer.get_clone().type_of(),
+            Value::Closure(_) => ValueType::Closure,
         }
     }
 
@@ -55,8 +66,40 @@ impl Value {
                 "Builtint functions don't have a truthiness ({})",
                 f.name()
             )),
+            Value::Pointer(pointer) => pointer.get_clone().truthy(),
+            Value::Closure(_) => {
+                RuntimeError::error("A closure does not have a truthiness".to_string())
+            }
         }
     }
+
+    /// Reads the value, following pointers if necessary
+    // pub fn read(&self) -> Value {
+    //     if let Value::Pointer(pointer) = self {
+    //         pointer.get_clone()
+    //     } else {
+    //         self.clone()
+    //     }
+    // }
+
+    pub fn to_closure(self) -> Option<Rc<Closure>> {
+        if let Value::Closure(closure) = self {
+            Some(closure)
+        } else {
+            None
+        }
+    }
+
+    pub fn to_function(self) -> Option<Rc<Function>> {
+        if let Value::Function(function) = self {
+            Some(function)
+        } else {
+            None
+        }
+    }
+
+    // Updates the value to a new one
+    pub fn write(&mut self) {}
 }
 
 impl PartialOrd for Value {
@@ -84,6 +127,12 @@ impl PartialEq for Value {
                 // Compare the pointers, to see if they are the exact same function
                 Rc::ptr_eq(a, b)
             }
+            (Value::Closure(ref a), Value::Closure(ref b)) => {
+                // Compare the pointers, to see if they are the exact same function
+                Rc::ptr_eq(a, b)
+            }
+            (Value::Pointer(pointer), other) => pointer.get_clone().eq(other),
+            (other, Value::Pointer(pointer)) => other.eq(&pointer.get_clone()),
             _ => false, // All other combinations are not equal
         }
     }
@@ -98,6 +147,7 @@ impl Display for ValueType {
             ValueType::Float => write!(f, "Float"),
             ValueType::Function => write!(f, "Function"),
             ValueType::Builtin => write!(f, "Function"),
+            ValueType::Closure => write!(f, "Closure"),
         }
     }
 }
@@ -105,6 +155,12 @@ impl Display for ValueType {
 impl From<Function> for Value {
     fn from(func: Function) -> Self {
         Value::Function(Rc::new(func))
+    }
+}
+
+impl From<Closure> for Value {
+    fn from(func: Closure) -> Self {
+        Value::Closure(Rc::new(func))
     }
 }
 
@@ -124,6 +180,8 @@ impl Display for Value {
             Value::Function(func) => write!(f, "{}", func.name()),
             // Value::Function(func) => write!(f, "fn {}/{}", func.name(), func.arity()), // TODO
             Value::Native(native) => write!(f, "fn {}/{}", native.name(), native.arity()),
+            Value::Pointer(pointer) => pointer.get_clone().fmt(f),
+            Value::Closure(closure) => write!(f, "{}", closure.function().name()),
         }
     }
 }

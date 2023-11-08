@@ -7,7 +7,7 @@ use crate::{
 
 use super::CompRes;
 
-impl Compiler {
+impl Compiler<'_> {
     pub fn compile_if(
         &mut self,
         pred: &ExprNode,
@@ -118,14 +118,36 @@ impl Compiler {
     }
 
     pub fn compile_break(&mut self, range: CodeRange, chunk: &mut Chunk) -> CompRes {
+        // TODO: ERROR: Does not exit scopes, so does not de-allocate pointers
         chunk.push_opcode(OpCode::Jump, range);
         self.flow_points.push_break_exit(chunk.reserve_jump())
     }
 
     pub fn compile_continue(&mut self, range: CodeRange, chunk: &mut Chunk) -> CompRes {
+        // TODO: ERROR: Does not exit scopes, so does not de-allocate pointers
         chunk.push_opcode(OpCode::Jump, range);
         let loop_entry = self.flow_points.get_loop_entry()?;
         chunk.push_jump(loop_entry);
+        Ok(())
+    }
+
+    pub fn compile_return(
+        &mut self,
+        opt_expr: Option<&ExprNode>,
+        range: CodeRange,
+        chunk: &mut Chunk,
+    ) -> CompRes {
+        if self.is_global() {
+            return Err("Cannot return from top-level scope".to_string());
+        }
+        self.compile_opt_expression(opt_expr, chunk)?;
+
+        // Drop all pointers before returning
+        let pointer_offsetr = self.locals.exit_all();
+        self.drop_pointers(&pointer_offsetr, range.clone(), chunk);
+
+        chunk.push_opcode(OpCode::Return, range);
+
         Ok(())
     }
 }

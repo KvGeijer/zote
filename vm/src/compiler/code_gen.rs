@@ -147,8 +147,9 @@ impl Compiler<'_> {
             Expr::Tuple(_) => todo!(),
             Expr::FunctionDefinition(name, params, body) => {
                 let upvalues = self.attributes.upvalue_names(node.as_ref()).unwrap_or(&[]);
+                let rec_name = self.attributes.recursion_name(node.as_ref());
 
-                self.compile_function_def(name, params, body, upvalues, range, chunk)?;
+                self.compile_function_def(name, rec_name, params, body, upvalues, range, chunk)?;
             }
             Expr::Match(_, _) => todo!(),
         };

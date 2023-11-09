@@ -5,11 +5,11 @@ use std::{
 
 use parser::{LValue, Stmts};
 
-use crate::{ref_id, visitor::AstVisitor, NodeAttr, RefId};
+use crate::{ref_id, visitor::AstVisitor, AttributedAst, NodeAttr, RefId};
 
 /// Finds which declarations are upvalues
 /// Also the upvalues (by name) are captured by each closure
-pub(crate) fn find_upvalues(stmts: &Stmts) -> HashMap<RefId, NodeAttr> {
+pub(crate) fn find_upvalues(stmts: &Stmts, attributes: &AttributedAst) -> HashMap<RefId, NodeAttr> {
     let mut resolver = Resolver {
         scope: VarScope {
             vars: HashMap::new(),
@@ -20,6 +20,7 @@ pub(crate) fn find_upvalues(stmts: &Stmts) -> HashMap<RefId, NodeAttr> {
         closure_upvalues: HashMap::new(),
         expr_id: None,
         global_scope: true,
+        attributes,
     };
 
     resolver.visit_stmts(stmts);
@@ -36,7 +37,7 @@ pub(crate) fn find_upvalues(stmts: &Stmts) -> HashMap<RefId, NodeAttr> {
     upvalue_attrs.chain(upvalues_attrs).collect()
 }
 
-struct Resolver {
+struct Resolver<'a> {
     scope: VarScope,
 
     /// The id of all functions we are enclosed by at the moment
@@ -56,9 +57,12 @@ struct Resolver {
 
     /// If we are at global scope, meaning variables are globals
     global_scope: bool,
+
+    /// Map of function definition, to a potential name to use for recursion
+    attributes: &'a AttributedAst<'a>,
 }
 
-impl Resolver {
+impl<'a> Resolver<'a> {
     fn add_upvalue(&mut self, id: RefId, name: &String, func_level: usize) {
         // It is an upvalue!
         self.upvalues.insert(id);
@@ -82,6 +86,7 @@ impl Resolver {
 
 struct VarScope {
     /// Keeps both the reference id, as well as the function nesting it was declared at
+    /// The id is of the reference to the
     /// Will only hold local variables (no globals!)
     vars: HashMap<String, (RefId, usize)>,
     parent: Option<Box<VarScope>>,
@@ -121,7 +126,7 @@ impl VarScope {
     }
 }
 
-impl AstVisitor for Resolver {
+impl<'a> AstVisitor for Resolver<'a> {
     fn visit_var(&mut self, name: &String, declaration: bool) {
         if declaration {
             // Declare it as reachable
@@ -140,6 +145,14 @@ impl AstVisitor for Resolver {
         }
     }
 
+    fn visit_decl(&mut self, lvalue: &LValue, init: Option<&parser::ExprNode>) {
+        if let Some(expr) = init {
+            self.visit_expr(expr)
+        }
+        // Switch order to not define variables until after their values are defined
+        self.visit_lvalue(lvalue, true);
+    }
+
     fn visit_expr(&mut self, expr: &parser::ExprNode) {
         let outer_id = self.expr_id;
         self.expr_id = Some(ref_id(expr.node.as_ref()));
@@ -156,14 +169,24 @@ impl AstVisitor for Resolver {
         params: &[LValue],
         body: &parser::ExprNode,
     ) {
+        let id = self.expr_id.expect("Func def should be in expression");
+
         // Adds which enclosing functions exist
-        self.enclosing_functions
-            .push(self.expr_id.expect("Func def should be in expression"));
+        self.enclosing_functions.push(id);
 
         // Ugly way to do it
         // TODO: Good opportunity to play with unsafe?
         let scope = mem::replace(&mut self.scope, VarScope::empty());
         self.scope = scope.enter();
+
+        // ERROR: What if we want to capture the closure as an upvalue? For now we don't allow that,
+        // as that would mean we would have to handle the case where it is a pointer. As long
+        // as it is 0 here, we will not support this.
+        // If it has a recursive binding, add it to the scope
+        if let Some(binding) = self.attributes.recursion_name_raw(id) {
+            self.scope
+                .insert(binding.to_string(), 0, self.enclosing_functions.len());
+        }
 
         // Default visit
         for param in params {

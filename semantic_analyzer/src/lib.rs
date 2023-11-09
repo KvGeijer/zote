@@ -1,8 +1,10 @@
 use std::collections::HashMap;
 
+use closure_naming::find_recursion_names;
 use parser::{Expr, Stmts};
 use variable_resolution::find_upvalues;
 
+mod closure_naming;
 mod variable_resolution;
 mod visitor;
 
@@ -14,7 +16,7 @@ pub struct AttributedAst<'a> {
 
 pub fn analyze_ast<'a>(stmts: &'a Stmts) -> AttributedAst<'a> {
     let mut attr_ast = AttributedAst::new(stmts);
-    attr_ast.find_upvalues();
+    attr_ast.analyze_variable_bindings();
 
     attr_ast
 }
@@ -57,6 +59,21 @@ impl<'a> AttributedAst<'a> {
         }
     }
 
+    /// For a FunctionDefinition Expr, returns the potential name to use for recursive calls
+    pub fn recursion_name(&self, func_ref: &Expr) -> Option<String> {
+        self.recursion_name_raw(ref_id(func_ref))
+    }
+
+    fn recursion_name_raw(&self, id: RefId) -> Option<String> {
+        self.attributes.get(&id)?.into_iter().find_map(|attr| {
+            if let NodeAttr::RecursionName(name) = attr {
+                Some(name.clone())
+            } else {
+                None
+            }
+        })
+    }
+
     pub fn stmts(&self) -> &'a Stmts {
         self.stmts
     }
@@ -74,9 +91,16 @@ impl<'a> AttributedAst<'a> {
         }
     }
 
-    /// Finds which declarations are upvalues
-    fn find_upvalues(&mut self) {
-        self.merge_singles(find_upvalues(self.stmts));
+    /// Finds:
+    ///    * Names for functions when recursing
+    ///    * Which declarations are upvalues
+    ///    * Which upvalues are included in each closure init
+    fn analyze_variable_bindings(&mut self) {
+        self.merge_singles(find_recursion_names(self.stmts));
+
+        // Requires the names of recursive functions to work properly
+        let upvalue_attrs = find_upvalues(self.stmts, self);
+        self.merge_singles(upvalue_attrs);
     }
 }
 
@@ -87,4 +111,7 @@ enum NodeAttr {
 
     /// All upvalues captured by a function
     UpValues(Vec<String>),
+
+    /// Name binding for a FunctionDefinition to use when recursing
+    RecursionName(String),
 }

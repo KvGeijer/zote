@@ -9,6 +9,7 @@ impl Compiler<'_> {
     pub fn compile_function_def(
         &mut self,
         name: &str,
+        rec_name: Option<String>,
         params: &[LValue],
         body: &ExprNode,
         upvalues: &[String],
@@ -23,8 +24,14 @@ impl Compiler<'_> {
             self.locals.add_upvalue(upvalue_name.to_string());
         }
 
-        // The function should be able to call itself, so add it as an argument (it is also pushed before args on stack)
-        self.locals.add_local(name.to_string(), false);
+        if let Some(binding) = rec_name {
+            // The function should be able to call itself, so add it as an argument (it is also pushed before args on stack)
+            self.locals.add_local(binding, false);
+        } else {
+            // Just add a dummy-value so that it cannot be refered to
+            // ERROR: If we can create "" variable, or create conflicting dummy
+            self.locals.add_local("".to_string(), false);
+        }
 
         // The new chunk to use for the function
         let mut func_chunk = Chunk::new();

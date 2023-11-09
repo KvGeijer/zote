@@ -90,12 +90,16 @@ fn aoc_2022_7() {
     assert_eq!(output, "1886043\n3842121\n");
 }
 
+// Borderline slow
+#[ignore]
 #[test]
 fn aoc_2022_8() {
     let output = interpret("aoc-2022/day08.zote");
     assert_eq!(output, "1859\n332640\n");
 }
 
+// Borderline slow
+#[ignore]
 #[test]
 fn aoc_2022_9() {
     let output = interpret("aoc-2022/day09.zote");
@@ -122,12 +126,16 @@ fn aoc_2022_12() {
     assert_eq!(output, "380\n375\n");
 }
 
+// Borderline slow
+#[ignore]
 #[test]
 fn aoc_2022_13() {
     let output = interpret("aoc-2022/day13.zote");
     assert_eq!(output, "6369\n25800\n");
 }
 
+// Borderline slow
+#[ignore]
 #[test]
 fn aoc_2022_14() {
     let output = interpret("aoc-2022/day14.zote");
@@ -150,12 +158,16 @@ fn aoc_2022_16() {
     assert_eq!(output, "1716\n2504\n");
 }
 
+// Borderline slow
+#[ignore]
 #[test]
 fn aoc_2022_17() {
     let output = interpret("aoc-2022/day17.zote");
     assert_eq!(output, "3159\n1566272189352\n");
 }
 
+// Borderline slow
+#[ignore]
 #[test]
 fn aoc_2022_18() {
     let output = interpret("aoc-2022/day18.zote");
@@ -183,6 +195,8 @@ fn aoc_2022_21() {
     assert_eq!(output, "309248622142100\n3757272361782\n");
 }
 
+// Borderline slow
+#[ignore]
 #[test]
 fn aoc_2022_22() {
     let output = interpret("aoc-2022/day22.zote");

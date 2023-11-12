@@ -9,7 +9,7 @@ use std::{mem, rc::Rc};
 use crate::{
     compiler::{Chunk, OpCode},
     disassembler::disassemble_instruction,
-    error::RunRes,
+    error::{RunRes, RuntimeError},
     value::{Closure, List, Value, ValuePointer},
 };
 
@@ -319,16 +319,27 @@ impl VM {
                 self.push(collection.pop()?);
             }
             OpCode::ListFromSlice => {
-                let step = self.pop().to_step_int()?;
+                let step = self.pop().to_int_or_nil_none()?.unwrap_or(1);
                 let stop = self.pop().to_int()?;
                 let start = self.pop().to_int()?;
-                self.push(List::from_slice(start, stop, step).into());
+                self.push(List::from_slice(start, stop, step)?.into());
             }
             OpCode::ListFromValues => {
                 let len = self.read_byte();
                 let mut vec = (0..len).map(|_| self.pop()).collect::<Vec<Value>>();
                 vec.reverse(); // Needs to reverse the actual list, as reversing iter does not have an effect
                 self.push(List::from(vec).into())
+            }
+            OpCode::ReadAtSlice => {
+                let step = self.pop().to_int_or_nil_none()?;
+                let stop = self.pop().to_int_or_nil_none()?;
+                let start = self.pop().to_int_or_nil_none()?;
+                let list = self.pop().to_list().ok_or(RuntimeError::bare_error(
+                    "Can only slice into list".to_string(),
+                ))?;
+
+                let slice = list.slice(start, stop, step)?;
+                self.push(slice.into());
             }
         }
 

@@ -151,7 +151,7 @@ pub enum OpCode {
     /// Used when declaring new pointers for future upvalues.
     EmptyPointer,
 
-    /// Assigns a value at a certain index in a collection
+    /// Assigns a value at a certain (singular) index in a collection
     ///
     /// Collection[Index] = Value:
     ///     Index: The topmost stack value
@@ -159,10 +159,16 @@ pub enum OpCode {
     ///     Value: The third topmost stack value
     AssignAtIndex,
 
-    /// Reads a value at a certain index in a collection
+    /// Reads a value at a certain (singular) index in a collection
     ///
     /// The topmost value is the index, and the second topmost is the collection
     ReadAtIndex,
+
+    /// Reads and slice of a list
+    ///
+    /// The topmost 3 values is the slice, and the fourth is the list.
+    /// If start or end is omitted, they default to 0 and the list length respectively.
+    ReadAtSlice,
 
     /// Pushes a value to the end of a collection
     ///

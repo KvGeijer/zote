@@ -82,15 +82,6 @@ impl Value {
         }
     }
 
-    /// Reads the value, following pointers if necessary
-    // pub fn read(&self) -> Value {
-    //     if let Value::Pointer(pointer) = self {
-    //         pointer.get_clone()
-    //     } else {
-    //         self.clone()
-    //     }
-    // }
-
     pub fn to_closure(self) -> Option<Rc<Closure>> {
         if let Value::Closure(closure) = self {
             Some(closure)
@@ -102,6 +93,14 @@ impl Value {
     pub fn to_function(self) -> Option<Rc<Function>> {
         if let Value::Function(function) = self {
             Some(function)
+        } else {
+            None
+        }
+    }
+
+    pub fn to_list(self) -> Option<Rc<List>> {
+        if let Value::List(list) = self {
+            Some(list)
         } else {
             None
         }
@@ -158,11 +157,11 @@ impl Value {
         }
     }
 
-    /// Converts the value to an int if possible. NIL is mapped to 1.
-    pub fn to_step_int(self) -> RunRes<i64> {
+    /// Converts the value to an int if possible. NIL is mapped to specified value.
+    pub fn to_int_or_nil_none(self) -> RunRes<Option<i64>> {
         match self {
-            Value::Nil => Ok(1),
-            otherwise => otherwise.to_int(),
+            Value::Nil => Ok(None),
+            otherwise => otherwise.to_int().map(Some),
         }
     }
 }

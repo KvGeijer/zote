@@ -1,5 +1,7 @@
 use std::cell::RefCell;
 
+use itertools::Itertools;
+
 use crate::error::{RunRes, RunResTrait, RuntimeError};
 
 use super::Value;
@@ -31,22 +33,33 @@ impl List {
 
     /// Sets the value at the index, potentially wrapping for negative values
     pub fn set(&self, index: i64, value: Value) -> RunRes<()> {
-        let vec = self.vec.borrow_mut();
+        let mut vec = self.vec.borrow_mut();
         let len = vec.len();
 
-        let uindex = index_wrap(index, len)?;
-        self.vec.borrow_mut()[uindex] = value;
-
-        Ok(())
+        let uindex = index_wrap(index, len);
+        match vec.get_mut(uindex) {
+            Some(entry) => {
+                *entry = value;
+                Ok(())
+            }
+            None => RunRes::new_err(format!(
+                "Index {index} out of bound for list of length {len}."
+            )),
+        }
     }
 
     /// Gets the value at the index, potentially wrapping for negative values
     pub fn get(&self, index: i64) -> RunRes<Value> {
-        let vec = self.vec.borrow_mut();
+        let mut vec = self.vec.borrow_mut();
         let len = vec.len();
 
-        let uindex = index_wrap(index, len)?;
-        Ok(vec[uindex].clone())
+        let uindex = index_wrap(index, len);
+        match vec.get_mut(uindex) {
+            Some(entry) => Ok(entry.clone()),
+            None => RunRes::new_err(format!(
+                "Index {index} out of bound for list of length {len}."
+            )),
+        }
     }
 
     /// Pushes a value to the end of the list
@@ -65,9 +78,11 @@ impl List {
     ///
     /// Can iterate backwards if the step is negative.
     /// Returns an empty list if it will not converge
-    pub fn from_slice(start: i64, stop: i64, step: i64) -> Self {
-        if start >= stop && step >= 0 || start <= stop && step <= 0 {
-            return vec![].into();
+    pub fn from_slice(start: i64, stop: i64, step: i64) -> RunRes<Self> {
+        if empty_solo_slice(start, stop, step) {
+            return Ok(vec![].into());
+        } else if step == 0 {
+            return RunRes::new_err("Cannot have stepsize 0 in slice".to_owned());
         }
 
         let mut vec = vec![];
@@ -76,7 +91,20 @@ impl List {
             vec.push(pos.into());
             pos += step;
         }
-        vec.into()
+        Ok(vec.into())
+    }
+
+    /// Constructs a new list, from a slice of this one
+    pub fn slice(&self, start: Option<i64>, stop: Option<i64>, step: Option<i64>) -> RunRes<Self> {
+        let step = step.unwrap_or(1);
+
+        let vec = self.vec.borrow();
+        let mut slice = vec![];
+        for ind in slice_iter(start, stop, step, vec.len())? {
+            slice.push(vec[ind].clone())
+        }
+
+        Ok(slice.into())
     }
 }
 
@@ -88,22 +116,54 @@ impl From<Vec<Value>> for List {
     }
 }
 
-/// Returns the wrapped index into a list, if it is not outside the list
-fn index_wrap(index: i64, len: usize) -> RunRes<usize> {
+/// Returns the wrapped index into a list. Does not handle out of bounds
+fn index_wrap(index: i64, len: usize) -> usize {
     if index < 0 {
         let wrapped = len as i64 + index;
         if wrapped >= 0 {
-            Ok(wrapped as usize)
+            wrapped as usize
         } else {
-            RunRes::new_err(format!("If indexing with a negative value ({index}), it must not exceed the list length ({len})"))
+            // Just return 0 as maximum wrapping
+            0
         }
     } else {
-        if (index as usize) < len {
-            Ok(index as usize)
-        } else {
-            RunRes::new_err(format!(
-                "Cannot index outside of a list (index: {index}, len {len})"
-            ))
-        }
+        index as usize
     }
+}
+
+/// Calculates the indeces to use for iterating over a slice
+pub fn slice_iter(
+    start: Option<i64>,
+    stop: Option<i64>,
+    step: i64,
+    len: usize,
+) -> RunRes<impl Iterator<Item = usize>> {
+    if step > 0 {
+        let start = start.map(|ind| index_wrap(ind, len)).unwrap_or(0);
+        let stop = stop.map(|ind| index_wrap(ind, len)).unwrap_or(len);
+
+        Ok((start..stop)
+            .step_by(step as usize)
+            .filter(|&ind| ind < len)
+            .collect_vec()
+            .into_iter())
+    } else if step < 0 {
+        let start = start
+            .map(|ind| index_wrap(ind, len))
+            .unwrap_or(if len != 0 { len - 1 } else { 0 });
+        let stop = stop.map(|ind| index_wrap(ind, len) + 1).unwrap_or(0);
+
+        Ok((stop..=start)
+            .rev()
+            .step_by((-step) as usize)
+            .filter(|&ind| ind < len)
+            .collect_vec()
+            .into_iter())
+    } else {
+        return RunRes::new_err("Cannot have stepsize 0 in slice".to_owned());
+    }
+}
+
+fn empty_solo_slice(start: i64, stop: i64, step: i64) -> bool {
+    start >= stop && step > 0 || start <= stop && step < 0
 }

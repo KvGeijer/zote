@@ -1,0 +1,11 @@
+index := 0;
+while index < 10 {
+	[0:10][index] >> print;
+	index += 1
+}
+
+index := -10;
+while index < 0 {
+	[0:10][index] >> print;
+	index += 1
+}

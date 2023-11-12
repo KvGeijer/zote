@@ -1,0 +1,26 @@
+[1:6][0:6] >> print;
+[1:6][::] >> print;
+[1:6][::1] >> print;
+
+// Iterate backwards over the whole array
+[1:6][::-1] >> print;
+[1:6][4::-1] >> print;
+[1:6][6::-1] >> print;
+
+// Stop at some index
+[1:6][4:0:-1] >> print;
+[1:6][:1:-1] >> print;
+
+// Empty list
+[][1:5] >> print;
+[][::] >> print;
+[][6:6] >> print;
+[][::-1] >> print;
+[][-8:-100:-1] >> print;
+
+// Singleton list
+[1][::-1] >> print;
+[1][::] >> print;
+[1][100::-1] >> print;
+[1][100::] >> print;
+

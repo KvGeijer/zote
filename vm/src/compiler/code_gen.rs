@@ -1,6 +1,6 @@
 use parser::{
-    BinOper, CodeRange, Expr, ExprNode, LValue, ListContent, LogicalOper, Slice, Stmt, StmtNode,
-    Stmts, UnOper,
+    BinOper, CodeRange, Expr, ExprNode, Index, LValue, ListContent, LogicalOper, Slice, Stmt,
+    StmtNode, Stmts, UnOper,
 };
 
 use super::{Chunk, CompRes, Compiler, OpCode};
@@ -110,7 +110,7 @@ impl Compiler<'_> {
 
         match node.as_ref() {
             Expr::Call(func, args) => self.compile_call(func, args, range, chunk)?,
-            Expr::IndexInto(_, _) => todo!(),
+            Expr::IndexInto(base, index) => self.compile_index_into(base, index, range, chunk)?,
             Expr::Binary(x, binop, y) => {
                 self.compile_expression(x, chunk)?;
                 self.compile_expression(y, chunk)?;
@@ -309,6 +309,28 @@ impl Compiler<'_> {
         self.compile_opt_expression(slice.start.as_ref(), chunk)?;
         self.compile_opt_expression(slice.stop.as_ref(), chunk)?;
         self.compile_opt_expression(slice.step.as_ref(), chunk)
+    }
+
+    /// Compiles the indexing into a list
+    fn compile_index_into(
+        &mut self,
+        base: &ExprNode,
+        index: &Index,
+        range: CodeRange,
+        chunk: &mut Chunk,
+    ) -> CompRes {
+        self.compile_expression(base, chunk)?;
+        match index {
+            Index::At(at) => {
+                self.compile_expression(at, chunk)?;
+                chunk.push_opcode(OpCode::ReadAtIndex, range);
+            }
+            Index::Slice(slice) => {
+                self.compile_slice(slice, chunk)?;
+                chunk.push_opcode(OpCode::ReadAtSlice, range);
+            }
+        }
+        Ok(())
     }
 }
 

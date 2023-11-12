@@ -83,6 +83,7 @@ pub fn disassemble_instruction<W: Write>(
             OpCode::Pop => simple_instruction("Pop", out),
             OpCode::ListFromSlice => simple_instruction("ListFromSlice", out),
             OpCode::ListFromValues => offset_instruction("ListFromValues", chunk, offset, out),
+            OpCode::ReadAtSlice => simple_instruction("ReadAtSlice", out),
         }
     } else {
         simple_instruction("Invalid OpCode", out)

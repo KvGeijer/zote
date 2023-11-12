@@ -48,7 +48,10 @@ impl RuntimeError {
 
 #[derive(Debug)]
 pub struct Trace {
+    /// The initial error message
     reason: String,
+
+    /// The stack trace
     stack_trace: Vec<(String, CodeRange)>,
 }
 
@@ -68,12 +71,18 @@ impl Trace {
 impl fmt::Display for Trace {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         // TODO: Make this really nice, with error types
-        writeln!(f, "ERROR: {}", self.reason)?;
+        writeln!(f, "RUNTIME-ERROR: {}", self.reason)?;
         // Write exact location for first error?
 
         for (i, (function, range)) in self.stack_trace.iter().enumerate() {
             writeln!(f, "    ({i}) [line {}] in {function}", range.sl())?;
         }
         Ok(())
+    }
+}
+
+impl fmt::Display for RuntimeError {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        write!(f, "{}", self.trace)
     }
 }

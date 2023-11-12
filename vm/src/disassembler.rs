@@ -77,6 +77,12 @@ pub fn disassemble_instruction<W: Write>(
             OpCode::ReadPointer => offset_instruction("ReadPointer", chunk, offset, out),
             OpCode::Drop => offset_instruction("Drop", chunk, offset, out),
             OpCode::EmptyPointer => simple_instruction("EmptyPointer", out),
+            OpCode::AssignAtIndex => simple_instruction("AssignAtIndex", out),
+            OpCode::ReadAtIndex => simple_instruction("ReadAtIndex", out),
+            OpCode::Push => simple_instruction("Push", out),
+            OpCode::Pop => simple_instruction("Pop", out),
+            OpCode::ListFromSlice => simple_instruction("ListFromSlice", out),
+            OpCode::ListFromValues => offset_instruction("ListFromValues", chunk, offset, out),
         }
     } else {
         simple_instruction("Invalid OpCode", out)

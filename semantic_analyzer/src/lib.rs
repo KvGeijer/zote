@@ -60,7 +60,7 @@ impl<'a> AttributedAst<'a> {
     }
 
     /// For a FunctionDefinition Expr, returns the potential name to use for recursive calls
-    pub fn recursion_name(&self, func_ref: &Expr) -> Option<String> {
+    pub fn rec_name(&self, func_ref: &Expr) -> Option<String> {
         self.recursion_name_raw(ref_id(func_ref))
     }
 

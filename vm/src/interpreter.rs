@@ -10,7 +10,7 @@ use crate::{
     compiler::{Chunk, OpCode},
     disassembler::disassemble_instruction,
     error::RunRes,
-    value::{Closure, Value, ValuePointer},
+    value::{Closure, List, Value, ValuePointer},
 };
 
 use self::call_frame::CallFrame;
@@ -296,6 +296,39 @@ impl VM {
             OpCode::EmptyPointer => {
                 let pointer = Value::Pointer(ValuePointer::new());
                 self.push(pointer);
+            }
+            OpCode::AssignAtIndex => {
+                let index = self.pop();
+                let collection = self.pop();
+                let value = self.peek();
+
+                collection.assign_at_index(index, value)?;
+            }
+            OpCode::ReadAtIndex => {
+                let index = self.pop();
+                let collection = self.pop();
+
+                self.push(collection.read_at_index(index)?);
+            }
+            OpCode::Push => {
+                let collection = self.pop();
+                collection.push(self.peek())?;
+            }
+            OpCode::Pop => {
+                let collection = self.pop();
+                self.push(collection.pop()?);
+            }
+            OpCode::ListFromSlice => {
+                let step = self.pop().to_step_int()?;
+                let stop = self.pop().to_int()?;
+                let start = self.pop().to_int()?;
+                self.push(List::from_slice(start, stop, step).into());
+            }
+            OpCode::ListFromValues => {
+                let len = self.read_byte();
+                let mut vec = (0..len).map(|_| self.pop()).collect::<Vec<Value>>();
+                vec.reverse(); // Needs to reverse the actual list, as reversing iter does not have an effect
+                self.push(List::from(vec).into())
             }
         }
 

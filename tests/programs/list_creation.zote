@@ -1,0 +1,22 @@
+// Two ways of initializing a simple range list
+[1, 2, 3, 4, 5] >> print;
+[1:6] >> print;
+
+// Can we iterate backwards?
+[3:-4:-1] >> print;
+
+// Can we use non-constant values?
+a := 5;
+[a, a - 1, a - 2, a - 3, a - 4] >> print;
+
+// Empty list?
+[] >> print;
+[1:1] >> print;
+[2:-3] >> print;
+[1:7:-2] >> print;
+
+// Uneven steps
+[-5:5:3] >> print;
+[0:9:3] >> print;
+[9:0:-3] >> print;
+

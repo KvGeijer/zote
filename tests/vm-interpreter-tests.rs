@@ -23,3 +23,9 @@ fn modify_captured() {
     let output = interpret("tests/programs/modify_captured.zote");
     assert_eq!(output, "1338\n1339\n1340\n1341\n");
 }
+
+#[test]
+fn list_creation() {
+    let output = interpret("tests/programs/list_creation.zote");
+    assert_eq!(output, "[1, 2, 3, 4, 5]\n[1, 2, 3, 4, 5]\n[3, 2, 1, 0, -1, -2, -3]\n[5, 4, 3, 2, 1]\n[]\n[]\n[]\n[]\n[-5, -2, 1, 4]\n[0, 3, 6]\n[9, 6, 3]\n");
+}

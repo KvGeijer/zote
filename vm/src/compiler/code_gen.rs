@@ -1,5 +1,6 @@
 use parser::{
-    BinOper, CodeRange, Expr, ExprNode, LValue, LogicalOper, Stmt, StmtNode, Stmts, UnOper,
+    BinOper, CodeRange, Expr, ExprNode, LValue, ListContent, LogicalOper, Slice, Stmt, StmtNode,
+    Stmts, UnOper,
 };
 
 use super::{Chunk, CompRes, Compiler, OpCode};
@@ -143,11 +144,11 @@ impl Compiler<'_> {
             Expr::Continue => self.compile_continue(range, chunk)?,
             Expr::Return(opt_expr) => self.compile_return(opt_expr.as_ref(), range, chunk)?,
             Expr::Nil => chunk.push_constant_plus(Value::Nil, range),
-            Expr::List(_) => todo!(),
+            Expr::List(list) => self.compile_list(list, range, chunk)?,
             Expr::Tuple(_) => todo!(),
             Expr::FunctionDefinition(name, params, body) => {
                 let upvalues = self.attributes.upvalue_names(node.as_ref()).unwrap_or(&[]);
-                let rec_name = self.attributes.recursion_name(node.as_ref());
+                let rec_name = self.attributes.rec_name(node.as_ref());
 
                 self.compile_function_def(name, rec_name, params, body, upvalues, range, chunk)?;
             }
@@ -273,6 +274,41 @@ impl Compiler<'_> {
             chunk.push_opcode(OpCode::Drop, range.clone());
             chunk.push_u8_offset(offset);
         }
+    }
+
+    /// Compiles a list constant
+    fn compile_list(&mut self, list: &ListContent, range: CodeRange, chunk: &mut Chunk) -> CompRes {
+        match list {
+            ListContent::Exprs(exprs) => {
+                if exprs.len() > 255 {
+                    // As we store the length in a byte we cannot store too many
+                    return Err(format!(
+                        "Cannot init list with over 255 values :( This one is {} long",
+                        exprs.len()
+                    ));
+                }
+
+                for expr in exprs {
+                    self.compile_expression(expr, chunk)?;
+                }
+                chunk.push_opcode(OpCode::ListFromValues, range);
+                chunk.push_u8_offset(exprs.len() as u8);
+            }
+            ListContent::Range(slice) => {
+                self.compile_slice(slice, chunk)?;
+                chunk.push_opcode(OpCode::ListFromSlice, range);
+            }
+        }
+        Ok(())
+    }
+
+    /// Compiles computations for the three parts of the slice
+    ///
+    /// If any of the fields are omitted, a NIL is pushed instead
+    fn compile_slice(&mut self, slice: &Slice, chunk: &mut Chunk) -> CompRes {
+        self.compile_opt_expression(slice.start.as_ref(), chunk)?;
+        self.compile_opt_expression(slice.stop.as_ref(), chunk)?;
+        self.compile_opt_expression(slice.step.as_ref(), chunk)
     }
 }
 

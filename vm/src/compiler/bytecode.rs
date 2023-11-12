@@ -150,4 +150,37 @@ pub enum OpCode {
     ///
     /// Used when declaring new pointers for future upvalues.
     EmptyPointer,
+
+    /// Assigns a value at a certain index in a collection
+    ///
+    /// Collection[Index] = Value:
+    ///     Index: The topmost stack value
+    ///     Collection: The second topmost stack value
+    ///     Value: The third topmost stack value
+    AssignAtIndex,
+
+    /// Reads a value at a certain index in a collection
+    ///
+    /// The topmost value is the index, and the second topmost is the collection
+    ReadAtIndex,
+
+    /// Pushes a value to the end of a collection
+    ///
+    /// The topmost value on the temp stack is the value, the second is the collection
+    Push,
+
+    /// Pops the value at the end of a collection
+    ///
+    /// The collection is at the top of the temp stack. Crashes if empty
+    Pop,
+
+    /// Constructs a list from a pythonic slice
+    ///
+    /// The start, stop, step are on the stack in that order (NIL if omitted)
+    ListFromSlice,
+
+    /// Constructs a list from a computed set of values
+    ///
+    /// The following byte tells how many of the top values on the temp stack to use.
+    ListFromValues,
 }

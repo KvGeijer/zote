@@ -32,6 +32,9 @@ pub fn interpret_once(ast: &AttributedAst) -> i32 {
     }
     match interpret(Rc::new(chunk), DEBUG) {
         Ok(_) => 0,
-        Err(_) => 70,
+        Err(trace) => {
+            eprintln!("{}", trace);
+            70
+        }
     }
 }

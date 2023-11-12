@@ -1,15 +1,17 @@
 use std::{fmt::Display, rc::Rc};
 
-use crate::error::{RunRes, RuntimeError};
+use crate::error::{RunRes, RunResTrait, RuntimeError};
 
 mod builtins;
 mod closure;
 mod function;
+mod list;
 mod value_pointer;
 
 pub use builtins::get_natives;
 pub use closure::Closure;
 pub use function::Function;
+pub use list::List;
 pub use value_pointer::ValuePointer;
 
 use self::builtins::Native;
@@ -27,6 +29,9 @@ pub enum Value {
 
     /// A value closed over by a function must be stored on the heap
     Pointer(ValuePointer),
+
+    /// A list of values
+    List(Rc<List>),
 }
 
 pub enum ValueType {
@@ -37,8 +42,10 @@ pub enum ValueType {
     Function,
     Builtin,
     Closure,
+    List,
 }
 
+/// Impl for delegating tasks between function types and implementing easy queries
 impl Value {
     pub fn type_of(&self) -> ValueType {
         match self {
@@ -50,6 +57,7 @@ impl Value {
             Value::Native(_) => ValueType::Builtin,
             Value::Pointer(pointer) => pointer.get_clone().type_of(),
             Value::Closure(_) => ValueType::Closure,
+            Value::List(_) => ValueType::List,
         }
     }
 
@@ -70,6 +78,7 @@ impl Value {
             Value::Closure(_) => {
                 RuntimeError::error("A closure does not have a truthiness".to_string())
             }
+            Value::List(list) => Ok(list.truthy()),
         }
     }
 
@@ -98,8 +107,64 @@ impl Value {
         }
     }
 
-    // Updates the value to a new one
-    pub fn write(&mut self) {}
+    /// Tries to assign into an index of the value
+    pub fn assign_at_index(&self, index: Value, value: Value) -> RunRes<()> {
+        match self {
+            Value::List(list) => list.set(index.to_int()?, value),
+            otherwise => RunRes::new_err(format!("Cannot index into a {}", otherwise.type_of())),
+        }
+    }
+
+    /// Tries to read at an index of the value
+    pub fn read_at_index(&self, index: Value) -> RunRes<Value> {
+        match self {
+            Value::List(list) => list.get(index.to_int()?),
+            otherwise => RunRes::new_err(format!("Cannot index into a {}", otherwise.type_of())),
+        }
+    }
+
+    /// Tries to push a value to the end of this one
+    pub fn push(&self, value: Value) -> RunRes<()> {
+        match self {
+            Value::List(list) => Ok(list.push(value)),
+            otherwise => RunRes::new_err(format!("Cannot push to a {}", otherwise.type_of())),
+        }
+    }
+
+    /// Tries to pop a value from the end of this one
+    pub fn pop(&self) -> RunRes<Value> {
+        match self {
+            Value::List(list) => list.pop(),
+            otherwise => RunRes::new_err(format!("Cannot pop from a {}", otherwise.type_of())),
+        }
+    }
+
+    /// Tries to convert a value to an integer
+    pub fn to_int(self) -> RunRes<i64> {
+        match self {
+            Value::Bool(bool) => {
+                if bool {
+                    Ok(1)
+                } else {
+                    Ok(0)
+                }
+            }
+            Value::Int(int) => Ok(int),
+            Value::Float(float) => Ok(float.round() as i64),
+            otherwise => RunRes::new_err(format!(
+                "Cannot use a {} as an integer",
+                otherwise.type_of()
+            )),
+        }
+    }
+
+    /// Converts the value to an int if possible. NIL is mapped to 1.
+    pub fn to_step_int(self) -> RunRes<i64> {
+        match self {
+            Value::Nil => Ok(1),
+            otherwise => otherwise.to_int(),
+        }
+    }
 }
 
 impl PartialOrd for Value {
@@ -148,6 +213,7 @@ impl Display for ValueType {
             ValueType::Function => write!(f, "Function"),
             ValueType::Builtin => write!(f, "Function"),
             ValueType::Closure => write!(f, "Closure"),
+            ValueType::List => write!(f, "List"),
         }
     }
 }
@@ -170,6 +236,18 @@ impl From<Native> for Value {
     }
 }
 
+impl From<i64> for Value {
+    fn from(int: i64) -> Self {
+        Value::Int(int)
+    }
+}
+
+impl From<List> for Value {
+    fn from(list: List) -> Self {
+        Value::List(Rc::new(list))
+    }
+}
+
 impl Display for Value {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         match self {
@@ -182,6 +260,18 @@ impl Display for Value {
             Value::Native(native) => write!(f, "fn {}/{}", native.name(), native.arity()),
             Value::Pointer(pointer) => pointer.get_clone().fmt(f),
             Value::Closure(closure) => write!(f, "{}", closure.function().name()),
+            Value::List(list) => {
+                write!(f, "[")?;
+                let len = list.len();
+                for ind in 0..len {
+                    if ind != 0 {
+                        write!(f, ", ")?;
+                    }
+                    write!(f, "{}", list.get(ind as i64).unwrap())?;
+                }
+                write!(f, "]")?;
+                Ok(())
+            }
         }
     }
 }

@@ -1,0 +1,17 @@
+list := [0, 1, 2, 3, 4];
+
+list[0] = 1;
+list >> print;
+
+(list[1] = 10) >> print;
+list >> print;
+
+list[-0] = 101;
+list >> print;
+
+list[-1] = -1;
+list >> print;
+  
+list[-2] = -2;
+list >> print;
+  

@@ -247,6 +247,12 @@ impl From<List> for Value {
     }
 }
 
+impl From<Rc<List>> for Value {
+    fn from(list: Rc<List>) -> Self {
+        Value::List(list)
+    }
+}
+
 impl Display for Value {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         match self {

@@ -143,8 +143,8 @@ impl Compiler<'_> {
         self.compile_opt_expression(opt_expr, chunk)?;
 
         // Drop all pointers before returning
-        let pointer_offsetr = self.locals.exit_all();
-        self.drop_pointers(&pointer_offsetr, range.clone(), chunk);
+        let pointer_offsets = self.locals.local_pointers();
+        self.drop_pointers(&pointer_offsets, range.clone(), chunk);
 
         chunk.push_opcode(OpCode::Return, range);
 

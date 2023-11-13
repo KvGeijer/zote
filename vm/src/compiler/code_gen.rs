@@ -167,11 +167,35 @@ impl Compiler<'_> {
     ) -> CompRes {
         self.compile_expression(expr, chunk)?;
         match lvalue {
-            LValue::Index(_, _) => todo!(),
+            LValue::Index(collection, index) => {
+                self.compile_assign_index(collection, index, range, chunk)
+            }
             LValue::Var(name) => self.compile_assign(name, range, chunk),
             LValue::Tuple(_) => todo!(),
             LValue::Constant(_) => todo!(),
         }
+    }
+
+    fn compile_assign_index(
+        &mut self,
+        collection: &ExprNode,
+        index: &Index,
+        range: CodeRange,
+        chunk: &mut Chunk,
+    ) -> CompRes {
+        self.compile_expression(collection, chunk)?;
+
+        match index {
+            Index::At(expr_at) => {
+                self.compile_expression(expr_at, chunk)?;
+                chunk.push_opcode(OpCode::AssignAtIndex, range);
+            }
+            Index::Slice(_slice) => {
+                todo!("Implement assigning into slice (light pattern matching)")
+            }
+        }
+
+        Ok(())
     }
 
     /// Assigns the topmost temp value to the named variable

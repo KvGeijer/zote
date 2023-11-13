@@ -44,3 +44,12 @@ fn list_index_reading() {
         "0\n1\n2\n3\n4\n5\n6\n7\n8\n9\n0\n1\n2\n3\n4\n5\n6\n7\n8\n9\n"
     );
 }
+
+#[test]
+fn list_index_assigning() {
+    let output = interpret("tests/programs/list_index_assigning.zote");
+    assert_eq!(
+        output,
+        "[1, 1, 2, 3, 4]\n10\n[1, 10, 2, 3, 4]\n[101, 10, 2, 3, 4]\n[101, 10, 2, 3, -1]\n[101, 10, 2, -2, -1]\n"
+    );
+}

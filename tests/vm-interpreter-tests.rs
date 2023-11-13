@@ -57,5 +57,5 @@ fn list_index_assigning() {
 #[test]
 fn list_functions() {
     let output = interpret("tests/programs/list_functions.zote");
-    assert_eq!(output, "[1]\n[1, 2]\n");
+    assert_eq!(output, "[1]\n[1, 2]\n2\n1\n[]\n");
 }

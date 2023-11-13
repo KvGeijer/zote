@@ -170,16 +170,6 @@ pub enum OpCode {
     /// If start or end is omitted, they default to 0 and the list length respectively.
     ReadAtSlice,
 
-    /// Pushes a value to the end of a collection
-    ///
-    /// The topmost value on the temp stack is the value, the second is the collection
-    Push,
-
-    /// Pops the value at the end of a collection
-    ///
-    /// The collection is at the top of the temp stack. Crashes if empty
-    Pop,
-
     /// Constructs a list from a pythonic slice
     ///
     /// The start, stop, step are on the stack in that order (NIL if omitted)

@@ -2,3 +2,7 @@ list := [];
 
 list >> push(1) >> print >> push(2) >> print;
 
+list >> pop >> print;
+list >> pop >> print;
+list >> print;
+

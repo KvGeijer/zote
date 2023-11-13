@@ -310,14 +310,6 @@ impl VM {
 
                 self.push(collection.read_at_index(index)?);
             }
-            OpCode::Push => {
-                let collection = self.pop();
-                collection.push(self.peek())?;
-            }
-            OpCode::Pop => {
-                let collection = self.pop();
-                self.push(collection.pop()?);
-            }
             OpCode::ListFromSlice => {
                 let step = self.pop().to_int_or_nil_none()?.unwrap_or(1);
                 let stop = self.pop().to_int()?;

@@ -83,14 +83,12 @@ impl LocalState {
     /// Enter a new local scope
     pub fn enter(&mut self) {
         self.scope_depth += 1;
-        println!("Enter {}", self.scope_depth);
     }
 
     /// Exit a local scope
     ///
     /// Returns the offset of all pointers on the stack, which should be dropped.
     pub fn exit(&mut self) -> Vec<u8> {
-        println!("Exit {}", self.scope_depth);
         let mut pointers = vec![];
         while !self.locals.is_empty() && self.locals.last().unwrap().depth == self.scope_depth {
             if self.locals.pop().unwrap().pointer {

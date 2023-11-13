@@ -53,3 +53,9 @@ fn list_index_assigning() {
         "[1, 1, 2, 3, 4]\n10\n[1, 10, 2, 3, 4]\n[101, 10, 2, 3, 4]\n[101, 10, 2, 3, -1]\n[101, 10, 2, -2, -1]\n"
     );
 }
+
+#[test]
+fn list_functions() {
+    let output = interpret("tests/programs/list_functions.zote");
+    assert_eq!(output, "[1]\n[1, 2]\n");
+}

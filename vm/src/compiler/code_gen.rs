@@ -108,8 +108,6 @@ impl Compiler<'_> {
         } = expr;
         let range = CodeRange::from_locs(*start_loc, *end_loc);
 
-        println!("\nCompiling {:?}\n", node);
-
         match node.as_ref() {
             Expr::Call(func, args) => self.compile_call(func, args, range, chunk)?,
             Expr::IndexInto(base, index) => self.compile_index_into(base, index, range, chunk)?,

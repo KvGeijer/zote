@@ -1,4 +1,4 @@
-list := [0,1,2];
+list := [];
 
-list >> push(3) >> print >> push(4) >> print;
+list >> push(1) >> print >> push(2) >> print;
 

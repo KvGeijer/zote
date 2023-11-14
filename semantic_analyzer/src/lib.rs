@@ -1,10 +1,12 @@
 use std::collections::HashMap;
 
 use closure_naming::find_recursion_names;
+use local_enumerator::count_locals;
 use parser::{Expr, Stmts};
 use variable_resolution::find_upvalues;
 
 mod closure_naming;
+mod local_enumerator;
 mod variable_resolution;
 mod visitor;
 
@@ -17,6 +19,7 @@ pub struct AttributedAst<'a> {
 pub fn analyze_ast<'a>(stmts: &'a Stmts) -> AttributedAst<'a> {
     let mut attr_ast = AttributedAst::new(stmts);
     attr_ast.analyze_variable_bindings();
+    attr_ast.merge_singles(count_locals(stmts));
 
     attr_ast
 }
@@ -62,6 +65,18 @@ impl<'a> AttributedAst<'a> {
     /// For a FunctionDefinition Expr, returns the potential name to use for recursive calls
     pub fn rec_name(&self, func_ref: &Expr) -> Option<String> {
         self.recursion_name_raw(ref_id(func_ref))
+    }
+
+    /// Get the max number of locals for a function definition, including arguments
+    pub fn local_count(&self, func_ref: &Expr) -> Option<usize> {
+        let id = ref_id(func_ref);
+        self.attributes.get(&id)?.into_iter().find_map(|attr| {
+            if let NodeAttr::LocalCount(count) = attr {
+                Some(*count)
+            } else {
+                None
+            }
+        })
     }
 
     fn recursion_name_raw(&self, id: RefId) -> Option<String> {
@@ -114,4 +129,7 @@ enum NodeAttr {
 
     /// Name binding for a FunctionDefinition to use when recursing
     RecursionName(String),
+
+    /// The max number of locals declared in each function definition
+    LocalCount(usize),
 }

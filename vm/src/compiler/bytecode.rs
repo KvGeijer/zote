@@ -5,11 +5,11 @@ use enum_macros::TryFromByte;
 pub enum OpCode {
     /// Returns from a function
     ///
-    /// Resets VM poiters to before the call, but keeping the return value on temp stack.
-    /// Does discard all values on temp stack belonging to the call.
+    /// Resets VM poiters to before the call, but keeping the return value on stack.
+    /// Does discard all values on stack belonging to the call.
     Return,
 
-    /// Pushes a constant to the temp stack
+    /// Pushes a constant to the stack
     ///
     /// The offset into the constant region is read from the next u8
     Constant,
@@ -23,34 +23,34 @@ pub enum OpCode {
     /// Special case of constant, for the False bool
     False,
 
-    /// Arithmetically negates the topmost value on the temp stack
+    /// Arithmetically negates the topmost value on the stack
     Negate,
 
-    /// Logically negates the topmost value on the temp stack
+    /// Logically negates the topmost value on the stack
     Not,
 
-    /// Adds the top two value on the temp stack
+    /// Adds the top two value on the stack
     Add,
 
-    /// Subtracts the topmost value on the temp stack from the second top-most value
+    /// Subtracts the topmost value on the stack from the second top-most value
     Subtract,
 
-    /// Multiplies the top two value on the temp stack
+    /// Multiplies the top two value on the stack
     Multiply,
 
-    /// Divides the second top-most value on the temp stack by the top value
+    /// Divides the second top-most value on the stack by the top value
     Divide,
 
-    /// Modulo of the second top-most value on the temp stack by the top value
+    /// Modulo of the second top-most value on the stack by the top value
     Modulo,
 
-    /// Raises the second top-most value on the temp stack to the power of the top value
+    /// Raises the second top-most value on the stack to the power of the top value
     Power,
 
-    /// Checks the two top-most values on the temp-stacks for equality
+    /// Checks the two top-most values on the stacks for equality
     Equality,
 
-    /// Checks the two top-most values on the temp-stacks for non-equality
+    /// Checks the two top-most values on the stacks for non-equality
     NonEquality,
 
     /// Pushes whether the second top-most value is less than the top value
@@ -68,10 +68,10 @@ pub enum OpCode {
     /// Assigns to a global variable
     ///
     /// Reads the offset of the global variable from the next bytecode byte.
-    /// The value is read from the temp stack, and it is kept on the stack.
+    /// The value is read from the stack, and it is kept on the stack.
     AssignGlobal,
 
-    /// Reads a global variable onto the temp stack
+    /// Reads a global variable onto the stack
     ///
     /// Reads the offset of the global variable from the next bytecode byte.
     ReadGlobal,
@@ -79,10 +79,10 @@ pub enum OpCode {
     /// Assigns to a local variable
     ///
     /// Reads the offset of the local variable from the rbp from the next bytecode byte.
-    /// The value is read from the temp stack, and it is kept on the stack.
+    /// The value is read from the stack, and it is kept on the stack.
     AssignLocal,
 
-    /// Reads a local variable onto the temp stack
+    /// Reads a local variable onto the stack
     ///
     /// Reads the offset of the variable from the rbp from the next bytecode byte.
     ReadLocal,
@@ -90,10 +90,10 @@ pub enum OpCode {
     /// Assigns to a value closed over by a function
     ///
     /// The next byte specifies the index of the upvalue in the current closure.
-    /// The value is read from the temp stack, and it is kept on the stack.
+    /// The value is read from the stack, and it is kept on the stack.
     AssignUpValue,
 
-    /// Reads a value closed over by a function onto the temp stack
+    /// Reads a value closed over by a function onto the stack
     ///
     /// The next byte specifies the index of the upvalue in the current closure.
     ReadUpValue,
@@ -111,7 +111,7 @@ pub enum OpCode {
     /// Jumps if the top value is false
     ///
     /// The jump offset for the pc is read as the next i16 in bytecode.
-    /// The top value on the temp stack is consumed.
+    /// The top value on the stack is consumed.
     JumpIfFalse,
 
     /// Jumps with target offset
@@ -119,13 +119,13 @@ pub enum OpCode {
     /// The jump offset for the pc is read as the next i16 in bytecode.
     Jump,
 
-    /// Discards the top value on the temp stack
+    /// Discards the top value on the stack
     Discard,
 
-    /// Duplicates the top value on the temp stack
+    /// Duplicates the top value on the stack
     Duplicate,
 
-    /// Calls the top value on the temp stack
+    /// Calls the top value on the stack
     ///
     /// Can be both a closure, and a builtin function.
     /// In case of a closure, it will create a new call-frame, and start exucuting
@@ -146,7 +146,7 @@ pub enum OpCode {
     /// Will be replaced by NIL, to not keep around pointers to old data.
     Drop,
 
-    /// Pushes a new pointer to the temp-stack
+    /// Pushes a new pointer to the stack
     ///
     /// Used when declaring new pointers for future upvalues.
     EmptyPointer,
@@ -177,10 +177,10 @@ pub enum OpCode {
 
     /// Constructs a list from a computed set of values
     ///
-    /// The following byte tells how many of the top values on the temp stack to use.
+    /// The following byte tells how many of the top values on the stack to use.
     ListFromValues,
 
-    /// Converts the top value of the temp stack to something iterable
+    /// Converts the top value of the stack to something iterable
     TopToIter,
 
     /// Tries to get the next value from a collection. Jumps to label if it can't

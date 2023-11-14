@@ -1,6 +1,7 @@
 list := [];
 
-list >> push(1) >> print >> push(2) >> print;
+1 >> push(list) >> print;
+2 >> push(list) >> print;
 
 list >> pop >> print;
 list >> pop >> print;

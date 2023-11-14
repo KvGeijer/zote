@@ -15,7 +15,7 @@ pub fn get_builtins() -> Vec<Rc<dyn Builtin>> {
         Ok(args.get(0).cloned().unwrap_or(Value::Nil))
     });
 
-    builtins.new_2arg("push", |collection, value| {
+    builtins.new_2arg("push", |value, collection| {
         collection.push(value)?;
         Ok(collection)
     });

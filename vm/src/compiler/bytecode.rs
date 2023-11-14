@@ -98,7 +98,7 @@ pub enum OpCode {
     /// The next byte specifies the index of the upvalue in the current closure.
     ReadUpValue,
 
-    /// Assigns to a value behind a pointer
+    /// Assigns to a local value behind a pointer
     ///
     /// The next byte specifies the offset of the pointer from the rbp.
     AssignPointer,
@@ -130,8 +130,8 @@ pub enum OpCode {
     /// but not local variables.
     Call,
 
-    /// Moves the top value on the temp stack to the ordinary stack
-    FromTemp,
+    /// Duplicates the top value on the stack
+    Duplicate,
 
     /// Intiates a closure from a function and upvalues
     ///

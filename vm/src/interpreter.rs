@@ -17,7 +17,6 @@ use self::call_frame::CallFrame;
 
 const STACK_SIZE: usize = 4096;
 const GLOBALS_SIZE: usize = 256;
-const TEMP_STACK_SIZE: usize = 1024;
 const FRAMES_SIZE: usize = 128;
 
 struct VM {
@@ -29,14 +28,9 @@ struct VM {
     /// Static storage region of all global values
     globals: [Value; GLOBALS_SIZE],
 
-    /// Stores all temporary values for executing expressions
-    temp_stack: [Value; TEMP_STACK_SIZE],
-    temp_top: usize,
-
-    /// Stores variables, similar to hardware stack
+    /// Stores variables and temporary values, similar to hardware stack
     ///
-    /// Would be nice to merge with temp stack, but it is not easy as statements in expressions -> interleavings of variables and temporaries
-    /// Would also like to merge with call_frames, but that at least needs this to store raw bytes
+    /// Would be nice to merge with call_frames, but then we would need to store raw bytes instead
     stack: [Value; STACK_SIZE],
     stack_top: usize,
 }
@@ -51,8 +45,6 @@ pub fn interpret(chunk: Rc<Chunk>, debug: bool) -> RunRes<()> {
         globals: [NIL; GLOBALS_SIZE],
         stack: [NIL; STACK_SIZE],
         stack_top: 0,
-        temp_stack: [NIL; TEMP_STACK_SIZE],
-        temp_top: 0,
     };
     vm.run(debug)
 }
@@ -93,8 +85,8 @@ impl VM {
                     return Err(error);
                 }
             }
-            if debug && self.temp_top > 0 {
-                println!("Top value: {}", self.temp_stack[self.temp_top - 1])
+            if debug && self.stack_top > 0 {
+                println!("Top value: {:?}", self.stack[self.stack_top - 1])
             }
         }
         Ok(())
@@ -110,10 +102,8 @@ impl VM {
                 }
                 while self.stack_top > self.frame().rbp {
                     // Must de-allocate stack at return to not keep pointers which would confuse the program, assigning through them
-                    self.stack_top -= 1;
-                    self.stack[self.stack_top] = NIL;
+                    self.pop();
                 }
-                self.temp_top = self.frame().root_temp_pointer;
                 self.push(ret_val);
 
                 // Lower the frame
@@ -254,11 +244,6 @@ impl VM {
                 let callee = self.stack[self.stack_top - arg_count - 1].clone();
                 self.call_value(callee, arg_count)?;
             }
-            OpCode::FromTemp => {
-                self.stack[self.stack_top] = self.temp_stack[self.temp_top - 1].clone();
-                self.temp_top -= 1;
-                self.stack_top += 1;
-            }
             OpCode::InitClosure => {
                 // Deserialize the constant function
                 let function = self
@@ -274,7 +259,7 @@ impl VM {
             OpCode::AssignPointer => {
                 let offset = self.read_byte();
                 let x = self.peek();
-                let Value::Pointer(pointer) = &self.stack[self.stack_top + offset as usize] else {
+                let Value::Pointer(pointer) = &self.stack[self.rbp() + offset as usize] else {
                     panic!(
                         "No pointer found after assign pointer instruction. Instead {:?}",
                         self.stack[self.stack_top + offset as usize]
@@ -284,7 +269,7 @@ impl VM {
             }
             OpCode::ReadPointer => {
                 let offset = self.read_byte();
-                let Value::Pointer(pointer) = &self.stack[self.stack_top + offset as usize] else {
+                let Value::Pointer(pointer) = &self.stack[self.rbp() + offset as usize] else {
                     panic!("No pointer found after read pointer instruction")
                 };
                 self.push(pointer.get_clone());
@@ -332,6 +317,10 @@ impl VM {
 
                 let slice = list.slice(start, stop, step)?;
                 self.push(slice.into());
+            }
+            OpCode::Duplicate => {
+                let top = self.peek();
+                self.push(top);
             }
         }
 
@@ -389,30 +378,29 @@ impl VM {
         upvalues
     }
 
-    /// Pushes the topmost temp value
+    /// Pushes the topmost stack value
     fn push(&mut self, value: Value) {
-        self.temp_stack[self.temp_top] = value;
-        self.temp_top += 1;
+        self.stack[self.stack_top] = value;
+        self.stack_top += 1;
     }
 
-    /// Pops the topmost temp value
+    /// Pops the topmost stack value
     fn pop(&mut self) -> Value {
-        self.temp_top -= 1;
-        // ERROR: There should not be pointers on the temp stack
+        self.stack_top -= 1;
         // Otherwise we have to read the result
-        mem::replace(&mut self.temp_stack[self.temp_top], NIL)
+        mem::replace(&mut self.stack[self.stack_top], NIL)
     }
 
-    /// Peeks the topmost temp value
+    /// Peeks the topmost stack value
     fn peek(&mut self) -> Value {
-        self.peek_many(1)
+        self.stack[self.stack_top - 1].clone()
     }
 
     /// Peeks a value further back on the stack
-    fn peek_many(&mut self, offset: usize) -> Value {
-        // Should be able to just clone from temp stack
-        self.temp_stack[self.temp_top - offset].clone()
-    }
+    // fn peek_many(&mut self, offset: usize) -> Value {
+    //     // Should be able to just clone from temp stack
+    //     self.temp_stack[self.temp_top - offset].clone()
+    // }
 
     /// Gets the current call frame
     fn frame(&self) -> &CallFrame {

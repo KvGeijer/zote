@@ -12,9 +12,6 @@ pub struct CallFrame {
 
     /// The current program counter
     pub pc: usize,
-
-    /// The pointer to the temp stack before the call
-    pub root_temp_pointer: usize,
 }
 
 impl CallFrame {
@@ -23,7 +20,6 @@ impl CallFrame {
             chunk,
             rbp: 0,
             pc: 0,
-            root_temp_pointer: 0,
         }
     }
 
@@ -32,10 +28,9 @@ impl CallFrame {
     }
 
     /// Initiates the call frame to be used
-    pub fn init(&mut self, chunk: Rc<Chunk>, rbp: usize, rtp: usize) {
+    pub fn init(&mut self, chunk: Rc<Chunk>, rbp: usize) {
         self.chunk = chunk;
         self.rbp = rbp;
         self.pc = 0;
-        self.root_temp_pointer = rtp;
     }
 }

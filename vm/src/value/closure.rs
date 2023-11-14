@@ -40,4 +40,8 @@ impl Closure {
     pub fn chunk_rc(&self) -> Rc<Chunk> {
         self.function.chunk_rc()
     }
+
+    pub fn nbr_locals(&self) -> usize {
+        self.function.nbr_locals()
+    }
 }

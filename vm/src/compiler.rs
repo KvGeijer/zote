@@ -53,6 +53,11 @@ impl<'a> Compiler<'a> {
         self.declare_natives(&mut chunk);
         self.declare_globals(self.attributes.stmts());
 
+        for _ in 0..self.attributes.global_local_count() {
+            // Allocate space for global locals
+            chunk.push_opcode(OpCode::Nil, CodeRange::from_ints(0, 0, 0, 0, 0, 0))
+        }
+
         self.compile_stmts(self.attributes.stmts(), &mut chunk);
 
         match self.had_error {

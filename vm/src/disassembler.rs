@@ -69,7 +69,6 @@ pub fn disassemble_instruction<W: Write>(
             OpCode::Jump => jump_instruction("Jump", chunk, offset, out),
             OpCode::Discard => simple_instruction("Discard", out),
             OpCode::Call => offset_instruction("Call", chunk, offset, out),
-            OpCode::FromTemp => simple_instruction("FromTemp", out),
             OpCode::AssignUpValue => offset_instruction("AssignUpValue", chunk, offset, out),
             OpCode::ReadUpValue => offset_instruction("AssignUpValue", chunk, offset, out),
             OpCode::InitClosure => closure_init(chunk, offset, out),
@@ -82,6 +81,7 @@ pub fn disassemble_instruction<W: Write>(
             OpCode::ListFromSlice => simple_instruction("ListFromSlice", out),
             OpCode::ListFromValues => offset_instruction("ListFromValues", chunk, offset, out),
             OpCode::ReadAtSlice => simple_instruction("ReadAtSlice", out),
+            OpCode::Duplicate => simple_instruction("Duplicate", out),
         }
     } else {
         simple_instruction("Invalid OpCode", out)

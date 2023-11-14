@@ -1,13 +1,13 @@
+fn arg1(x) -> {
+	print(x)
+}
+
 fn arg2(x, y) -> {
 	print(x + y)
 }
 
 fn arg3(x, y, z) -> {
 	print(x+y+z)
-}
-
-fn arg1(x) -> {
-	print(x)
 }
 
 arg1(1);

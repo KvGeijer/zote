@@ -6,6 +6,10 @@ use crate::{
 };
 
 impl Compiler<'_> {
+    /// Compiles a function definition
+    ///
+    /// Args:
+    ///    * locals: the max nubmer of locals (param + locals) declared at any given time
     pub fn compile_function_def(
         &mut self,
         name: &str,
@@ -13,6 +17,7 @@ impl Compiler<'_> {
         params: &[LValue],
         body: &ExprNode,
         upvalues: &[String],
+        nbr_locals: usize,
         range: CodeRange,
         chunk: &mut Chunk,
     ) -> CompRes {
@@ -51,7 +56,7 @@ impl Compiler<'_> {
         // Exit the function scope
         self.locals.de_nest();
 
-        let func = Function::new(params.len() as u8, name.to_string(), func_chunk);
+        let func = Function::new(params.len() as u8, nbr_locals, name.to_string(), func_chunk);
 
         // self.add_function(func);
         // chunk.push_constant_plus(func.into(), range);
@@ -95,24 +100,12 @@ impl Compiler<'_> {
             return Err("Cannot have more than 255 arguments".to_string());
         }
 
-        // Keep special case for print a while
-        // if let Expr::Var(name) = func.node.as_ref() {
-        //     if name == "print" {
-        //         // TODO: Fix
-        //         let _ = self.compile_expression(&args[0], chunk);
-        //         chunk.push_opcode(OpCode::Print, range);
-        //         return Ok(());
-        //     }
-        // }
-
         // Push the bound function variable to the stack
         self.compile_expression(func, chunk)?;
-        chunk.push_opcode(OpCode::FromTemp, func.range());
 
         // Push the args onto the stack
         for arg in args {
             self.compile_expression(arg, chunk)?;
-            chunk.push_opcode(OpCode::FromTemp, func.range());
         }
 
         chunk.push_opcode(OpCode::Call, range);

@@ -149,8 +149,14 @@ impl Compiler<'_> {
             Expr::FunctionDefinition(name, params, body) => {
                 let upvalues = self.attributes.upvalue_names(node.as_ref()).unwrap_or(&[]);
                 let rec_name = self.attributes.rec_name(node.as_ref());
+                let nbr_locals = self
+                    .attributes
+                    .local_count(node.as_ref())
+                    .expect("Function must have local count"); // TODO: DO this in compilation phase?
 
-                self.compile_function_def(name, rec_name, params, body, upvalues, range, chunk)?;
+                self.compile_function_def(
+                    name, rec_name, params, body, upvalues, nbr_locals, range, chunk,
+                )?;
             }
             Expr::Match(_, _) => todo!(),
         };

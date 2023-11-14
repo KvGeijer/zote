@@ -1,6 +1,7 @@
 use std::mem;
 
 /// The state of declared variables, nested by closure definitions
+#[derive(Debug)]
 pub struct LocalState {
     /// The parent in the stack of function scopes
     parent_locals: Option<Box<LocalState>>,
@@ -110,6 +111,7 @@ impl LocalState {
     }
 }
 
+#[derive(Debug)]
 struct Local {
     /// The same of the variable
     name: String,
@@ -121,6 +123,7 @@ struct Local {
     pointer: bool,
 }
 
+#[derive(Debug)]
 struct UpValue {
     /// The same of the variable
     name: String,

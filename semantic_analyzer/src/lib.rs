@@ -70,6 +70,17 @@ impl<'a> AttributedAst<'a> {
     /// Get the max number of locals for a function definition, including arguments
     pub fn local_count(&self, func_ref: &Expr) -> Option<usize> {
         let id = ref_id(func_ref);
+        self.local_count_raw(id)
+    }
+
+    /// Gets the max number of locals in in the script, outside all functions
+    pub fn global_local_count(&self) -> usize {
+        let id = ref_id(self.stmts);
+        self.local_count_raw(id)
+            .expect("Should have a scipt-level local count")
+    }
+
+    pub fn local_count_raw(&self, id: RefId) -> Option<usize> {
         self.attributes.get(&id)?.into_iter().find_map(|attr| {
             if let NodeAttr::LocalCount(count) = attr {
                 Some(*count)

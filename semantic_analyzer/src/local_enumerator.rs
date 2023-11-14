@@ -7,7 +7,8 @@ use crate::{ref_id, visitor::AstVisitor, NodeAttr, RefId};
 /// Counts how many locals there are at most in each function (including arguments)
 /// This only counts args and locals, no functions or other things on the stack
 pub(crate) fn count_locals(stmts: &Stmts) -> HashMap<RefId, NodeAttr> {
-    let mut resolver = Resolver {
+    // TODO: We could just do this as part of the compilation pass.
+    let mut counter = Counter {
         scope: VarScope {
             vars: vec![],
             parent: None,
@@ -19,16 +20,21 @@ pub(crate) fn count_locals(stmts: &Stmts) -> HashMap<RefId, NodeAttr> {
         func_count: HashMap::new(),
     };
 
-    resolver.visit_stmts(stmts);
+    counter.visit_stmts(stmts);
 
-    resolver
+    // Also insert for the local scope
+    counter
+        .func_count
+        .insert(ref_id(stmts), counter.scope.max_vars);
+
+    counter
         .func_count
         .into_iter()
         .map(|(id, count)| (id, NodeAttr::LocalCount(count)))
         .collect()
 }
 
-struct Resolver {
+struct Counter {
     scope: VarScope,
 
     /// The id of the most recently entered expression
@@ -97,7 +103,7 @@ impl VarScope {
     }
 }
 
-impl AstVisitor for Resolver {
+impl AstVisitor for Counter {
     fn visit_var(&mut self, _name: &String, declaration: bool) {
         if declaration {
             // Declare it as reachable

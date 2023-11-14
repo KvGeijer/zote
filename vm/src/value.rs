@@ -106,6 +106,22 @@ impl Value {
         }
     }
 
+    /// Tries to convert a value to something iterable
+    pub fn conv_to_iter(self) -> RunRes<Value> {
+        let typ = self.type_of();
+        match self {
+            Value::List(list) => Ok(Value::List(list)),
+            Value::Pointer(_) => panic!("Should not operate directly on a pointer"),
+            Value::Nil
+            | Value::Bool(_)
+            | Value::Int(_)
+            | Value::Float(_)
+            | Value::Function(_)
+            | Value::Closure(_)
+            | Value::Native(_) => RunRes::new_err(format!("Cannot iterate over {}", typ)),
+        }
+    }
+
     /// Tries to assign into an index of the value
     pub fn assign_at_index(&self, index: Value, value: Value) -> RunRes<()> {
         match self {

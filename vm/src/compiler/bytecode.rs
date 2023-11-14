@@ -122,6 +122,9 @@ pub enum OpCode {
     /// Discards the top value on the temp stack
     Discard,
 
+    /// Duplicates the top value on the temp stack
+    Duplicate,
+
     /// Calls the top value on the temp stack
     ///
     /// Can be both a closure, and a builtin function.
@@ -129,9 +132,6 @@ pub enum OpCode {
     /// the bytecode for the function. It will still have access to the same globals,
     /// but not local variables.
     Call,
-
-    /// Duplicates the top value on the stack
-    Duplicate,
 
     /// Intiates a closure from a function and upvalues
     ///
@@ -179,4 +179,15 @@ pub enum OpCode {
     ///
     /// The following byte tells how many of the top values on the temp stack to use.
     ListFromValues,
+
+    /// Converts the top value of the temp stack to something iterable
+    TopToIter,
+
+    /// Tries to get the next value from a collection. Jumps to label if it can't
+    ///
+    /// Next 2 bytes: offset to jump to
+    /// Top of stack is the index to use, and below is the iterable value.
+    /// In case of success: The index will be incremented and the indexed value pushed to the stack.
+    /// In case of jump: Jump according to read bytes. The stack is left as it is
+    NextOrJump,
 }

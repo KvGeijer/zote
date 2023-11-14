@@ -1,4 +1,4 @@
-use parser::{CodeRange, ExprNode};
+use parser::{CodeRange, ExprNode, LValue};
 
 use crate::{
     compiler::{Chunk, Compiler, OpCode},
@@ -115,6 +115,65 @@ impl Compiler<'_> {
 
         // Close the loop
         self.flow_points.close_loop(chunk)
+    }
+
+    /// Compiles a for loop
+    ///
+    /// Pushes the collection as some inxedable collection (with enumerable indexes) to the stack
+    pub fn compile_for(
+        &mut self,
+        lvalue: &LValue,
+        collection: &ExprNode,
+        body: &ExprNode,
+        range: CodeRange,
+        chunk: &mut Chunk,
+    ) -> CompRes {
+        // Push the iterable
+        self.compile_expression(collection, chunk)?;
+        chunk.push_opcode(OpCode::TopToIter, range.clone());
+
+        // Push the index of the iterable
+        chunk.push_constant_plus(Value::Int(0), range.clone());
+
+        // Start of every loop iteration
+        let start_label = chunk.len();
+        self.flow_points.push_loop_entry(start_label);
+
+        // Get next item from iterable, potentially abandoning loop
+        chunk.push_opcode(OpCode::NextOrJump, range.clone());
+        self.flow_points.push_loop_exit(chunk.reserve_jump());
+
+        // Enter a new scope for the loop
+        self.locals.enter();
+
+        // Assign the indexed value into the lvalue. Crash if non-compatible
+        self.declare_local(lvalue, range.clone(), chunk, true)?;
+        self.compile_lvalue_stack_assign(lvalue, range.clone(), chunk)?;
+
+        // Discard the value from the assignment to the loop variable
+        chunk.push_opcode(OpCode::Discard, range.clone());
+
+        // Evaluate body, potentially containing wierd control flow
+        self.compile_expression(body, chunk)?;
+
+        // Discard the value from the body
+        // TODO: Maybe keep this and store it in a list in the future?
+        chunk.push_opcode(OpCode::Discard, range.clone());
+
+        self.locals.exit();
+
+        // Jump back to the start
+        chunk.push_opcode(OpCode::Jump, range.clone());
+        chunk.push_jump(start_label);
+
+        // Close the loop
+        self.flow_points.close_loop(chunk)?;
+
+        // Remove the looping values from the stack
+        chunk.push_opcode(OpCode::Discard, range.clone());
+        chunk.push_opcode(OpCode::Discard, range.clone());
+
+        Ok(())
     }
 
     pub fn compile_break(&mut self, range: CodeRange, chunk: &mut Chunk) -> CompRes {

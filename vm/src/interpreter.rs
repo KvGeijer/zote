@@ -318,9 +318,28 @@ impl VM {
                 let slice = list.slice(start, stop, step)?;
                 self.push(slice.into());
             }
+            OpCode::TopToIter => {
+                let iter = self.pop().conv_to_iter()?;
+                self.push(iter);
+            }
+            OpCode::NextOrJump => {
+                let jump = i16::from_be_bytes(self.read_2bytes());
+                let index = self
+                    .pop()
+                    .to_int()
+                    .expect("Should have pushed index when using NextOrJump");
+                let iterable = self.peek();
+                self.push(Value::Int(index + 1));
+                // ERROR: Don't check against Some, but Ok, which could cover other errors than oob
+                if let Ok(value) = iterable.read_at_index(Value::Int(index)) {
+                    self.push(value);
+                } else {
+                    self.jump(jump);
+                }
+            }
             OpCode::Duplicate => {
-                let top = self.peek();
-                self.push(top);
+                let x = self.peek();
+                self.push(x);
             }
         }
 

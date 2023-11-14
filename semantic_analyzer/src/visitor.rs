@@ -121,7 +121,7 @@ pub trait AstVisitor {
     }
 
     fn visit_for(&mut self, lvalue: &LValue, collection: &ExprNode, body: &ExprNode) {
-        self.visit_lvalue(lvalue, false);
+        self.visit_lvalue(lvalue, true);
         self.visit_expr(collection);
         self.visit_expr(body);
     }

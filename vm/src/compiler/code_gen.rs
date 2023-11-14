@@ -139,7 +139,9 @@ impl Compiler<'_> {
                 self.compile_if(pred, then, otherwise.as_ref(), range, chunk)?
             }
             Expr::While(pred, body) => self.compile_while(pred, body, range, chunk)?,
-            Expr::For(_, _, _) => todo!(),
+            Expr::For(lvalue, collection, body) => {
+                self.compile_for(lvalue, collection, body, range, chunk)?
+            }
             Expr::Break => self.compile_break(range, chunk)?,
             Expr::Continue => self.compile_continue(range, chunk)?,
             Expr::Return(opt_expr) => self.compile_return(opt_expr.as_ref(), range, chunk)?,
@@ -172,6 +174,16 @@ impl Compiler<'_> {
         chunk: &mut Chunk,
     ) -> CompRes {
         self.compile_expression(expr, chunk)?;
+        self.compile_lvalue_stack_assign(lvalue, range, chunk)
+    }
+
+    /// Assigns the top value on the temp stack to the lvalue
+    fn compile_lvalue_stack_assign(
+        &mut self,
+        lvalue: &LValue,
+        range: CodeRange,
+        chunk: &mut Chunk,
+    ) -> CompRes {
         match lvalue {
             LValue::Index(collection, index) => {
                 self.compile_assign_index(collection, index, range, chunk)
@@ -182,6 +194,7 @@ impl Compiler<'_> {
         }
     }
 
+    /// Compiles code to assign the top-most temp stack value into an indexed value such as list[index]
     fn compile_assign_index(
         &mut self,
         collection: &ExprNode,

@@ -19,6 +19,15 @@ fn fib_simple() {
 }
 
 #[test]
+fn fib() {
+    let output = interpret("tests/programs/fib.zote");
+    assert_eq!(
+        output,
+        "1\n[1, 1, 2, 3, 5, 8, 13, 21, 34, 55, 89, 144, 233, 377, 610, 987, 1597, 2584, 4181, 6765]\n6765\n"
+    )
+}
+
+#[test]
 fn modify_captured() {
     let output = interpret("tests/programs/modify_captured.zote");
     assert_eq!(output, "1338\n1339\n1340\n1341\n");
@@ -64,4 +73,10 @@ fn list_functions() {
 fn calls() {
     let output = interpret("tests/programs/calls.zote");
     assert_eq!(output, "1\n2\n3\n\n3\n4\n4\n\n1\n2\n4\n\n1\n2\n4\n");
+}
+
+#[test]
+fn for_simple() {
+    let output = interpret("tests/programs/for_simple.zote");
+    assert_eq!(output, "1\n2\n3\n4\n5\n6\n7\n8\n9\n");
 }

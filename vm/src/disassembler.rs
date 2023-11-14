@@ -81,6 +81,8 @@ pub fn disassemble_instruction<W: Write>(
             OpCode::ListFromSlice => simple_instruction("ListFromSlice", out),
             OpCode::ListFromValues => offset_instruction("ListFromValues", chunk, offset, out),
             OpCode::ReadAtSlice => simple_instruction("ReadAtSlice", out),
+            OpCode::TopToIter => simple_instruction("TopToIter", out),
+            OpCode::NextOrJump => jump_instruction("NextOrJump", chunk, offset, out),
             OpCode::Duplicate => simple_instruction("Duplicate", out),
         }
     } else {

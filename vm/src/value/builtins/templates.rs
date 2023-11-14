@@ -14,6 +14,11 @@ pub trait BuiltinTemplate {
         name: &'static str,
         func: impl Fn(Value, Value) -> RunRes<Value> + 'static,
     );
+    fn new_any_arg(
+        &mut self,
+        name: &'static str,
+        func: impl Fn(Vec<Value>) -> RunRes<Value> + 'static,
+    );
 }
 
 impl BuiltinTemplate for Vec<Rc<dyn Builtin>> {
@@ -39,6 +44,18 @@ impl BuiltinTemplate for Vec<Rc<dyn Builtin>> {
         func: impl Fn(Value, Value) -> RunRes<Value> + 'static,
     ) {
         let builtin = Rc::new(TwoArgBuiltin {
+            name,
+            func: Box::new(func),
+        });
+        self.push(builtin);
+    }
+
+    fn new_any_arg(
+        &mut self,
+        name: &'static str,
+        func: impl Fn(Vec<Value>) -> RunRes<Value> + 'static,
+    ) {
+        let builtin = Rc::new(AnyArgBuiltin {
             name,
             func: Box::new(func),
         });
@@ -118,5 +135,28 @@ impl Builtin for TwoArgBuiltin {
 
     fn arity(&self) -> &str {
         "2"
+    }
+}
+
+struct AnyArgBuiltin {
+    name: &'static str,
+    func: Box<dyn Fn(Vec<Value>) -> RunRes<Value>>,
+}
+
+impl Builtin for AnyArgBuiltin {
+    fn run(&self, args: Vec<Value>) -> RunRes<Value> {
+        (self.func)(args)
+    }
+
+    fn accept_arity(&self, _arity: usize) -> bool {
+        true
+    }
+
+    fn name(&self) -> &str {
+        self.name
+    }
+
+    fn arity(&self) -> &str {
+        "any"
     }
 }

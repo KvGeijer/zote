@@ -59,3 +59,9 @@ fn list_functions() {
     let output = interpret("tests/programs/list_functions.zote");
     assert_eq!(output, "[1]\n[1, 2]\n2\n1\n[]\n");
 }
+
+#[test]
+fn calls() {
+    let output = interpret("tests/programs/calls.zote");
+    assert_eq!(output, "1\n2\n3\n\n3\n4\n4\n\n1\n2\n4\n\n1\n2\n4\n");
+}

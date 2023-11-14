@@ -1,0 +1,23 @@
+fn arg2(x, y) -> {
+	print(x + y)
+}
+
+fn arg3(x, y, z) -> {
+	print(x+y+z)
+}
+
+fn arg1(x) -> {
+	print(x)
+}
+
+arg1(1);
+arg2(1,1);
+arg3(1,1,1);
+print();
+
+arg1(arg2(1,(arg3(1,1,1))));
+print();
+
+arg3(1, 1, arg2(1,(arg1(1))));
+print();
+arg3(arg2(arg1(1), 1), 1, 1);

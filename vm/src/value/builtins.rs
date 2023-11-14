@@ -3,7 +3,7 @@ use std::{
     rc::Rc,
 };
 
-use crate::error::RunRes;
+use crate::error::{RunRes, RunResTrait};
 
 use self::natives::get_builtins;
 
@@ -19,7 +19,16 @@ pub struct Native {
 
 impl Native {
     pub fn call(&self, args: Vec<Value>) -> RunRes<Value> {
-        self.builtin.run(args)
+        if self.builtin.accept_arity(args.len()) {
+            self.builtin.run(args)
+        } else {
+            RunRes::new_err(format!(
+                "Incorrect arg count: {} expected {} args, but got {}",
+                self.name(),
+                self.arity(),
+                args.len()
+            ))
+        }
     }
 
     pub fn name(&self) -> &str {

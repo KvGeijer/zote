@@ -84,6 +84,10 @@ pub fn disassemble_instruction<W: Write>(
             OpCode::TopToIter => simple_instruction("TopToIter", out),
             OpCode::NextOrJump => jump_instruction("NextOrJump", chunk, offset, out),
             OpCode::Duplicate => simple_instruction("Duplicate", out),
+            OpCode::Len => simple_instruction("Len", out),
+            OpCode::Swap => simple_instruction("Swap", out),
+            OpCode::AssignSliceIndex => simple_instruction("AssignSliceIndex", out),
+            OpCode::RaiseError => offset_instruction("Error", chunk, offset, out),
         }
     } else {
         simple_instruction("Invalid OpCode", out)

@@ -13,7 +13,6 @@ enum FlowPoint {
     LoopEntry { pc: usize },
     LoopExit { reserved: usize },
     BreakExit { reserved: usize },
-    // Function stuffs to come
 }
 
 impl FlowPoints {

@@ -202,17 +202,110 @@ impl Compiler<'_> {
         range: CodeRange,
         chunk: &mut Chunk,
     ) -> CompRes {
-        self.compile_expression(collection, chunk)?;
-
         match index {
             Index::At(expr_at) => {
+                self.compile_expression(collection, chunk)?;
                 self.compile_expression(expr_at, chunk)?;
                 chunk.push_opcode(OpCode::AssignAtIndex, range);
             }
-            Index::Slice(_slice) => {
-                todo!("Implement assigning into slice (light pattern matching)")
+            Index::Slice(slice) => {
+                // First convert the rhs to an iterator
+                // TOOD: Be able to assign all of a slice to a single value
+                chunk.push_opcode(OpCode::TopToIter, range.clone());
+                self.compile_expression(collection, chunk)?;
+                self.compile_assign_slice(slice, range, chunk)?;
             }
         }
+
+        Ok(())
+    }
+
+    /// For assigning into a slice of a value
+    fn compile_assign_slice(
+        &mut self,
+        slice: &Slice,
+        range: CodeRange,
+        chunk: &mut Chunk,
+    ) -> CompRes {
+        if let Some(stop) = &slice.stop {
+            // Compile in the correct order for side effects
+            match &slice.start {
+                Some(expr) => self.compile_expression(expr, chunk)?,
+                None => chunk.push_constant_plus(Value::Int(0), range.clone()),
+            };
+            self.compile_expression(stop, chunk)?;
+        } else {
+            // Swap order of compilation to get access to list len
+            chunk.push_opcode(OpCode::Duplicate, range.clone());
+            chunk.push_opcode(OpCode::Len, range.clone());
+            match &slice.start {
+                Some(expr) => self.compile_expression(expr, chunk)?,
+                None => chunk.push_constant_plus(Value::Int(0), range.clone()),
+            };
+            chunk.push_opcode(OpCode::Swap, range.clone());
+        }
+
+        self.compile_opt_expression(slice.step.as_ref(), chunk)?;
+        chunk.push_opcode(OpCode::ListFromSlice, range.clone());
+
+        // To set up the loop index
+        chunk.push_constant_plus(Value::Int(0), range.clone());
+
+        // Start assigning into the sliced value
+        self.compile_assign_between_iterables(range, chunk)?;
+
+        Ok(())
+    }
+
+    /// Assigns into a subset of an iterable from another iterable
+    ///
+    /// For repeatedly computing `Assignee[Slice[Index]] <- RHS[Index]`
+    /// Then doing this until Index goes out of bounds for Slice, after which it checks if RHS is exhausted
+    /// Stack state:
+    ///    - Index
+    ///    - Slice
+    ///    - Assignee
+    ///    - RHS
+    fn compile_assign_between_iterables(&mut self, range: CodeRange, chunk: &mut Chunk) -> CompRes {
+        let start_label = chunk.len();
+
+        // 1: Calculate the next value from Slice. Potentially completing the assignment loop
+        chunk.push_opcode(OpCode::NextOrJump, range.clone());
+        let reserved_exit = chunk.reserve_jump();
+
+        // 2: Monster instruction to assign between RHS and Assignee
+        chunk.push_opcode(OpCode::AssignSliceIndex, range.clone());
+
+        // 3: Jump back to continue with the next index
+        chunk.push_opcode(OpCode::Jump, range.clone());
+        chunk.push_jump(start_label);
+
+        // Exit: When the slice have ran out, jump here
+        chunk.patch_reserved_jump(reserved_exit);
+
+        // Discard Slice and Assignee
+        // TODO: Efficiency
+        chunk.push_opcode(OpCode::Swap, range.clone());
+        chunk.push_opcode(OpCode::Discard, range.clone());
+        chunk.push_opcode(OpCode::Swap, range.clone());
+        chunk.push_opcode(OpCode::Discard, range.clone());
+
+        // Exit check: Make sure that we have run out of values in RHS (TODO: Should we do this earlier with tools from match statements?)
+        chunk.push_opcode(OpCode::NextOrJump, range.clone()); // we want this to fail
+        let ok_exit = chunk.reserve_jump();
+
+        // Value will be on stack, but we don't care as we crash
+
+        // ERROR! Can't match!
+        chunk.push_opcode(OpCode::RaiseError, range.clone());
+        chunk.push_constant_plus(
+            "MATCH ERROR: The RHS value is of larger dimension than the assignee".into(),
+            range.clone(),
+        );
+
+        // TODO: Do this check in the beginning, so that we can actually print the lengths?
+        // Exit the match successfully
+        chunk.patch_reserved_jump(ok_exit);
 
         Ok(())
     }

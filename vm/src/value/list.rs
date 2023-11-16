@@ -50,6 +50,7 @@ impl List {
 
     /// Gets the value at the index, potentially wrapping for negative values
     pub fn get(&self, index: i64) -> RunRes<Value> {
+        // println!("Getting {index} in list {:?}", self);
         let mut vec = self.vec.borrow_mut();
         let len = vec.len();
 
@@ -113,6 +114,14 @@ impl From<Vec<Value>> for List {
         Self {
             vec: RefCell::new(value),
         }
+    }
+}
+
+impl PartialEq for List {
+    fn eq(&self, other: &Self) -> bool {
+        let other_ref = other.vec.borrow();
+        let other_vec: &Vec<Value> = other_ref.as_ref();
+        self.vec.borrow().eq(other_vec)
     }
 }
 

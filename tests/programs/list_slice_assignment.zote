@@ -1,0 +1,11 @@
+list := [1:7];
+list >> print;
+
+list[0:4:1] = [0:4];
+list >> print;
+
+list[:] = [11:17];
+list >> print;
+
+list[::2] = [0,0,0];
+list >> print;

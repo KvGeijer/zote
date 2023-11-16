@@ -80,3 +80,12 @@ fn for_simple() {
     let output = interpret("tests/programs/for_simple.zote");
     assert_eq!(output, "1\n2\n3\n4\n5\n6\n7\n8\n9\n");
 }
+
+#[test]
+fn list_slice_assignment() {
+    let output = interpret("tests/programs/list_slice_assignment.zote");
+    assert_eq!(
+        output,
+        "[1, 2, 3, 4, 5, 6]\n[0, 1, 2, 3, 5, 6]\n[11, 12, 13, 14, 15, 16]\n[0, 12, 0, 14, 0, 16]\n"
+    )
+}

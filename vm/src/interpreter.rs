@@ -284,7 +284,7 @@ impl VM {
             }
             OpCode::AssignAtIndex => {
                 let index = self.pop();
-                let collection = self.pop();
+                let mut collection = self.pop();
                 let value = self.peek();
 
                 collection.assign_at_index(index, value)?;
@@ -328,18 +328,47 @@ impl VM {
                     .pop()
                     .to_int()
                     .expect("Should have pushed index when using NextOrJump");
+                // println!("NextOrJump {index}");
                 let iterable = self.peek();
-                self.push(Value::Int(index + 1));
+                // println!("iterable: {:?}", iterable);
                 // ERROR: Don't check against Some, but Ok, which could cover other errors than oob
                 if let Ok(value) = iterable.read_at_index(Value::Int(index)) {
+                    self.push(Value::Int(index + 1));
                     self.push(value);
+                    // println!("NextOrJump ok");
                 } else {
+                    // println!("NextOrJump abort");
+                    self.push(Value::Int(index));
                     self.jump(jump);
                 }
             }
             OpCode::Duplicate => {
                 let x = self.peek();
                 self.push(x);
+            }
+            OpCode::Len => {
+                let top = self.pop();
+                self.push((top.len()? as i64).into());
+            }
+            OpCode::Swap => {
+                self.stack.swap(self.stack_top - 1, self.stack_top - 2);
+            }
+            OpCode::AssignSliceIndex => {
+                let slice_index = self.pop();
+                let index = self.peek();
+                let mut assignee = self.peek_many(3);
+                let rhs = self.peek_many(4);
+
+                // println!("Assigning slice index:\nslice_index {slice_index}, index {index}, ass {assignee}, rhs {rhs}");
+
+                assignee.assign_at_index(
+                    slice_index,
+                    rhs.read_at_index((index.to_int().unwrap() - 1).into())?,
+                )?;
+            }
+            OpCode::RaiseError => {
+                let constant = self.read_constant();
+                return RuntimeError::error(constant.to_string());
             }
         }
 
@@ -412,14 +441,14 @@ impl VM {
 
     /// Peeks the topmost stack value
     fn peek(&mut self) -> Value {
-        self.stack[self.stack_top - 1].clone()
+        self.peek_many(1)
     }
 
-    /// Peeks a value further back on the stack
-    // fn peek_many(&mut self, offset: usize) -> Value {
-    //     // Should be able to just clone from temp stack
-    //     self.temp_stack[self.temp_top - offset].clone()
-    // }
+    // Peeks a value further back on the stack
+    fn peek_many(&mut self, offset: usize) -> Value {
+        // Should be able to just clone from temp stack
+        self.stack[self.stack_top - offset].clone()
+    }
 
     /// Gets the current call frame
     fn frame(&self) -> &CallFrame {

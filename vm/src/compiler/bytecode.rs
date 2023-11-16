@@ -190,4 +190,28 @@ pub enum OpCode {
     /// In case of success: The index will be incremented and the indexed value pushed to the stack.
     /// In case of jump: Jump according to read bytes. The stack is left as it is
     NextOrJump,
+
+    /// Gets the length of the top value
+    ///
+    /// Errors if it is not a collection type.
+    /// Does consume the top value.
+    Len,
+
+    /// Swaps the two topmost values on the stack
+    Swap,
+
+    /// Assigns into one index of a sliced value from another value
+    ///
+    /// Computes Assignee[SliceIndex] <- RHS[Index]
+    /// Consumes SliceIndex.
+    /// Stack state at call:
+    ///    - SliceIndex
+    ///    - Index (one too high as it has been incremented)
+    ///    - Undefined
+    ///    - Assignee
+    ///    - RHS
+    AssignSliceIndex, // TODO: How can we break this down into simpler instructions? Hard with stack-based operations
+
+    /// Raises an error, with the error message being the constant at the next offset
+    RaiseError,
 }

@@ -6,6 +6,7 @@ mod builtins;
 mod closure;
 mod function;
 mod list;
+mod string;
 mod value_pointer;
 
 pub use builtins::get_natives;
@@ -14,7 +15,7 @@ pub use function::Function;
 pub use list::List;
 pub use value_pointer::ValuePointer;
 
-use self::builtins::Native;
+use self::{builtins::Native, string::ValueString};
 
 // OPT: Pack as bytesting instead? Very inefficiently stored now in 128 bits
 #[derive(Debug, Clone)]
@@ -32,6 +33,9 @@ pub enum Value {
 
     /// A list of values
     List(Rc<List>),
+
+    /// A string
+    String(Rc<ValueString>),
 }
 
 pub enum ValueType {
@@ -43,6 +47,7 @@ pub enum ValueType {
     Builtin,
     Closure,
     List,
+    String,
 }
 
 /// Impl for delegating tasks between function types and implementing easy queries
@@ -58,6 +63,7 @@ impl Value {
             Value::Pointer(pointer) => pointer.get_clone().type_of(),
             Value::Closure(_) => ValueType::Closure,
             Value::List(_) => ValueType::List,
+            Value::String(_) => ValueType::String,
         }
     }
 
@@ -79,6 +85,7 @@ impl Value {
                 RuntimeError::error("A closure does not have a truthiness".to_string())
             }
             Value::List(list) => Ok(list.truthy()),
+            Value::String(string) => Ok(string.truthy()),
         }
     }
 
@@ -111,6 +118,7 @@ impl Value {
         let typ = self.type_of();
         match self {
             Value::List(list) => Ok(Value::List(list)),
+            Value::String(string) => Ok(Value::String(string)),
             Value::Pointer(_) => panic!("Should not operate directly on a pointer"),
             Value::Nil
             | Value::Bool(_)
@@ -123,9 +131,10 @@ impl Value {
     }
 
     /// Tries to assign into an index of the value
-    pub fn assign_at_index(&self, index: Value, value: Value) -> RunRes<()> {
+    pub fn assign_at_index(&mut self, index: Value, value: Value) -> RunRes<()> {
         match self {
             Value::List(list) => list.set(index.to_int()?, value),
+            Value::String(string) => string.set(index.to_int()?, value),
             otherwise => RunRes::new_err(format!("Cannot index into a {}", otherwise.type_of())),
         }
     }
@@ -134,6 +143,7 @@ impl Value {
     pub fn read_at_index(&self, index: Value) -> RunRes<Value> {
         match self {
             Value::List(list) => list.get(index.to_int()?),
+            Value::String(string) => string.get(index.to_int()?),
             otherwise => RunRes::new_err(format!("Cannot index into a {}", otherwise.type_of())),
         }
     }
@@ -142,6 +152,8 @@ impl Value {
     pub fn push(&self, value: Value) -> RunRes<()> {
         match self {
             Value::List(list) => Ok(list.push(value)),
+            Value::String(string) => string.push(value),
+
             otherwise => RunRes::new_err(format!("Cannot push to a {}", otherwise.type_of())),
         }
     }
@@ -150,6 +162,7 @@ impl Value {
     pub fn pop(&self) -> RunRes<Value> {
         match self {
             Value::List(list) => list.pop(),
+            Value::String(string) => string.pop(),
             otherwise => RunRes::new_err(format!("Cannot pop from a {}", otherwise.type_of())),
         }
     }
@@ -180,6 +193,48 @@ impl Value {
             otherwise => otherwise.to_int().map(Some),
         }
     }
+
+    /// Gets the length of a value, returning error if it does not have a length
+    pub fn len(&self) -> RunRes<usize> {
+        match self {
+            Value::Pointer(_) => panic!("Tried to operate directly on a pointer (get len)"),
+            Value::List(list) => Ok(list.len()),
+            Value::String(string) => Ok(string.len()),
+            Value::Nil
+            | Value::Bool(_)
+            | Value::Int(_)
+            | Value::Float(_)
+            | Value::Function(_)
+            | Value::Closure(_)
+            | Value::Native(_) => {
+                RunRes::new_err(format!("Cannot get the length of a {}", self.type_of()))
+            }
+        }
+    }
+
+    /// Tries to convert a value to a char
+    fn to_char(&self) -> RunRes<u8> {
+        match self {
+            Value::Int(ascii_int) => {
+                if *ascii_int <= 127 && *ascii_int >= 0 {
+                    Ok(*ascii_int as u8)
+                } else {
+                    RunRes::new_err(format!("Cannot convert {} to char", ascii_int))
+                }
+            }
+            Value::String(string) => string.to_char(),
+            Value::Nil
+            | Value::Bool(_)
+            | Value::Float(_)
+            | Value::Function(_)
+            | Value::Closure(_)
+            | Value::Native(_)
+            | Value::Pointer(_)
+            | Value::List(_) => {
+                RunRes::new_err(format!("Cannot convert {} to char", self.type_of()))
+            }
+        }
+    }
 }
 
 impl PartialOrd for Value {
@@ -191,6 +246,7 @@ impl PartialOrd for Value {
             (Value::Int(x), Value::Float(y)) => (*x as f64).partial_cmp(y),
             (Value::Float(x), Value::Int(y)) => x.partial_cmp(&(*y as f64)),
             (Value::Float(x), Value::Float(y)) => x.partial_cmp(y),
+            // (Value::String(x), Value::String(y)) => x.partial_cmp(y),
             _ => None,
         }
     }
@@ -211,6 +267,8 @@ impl PartialEq for Value {
                 // Compare the pointers, to see if they are the exact same function
                 Rc::ptr_eq(a, b)
             }
+            (Value::String(x), Value::String(y)) => x.eq(y),
+            (Value::List(x), Value::List(y)) => x.eq(y),
             (Value::Pointer(pointer), other) => pointer.get_clone().eq(other),
             (other, Value::Pointer(pointer)) => other.eq(&pointer.get_clone()),
             _ => false, // All other combinations are not equal
@@ -229,6 +287,7 @@ impl Display for ValueType {
             ValueType::Builtin => write!(f, "Function"),
             ValueType::Closure => write!(f, "Closure"),
             ValueType::List => write!(f, "List"),
+            ValueType::String => write!(f, "String"),
         }
     }
 }
@@ -269,6 +328,18 @@ impl From<Rc<List>> for Value {
     }
 }
 
+impl From<ValueString> for Value {
+    fn from(string: ValueString) -> Self {
+        Value::String(Rc::new(string))
+    }
+}
+
+impl From<&str> for Value {
+    fn from(value: &str) -> Self {
+        ValueString::from(value).into()
+    }
+}
+
 impl Display for Value {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         match self {
@@ -293,6 +364,7 @@ impl Display for Value {
                 write!(f, "]")?;
                 Ok(())
             }
+            Value::String(string) => write!(f, "{}", string),
         }
     }
 }

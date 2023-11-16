@@ -328,16 +328,12 @@ impl VM {
                     .pop()
                     .to_int()
                     .expect("Should have pushed index when using NextOrJump");
-                // println!("NextOrJump {index}");
                 let iterable = self.peek();
-                // println!("iterable: {:?}", iterable);
                 // ERROR: Don't check against Some, but Ok, which could cover other errors than oob
                 if let Ok(value) = iterable.read_at_index(Value::Int(index)) {
                     self.push(Value::Int(index + 1));
                     self.push(value);
-                    // println!("NextOrJump ok");
                 } else {
-                    // println!("NextOrJump abort");
                     self.push(Value::Int(index));
                     self.jump(jump);
                 }
@@ -358,8 +354,6 @@ impl VM {
                 let index = self.peek();
                 let mut assignee = self.peek_many(3);
                 let rhs = self.peek_many(4);
-
-                // println!("Assigning slice index:\nslice_index {slice_index}, index {index}, ass {assignee}, rhs {rhs}");
 
                 assignee.assign_at_index(
                     slice_index,

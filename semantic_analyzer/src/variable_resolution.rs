@@ -67,8 +67,6 @@ impl<'a> Resolver<'a> {
         // It is an upvalue!
         self.upvalues.insert(id);
 
-        println!("Adding upvalue {name}");
-
         // Then we should also add it as an upvalue to all enclosing functions
         // where it was not declared.
         // ERROR: Off by one?
@@ -145,7 +143,6 @@ impl<'a> AstVisitor for Resolver<'a> {
         } else if let Some((id, func_level)) = self.scope.resolve(name) {
             // globals are not tagged as upvalues
             if func_level != self.enclosing_functions.len() {
-                println!("func_level {func_level}");
                 self.add_upvalue(id, name, func_level);
             }
         } else {

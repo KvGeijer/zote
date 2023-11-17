@@ -109,5 +109,6 @@ fn error_trace() {
     assert!(output.contains("out of bound"));
     assert!(output.contains("line 4"));
     assert!(output.contains("in f1"));
-    assert!(output.contains("line 11"));
+    assert!(output.contains("in f2"));
+    assert!(output.contains("line 10"));
 }

@@ -67,6 +67,8 @@ impl<'a> Resolver<'a> {
         // It is an upvalue!
         self.upvalues.insert(id);
 
+        println!("Adding upvalue {name}");
+
         // Then we should also add it as an upvalue to all enclosing functions
         // where it was not declared.
         // ERROR: Off by one?
@@ -88,7 +90,10 @@ struct VarScope {
     /// Keeps both the reference id, as well as the function nesting it was declared at
     /// The id is of the reference to the
     /// Will only hold local variables (no globals!)
+    /// For lexical nesting
     vars: HashMap<String, (RefId, usize)>,
+
+    /// Parent for nesting of functions
     parent: Option<Box<VarScope>>,
 }
 
@@ -130,14 +135,17 @@ impl<'a> AstVisitor for Resolver<'a> {
     fn visit_var(&mut self, name: &String, declaration: bool) {
         if declaration {
             // Declare it as reachable
-            self.scope.insert(
-                name.to_string(),
-                ref_id(name),
-                self.enclosing_functions.len(),
-            );
+            if !self.global_scope {
+                self.scope.insert(
+                    name.to_string(),
+                    ref_id(name),
+                    self.enclosing_functions.len(),
+                );
+            }
         } else if let Some((id, func_level)) = self.scope.resolve(name) {
             // globals are not tagged as upvalues
             if func_level != self.enclosing_functions.len() {
+                println!("func_level {func_level}");
                 self.add_upvalue(id, name, func_level);
             }
         } else {
@@ -179,13 +187,15 @@ impl<'a> AstVisitor for Resolver<'a> {
         let scope = mem::replace(&mut self.scope, VarScope::empty());
         self.scope = scope.enter();
 
-        // ERROR: What if we want to capture the closure as an upvalue? For now we don't allow that,
-        // as that would mean we would have to handle the case where it is a pointer. As long
-        // as it is 0 here, we will not support this.
-        // If it has a recursive binding, add it to the scope
-        if let Some(binding) = self.attributes.recursion_name_raw(id) {
-            self.scope
-                .insert(binding.to_string(), 0, self.enclosing_functions.len());
+        if !self.global_scope {
+            // ERROR: What if we want to capture the closure as an upvalue? For now we don't allow that,
+            // as that would mean we would have to handle the case where it is a pointer. As long
+            // as it is 0 here, we will not support this.
+            // If it has a recursive binding, add it to the scope
+            if let Some(binding) = self.attributes.recursion_name_raw(id) {
+                self.scope
+                    .insert(binding.to_string(), 0, self.enclosing_functions.len());
+            }
         }
 
         // Default visit

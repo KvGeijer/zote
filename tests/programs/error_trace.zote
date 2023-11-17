@@ -4,8 +4,7 @@ fn f1() -> {
 	list[0] = [1,2,4];
 }
 
-// Problem with upvalues
-// fn f2() -> f1();
-// f3 := \ -> f2();
+fn f2() -> f1();
+f3 := \ -> f2();
 
-f1();
+f3();

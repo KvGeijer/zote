@@ -37,7 +37,7 @@ struct VM {
 
 const NIL: Value = Value::Nil;
 
-pub fn interpret(chunk: Rc<Chunk>, debug: bool) -> RunRes<()> {
+pub fn interpret(chunk: Rc<Chunk>, debug: bool) -> Result<(), String> {
     let mut vm = VM {
         frame_count: 1,
         // TODO: Unsafe or array_init, or custom macro like `vec!`?
@@ -50,7 +50,7 @@ pub fn interpret(chunk: Rc<Chunk>, debug: bool) -> RunRes<()> {
 }
 
 impl VM {
-    fn run(&mut self, debug: bool) -> RunRes<()> {
+    fn run(&mut self, debug: bool) -> Result<(), String> {
         while self.pc() < self.chunk().len() {
             // TODO: Change to compile feature?
             if debug {
@@ -64,7 +64,7 @@ impl VM {
                     .expect("Could not disassemble an opcode");
             }
 
-            let opcode_pc = self.pc();
+            // let opcode_pc = self.pc();
             let opcode = self
                 .read_byte()
                 .try_into()
@@ -72,17 +72,10 @@ impl VM {
             match self.handle_opcode(opcode) {
                 Ok(InstrResult::Ok) => (),
                 Ok(InstrResult::Return) => return Ok(()),
-                Err(mut error) => {
+                Err(error) => {
                     // TODO: Add whole stack trace. Change so that an opcode just returns Res<..., String>
-                    eprintln!("ERROR!!! TODO: FIX TRACE");
-                    error.add_trace(
-                        "script".to_string(),
-                        self.chunk()
-                            .get_range(opcode_pc)
-                            .expect("OpCodes should have code loc debug info stored")
-                            .clone(),
-                    );
-                    return Err(error);
+                    let err_message = self.stack_trace(&error);
+                    return Err(err_message);
                 }
             }
             if debug && self.stack_top > 0 {
@@ -473,6 +466,30 @@ impl VM {
     fn jump(&mut self, offset: i16) {
         let new_pc = add_i16_to_usize(self.pc(), offset);
         self.frame_mut().pc = new_pc;
+    }
+
+    /// Includes an error into creating an error stack trace
+    fn stack_trace(&self, error: &RuntimeError) -> String {
+        let mut trace = format!("RUNTIME ERROR: {error}\n");
+
+        for (ind, call_frame) in self.call_frames[0..self.frame_count]
+            .iter()
+            .rev()
+            .enumerate()
+        {
+            let pc = call_frame.pc;
+            let range = call_frame
+                .chunk()
+                .get_range(pc)
+                .expect("OpCodo should have range"); // ERROR: Not the correct pc?
+            let name: String = match &self.stack[call_frame.rbp] {
+                Value::Closure(closure) => closure.function().name().to_owned(),
+                _ => "script".to_owned(),
+            };
+            trace.push_str(&format!("    ({ind}) [line {}] in {}\n", range.sl(), name))
+        }
+
+        trace
     }
 }
 

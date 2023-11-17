@@ -12,6 +12,18 @@ fn interpret(program: &str) -> String {
     String::from_utf8_lossy(&output.stdout).to_string()
 }
 
+fn interpret_error(program: &str) -> String {
+    let output = Command::new("cargo")
+        .arg("run")
+        .arg("--")
+        .arg(program)
+        .output()
+        .expect("Could not run file!");
+
+    assert!(!output.status.success(), "Could run program!");
+    String::from_utf8_lossy(&output.stderr).to_string()
+}
+
 #[test]
 fn fib_simple() {
     let output = interpret("tests/programs/fib_simple.zote");
@@ -88,4 +100,14 @@ fn list_slice_assignment() {
         output,
         "[1, 2, 3, 4, 5, 6]\n[0, 1, 2, 3, 5, 6]\n[11, 12, 13, 14, 15, 16]\n[0, 12, 0, 14, 0, 16]\n"
     )
+}
+
+#[test]
+fn error_trace() {
+    let output = interpret_error("tests/programs/error_trace.zote");
+    assert!(output.contains("RUNTIME ERROR"));
+    assert!(output.contains("out of bound"));
+    assert!(output.contains("line 4"));
+    assert!(output.contains("in f1"));
+    assert!(output.contains("line 11"));
 }

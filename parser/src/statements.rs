@@ -94,9 +94,9 @@ impl<'a> Parser<'a> {
                 self.error("Function decl statement with singleton expression must end with ';'");
                 return None;
             }
-            let id = format!("fn {name}/{}", params.len());
+            // let id = format!("fn {name}/{}", params.len());
             let func = ExprNode::new(
-                super::Expr::FunctionDefinition(id, params, body),
+                super::Expr::FunctionDefinition(name.to_owned(), params, body),
                 start,
                 end,
             );

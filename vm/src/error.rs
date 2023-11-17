@@ -1,25 +1,13 @@
 use std::fmt;
 
-use parser::CodeRange;
-
 pub type RunRes<T> = Result<T, RuntimeError>;
 
 pub trait RunResTrait {
-    /// Adds a call to the stack trace
-    fn add_trace(self, function: String, range: CodeRange) -> Self;
-
     /// Create a new bare error
     fn new_err(reason: String) -> Self;
 }
 
 impl<T> RunResTrait for RunRes<T> {
-    fn add_trace(mut self, function: String, range: CodeRange) -> Self {
-        if let Err(RuntimeError { trace }) = &mut self {
-            trace.add_call(function, range);
-        }
-        self
-    }
-
     fn new_err(reason: String) -> Self {
         RuntimeError::error(reason)
     }
@@ -27,7 +15,8 @@ impl<T> RunResTrait for RunRes<T> {
 
 #[derive(Debug)]
 pub struct RuntimeError {
-    trace: Box<Trace>,
+    /// The bottommost error reason
+    reason: Box<String>,
 }
 
 impl RuntimeError {
@@ -37,52 +26,13 @@ impl RuntimeError {
 
     pub fn bare_error(reason: String) -> Self {
         Self {
-            trace: Box::new(Trace::new(reason)),
+            reason: Box::new(reason),
         }
-    }
-
-    pub fn add_trace(&mut self, function: String, range: CodeRange) {
-        self.trace.add_call(function, range);
-    }
-}
-
-#[derive(Debug)]
-pub struct Trace {
-    /// The initial error message
-    reason: String,
-
-    /// The stack trace
-    stack_trace: Vec<(String, CodeRange)>,
-}
-
-impl Trace {
-    fn new(reason: String) -> Self {
-        Self {
-            reason,
-            stack_trace: vec![],
-        }
-    }
-
-    fn add_call(&mut self, function: String, range: CodeRange) {
-        self.stack_trace.push((function, range));
-    }
-}
-
-impl fmt::Display for Trace {
-    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
-        // TODO: Make this really nice, with error types
-        writeln!(f, "RUNTIME-ERROR: {}", self.reason)?;
-        // Write exact location for first error?
-
-        for (i, (function, range)) in self.stack_trace.iter().enumerate() {
-            writeln!(f, "    ({i}) [line {}] in {function}", range.sl())?;
-        }
-        Ok(())
     }
 }
 
 impl fmt::Display for RuntimeError {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
-        write!(f, "{}", self.trace)
+        write!(f, "{}", self.reason)
     }
 }

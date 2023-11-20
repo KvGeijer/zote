@@ -103,6 +103,12 @@ fn list_slice_assignment() {
 }
 
 #[test]
+fn list_slice_assignment_error() {
+    let output = interpret_error("tests/programs/list_slice_assignment_error.zote");
+    assert!(output.contains("The RHS value is of larger dimension"));
+}
+
+#[test]
 fn error_trace() {
     let output = interpret_error("tests/programs/error_trace.zote");
     assert!(output.contains("RUNTIME ERROR"));

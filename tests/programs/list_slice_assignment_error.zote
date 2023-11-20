@@ -1,0 +1,5 @@
+list := [1:7];
+
+// Out of bounds error
+list[::2] = [1,1,1,2];
+list >> print;

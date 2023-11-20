@@ -1,0 +1,12 @@
+{
+	list := [1,2,3];
+	(one, two, three) := list;
+
+	print(one, two, three);
+}
+
+list := [6,7,8];
+(one, two, three) := list;
+
+print(one, two, three);
+

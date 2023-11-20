@@ -30,7 +30,7 @@ impl Compiler<'_> {
                 }
                 res
             }
-            Stmt::Invalid => todo!(),
+            Stmt::Invalid => panic!("Cannot interpret invalid statements!"),
         };
 
         if let Err(reason) = res {
@@ -69,7 +69,9 @@ impl Compiler<'_> {
         lvalue_top: bool,
     ) -> CompRes {
         match lvalue {
-            LValue::Index(_, _) => todo!(),
+            LValue::Index(_, _) => {
+                return Err(format!("Cannot assign at an index in a declaration"))
+            }
             LValue::Var(name) => {
                 if self.attributes.is_upvalue(name) {
                     // Declares the local as a pointer insteal of a flat value
@@ -86,7 +88,11 @@ impl Compiler<'_> {
                     self.locals.add_local(name.to_owned(), false);
                 }
             }
-            LValue::Tuple(_) => todo!(),
+            LValue::Tuple(lvalues) => {
+                for lvalue in lvalues.iter() {
+                    self.declare_local(lvalue, range.clone(), chunk, false)?;
+                }
+            }
             LValue::Constant(_) if lvalue_top => return Err(format!("Cannot declare a constant")),
             LValue::Constant(_) => (),
         }
@@ -146,7 +152,9 @@ impl Compiler<'_> {
             Expr::Return(opt_expr) => self.compile_return(opt_expr.as_ref(), range, chunk)?,
             Expr::Nil => chunk.push_constant_plus(Value::Nil, range),
             Expr::List(list) => self.compile_list(list, range, chunk)?,
-            Expr::Tuple(_) => todo!(),
+            Expr::Tuple(_) => {
+                return Err("Tuples not implemented as expressions. Use a list.".to_owned())
+            }
             Expr::FunctionDefinition(name, params, body) => {
                 let upvalues = self.attributes.upvalue_names(node.as_ref()).unwrap_or(&[]);
                 let rec_name = self.attributes.rec_name(node.as_ref());
@@ -176,25 +184,61 @@ impl Compiler<'_> {
 
         chunk.push_opcode(OpCode::Duplicate, range.clone());
 
-        self.compile_lvalue_stack_assign(lvalue, range, chunk)
+        self.compile_assign(lvalue, range, chunk)
     }
 
     /// Assigns the top value on the temp stack to the lvalue
     /// Consumes the assigned value.
-    fn compile_lvalue_stack_assign(
-        &mut self,
-        lvalue: &LValue,
-        range: CodeRange,
-        chunk: &mut Chunk,
-    ) -> CompRes {
+    fn compile_assign(&mut self, lvalue: &LValue, range: CodeRange, chunk: &mut Chunk) -> CompRes {
         match lvalue {
             LValue::Index(collection, index) => {
                 self.compile_assign_index(collection, index, range, chunk)
             }
             LValue::Var(name) => self.compile_assign_var(name, range, chunk),
-            LValue::Tuple(_) => todo!(),
+            LValue::Tuple(lvalues) => self.compile_assign_tuple(lvalues, range, chunk),
             LValue::Constant(expected) => self.compile_assign_constant(expected, range, chunk),
         }
+    }
+
+    /// Compiles the assignment into a tuple of values
+    fn compile_assign_tuple(
+        &mut self,
+        lvalues: &[LValue],
+        range: CodeRange,
+        chunk: &mut Chunk,
+    ) -> CompRes {
+        chunk.push_opcode(OpCode::TopToIter, range.clone());
+
+        for (ind, lvalue) in lvalues.iter().enumerate() {
+            // Clone the iterable as we want to use it several times and it will be consumed in ReadAtIndex
+            chunk.push_opcode(OpCode::Duplicate, range.clone());
+
+            // Push the indexed value
+            chunk.push_constant_plus((ind as i64).into(), range.clone());
+            chunk.push_opcode(OpCode::ReadAtIndex, range.clone());
+            // TODO: Better error handling?
+
+            // Assign it to the lvalue
+            self.compile_assign(lvalue, range.clone(), chunk)?;
+        }
+
+        // Check that there are no more values in the iterable
+        chunk.push_constant_plus((lvalues.len() as i64).into(), range.clone());
+        chunk.push_opcode(OpCode::NextOrJump, range.clone());
+        let ok_exit = chunk.reserve_jump();
+
+        chunk.push_constant_plus(
+            "Too many values to unpack in tuple assignment".into(),
+            range.clone(),
+        );
+        chunk.push_opcode(OpCode::RaiseError, range.clone());
+
+        // Discard the index and RHS
+        chunk.patch_reserved_jump(ok_exit);
+        chunk.push_opcode(OpCode::Discard, range.clone());
+        chunk.push_opcode(OpCode::Discard, range);
+
+        Ok(())
     }
 
     /// Compiles code to assert the expression is equal to the constant

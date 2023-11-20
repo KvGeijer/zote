@@ -148,7 +148,7 @@ impl Compiler<'_> {
 
         // Assign the indexed value into the lvalue. Crash if non-compatible
         self.declare_local(lvalue, range.clone(), chunk, true)?;
-        self.compile_lvalue_stack_assign(lvalue, range.clone(), chunk)?;
+        self.compile_assign(lvalue, range.clone(), chunk)?;
 
         // Evaluate body, potentially containing wierd control flow
         self.compile_expression(body, chunk)?;

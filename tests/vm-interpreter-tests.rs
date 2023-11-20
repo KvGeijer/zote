@@ -130,3 +130,21 @@ fn assign_constant_error() {
     let output = interpret_error("tests/programs/assign_constant_error.zote");
     assert!(output.contains("to constant failed"));
 }
+
+#[test]
+fn assign_tuple_ok() {
+    let output = interpret("tests/programs/assign_tuple_ok.zote");
+    assert_eq!(output, "123\n678\n");
+}
+
+#[test]
+fn assign_tuple_too_many() {
+    let output = interpret_error("tests/programs/assign_tuple_too_many.zote");
+    assert!(output.contains("Too many values to unpack in tuple assignment"));
+}
+
+#[test]
+fn assign_tuple_too_few() {
+    let output = interpret_error("tests/programs/assign_tuple_too_few.zote");
+    assert!(output.contains("Index 2 out of bound for list of length 2"));
+}

@@ -235,6 +235,19 @@ impl Value {
             }
         }
     }
+
+    /// Tries to append this and another value
+    pub fn append(self, other: Value) -> RunRes<Value> {
+        match (self, other) {
+            (Value::List(lhs), Value::List(rhs)) => Ok(lhs.append(rhs.as_ref()).into()),
+            (Value::String(lhs), Value::String(rhs)) => Ok(lhs.append(rhs.as_ref()).into()),
+            (lhs, rhs) => RunRes::new_err(format!(
+                "Cannot append {} to {}",
+                rhs.type_of(),
+                lhs.type_of()
+            )),
+        }
+    }
 }
 
 impl PartialOrd for Value {

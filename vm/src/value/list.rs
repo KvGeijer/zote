@@ -107,6 +107,18 @@ impl List {
 
         Ok(slice.into())
     }
+
+    /// Appends two lists, creating a new one with copied contents
+    pub fn append(&self, other: &Self) -> Self {
+        let mut new_vec = vec![];
+        for value in self.vec.borrow().iter() {
+            new_vec.push(value.clone());
+        }
+        for value in other.vec.borrow().iter() {
+            new_vec.push(value.clone());
+        }
+        new_vec.into()
+    }
 }
 
 impl From<Vec<Value>> for List {

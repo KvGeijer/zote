@@ -178,6 +178,11 @@ impl VM {
                 let x = self.pop();
                 self.push(cmp_ops::greater_eq(x, y)?);
             }
+            OpCode::Append => {
+                let y = self.pop();
+                let x = self.pop();
+                self.push(x.append(y)?);
+            }
             OpCode::AssignGlobal => {
                 let offset = self.read_byte();
                 let x = self.pop();

@@ -65,6 +65,9 @@ pub enum OpCode {
     /// Pushes whether the second top-most value is greater or equal to the top value
     GreaterEqual,
 
+    /// Appends two collections
+    Append,
+
     /// Assigns to a global variable
     ///
     /// Reads the offset of the global variable from the next bytecode byte.

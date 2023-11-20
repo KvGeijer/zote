@@ -138,7 +138,9 @@ impl Compiler<'_> {
             Expr::Int(x) => chunk.push_constant_plus(Value::Int(*x), range),
             Expr::Float(x) => chunk.push_constant_plus(Value::Float(*x), range),
             Expr::Bool(x) => chunk.push_constant_plus(Value::Bool(*x), range),
-            Expr::String(_) => todo!(),
+            Expr::String(string) => {
+                chunk.push_constant_plus((string.as_ref() as &str).into(), range)
+            }
             Expr::Block(stmts) => self.compile_block(stmts, range, chunk),
             Expr::If(pred, then, otherwise) => {
                 self.compile_if(pred, then, otherwise.as_ref(), range, chunk)?
@@ -558,7 +560,7 @@ fn binop_opcode_conv(binop: &BinOper) -> OpCode {
         BinOper::Leq => OpCode::LessEqual,
         BinOper::Gt => OpCode::GreaterThan,
         BinOper::Geq => OpCode::GreaterEqual,
-        BinOper::Append => todo!(),
+        BinOper::Append => OpCode::Append,
     }
 }
 

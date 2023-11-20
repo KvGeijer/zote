@@ -278,7 +278,7 @@ impl VM {
             OpCode::AssignAtIndex => {
                 let index = self.pop();
                 let mut collection = self.pop();
-                let value = self.peek();
+                let value = self.pop();
 
                 collection.assign_at_index(index, value)?;
             }

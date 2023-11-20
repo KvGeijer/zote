@@ -150,9 +150,6 @@ impl Compiler<'_> {
         self.declare_local(lvalue, range.clone(), chunk, true)?;
         self.compile_lvalue_stack_assign(lvalue, range.clone(), chunk)?;
 
-        // Discard the value from the assignment to the loop variable
-        chunk.push_opcode(OpCode::Discard, range.clone());
-
         // Evaluate body, potentially containing wierd control flow
         self.compile_expression(body, chunk)?;
 

@@ -174,6 +174,8 @@ impl Compiler<'_> {
     ) -> CompRes {
         self.compile_expression(expr, chunk)?;
 
+        chunk.push_opcode(OpCode::Duplicate, range.clone());
+
         self.compile_lvalue_stack_assign(lvalue, range, chunk)
     }
 
@@ -202,8 +204,6 @@ impl Compiler<'_> {
         range: CodeRange,
         chunk: &mut Chunk,
     ) -> CompRes {
-        chunk.push_opcode(OpCode::Duplicate, range.clone());
-
         self.compile_expression(expected, chunk)?;
         chunk.push_opcode(OpCode::NonEquality, range.clone());
 
@@ -334,14 +334,15 @@ impl Compiler<'_> {
         // Exit the match successfully
         chunk.patch_reserved_jump(ok_exit);
 
+        // Get rid of index and RHS
+        chunk.push_opcode(OpCode::Discard, range.clone());
+        chunk.push_opcode(OpCode::Discard, range.clone());
+
         Ok(())
     }
 
     /// Assigns the topmost temp value to the named variable
     fn compile_assign_var(&mut self, name: &str, range: CodeRange, chunk: &mut Chunk) -> CompRes {
-        // As assigns should also return the value
-        chunk.push_opcode(OpCode::Duplicate, range.clone());
-
         if let Some((offset, pointer)) = self.locals.get_local(name) {
             if !pointer {
                 chunk.push_opcode(OpCode::AssignLocal, range);

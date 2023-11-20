@@ -112,3 +112,15 @@ fn error_trace() {
     assert!(output.contains("in f2"));
     assert!(output.contains("line 10"));
 }
+
+#[test]
+fn assign_constant_ok() {
+    let output = interpret("tests/programs/assign_constant_ok.zote");
+    assert_eq!(output, "1\n2\n");
+}
+
+#[test]
+fn assign_constant_error() {
+    let output = interpret_error("tests/programs/assign_constant_error.zote");
+    assert!(output.contains("to constant failed"));
+}

@@ -354,8 +354,8 @@ impl VM {
                 )?;
             }
             OpCode::RaiseError => {
-                let constant = self.read_constant();
-                return RuntimeError::error(constant.to_string());
+                let reason = self.pop();
+                return RuntimeError::error(reason.to_string());
             }
         }
 

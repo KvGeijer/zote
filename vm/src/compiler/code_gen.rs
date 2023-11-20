@@ -190,8 +190,34 @@ impl Compiler<'_> {
             }
             LValue::Var(name) => self.compile_assign(name, range, chunk),
             LValue::Tuple(_) => todo!(),
-            LValue::Constant(_) => todo!(),
+            LValue::Constant(expected) => self.compile_assign_constant(expected, range, chunk),
         }
+    }
+
+    /// Compiles code to assert the expression is equal to the constant
+    fn compile_assign_constant(
+        &mut self,
+        expected: &ExprNode,
+        range: CodeRange,
+        chunk: &mut Chunk,
+    ) -> CompRes {
+        chunk.push_opcode(OpCode::Duplicate, range.clone());
+
+        self.compile_expression(expected, chunk)?;
+        chunk.push_opcode(OpCode::NonEquality, range.clone());
+
+        chunk.push_opcode(OpCode::JumpIfFalse, range.clone());
+        let reserved_ok = chunk.reserve_jump();
+
+        chunk.push_constant_plus(
+            "Assignment to constant failed (not equal)".into(),
+            range.clone(),
+        );
+        chunk.push_opcode(OpCode::RaiseError, range.clone());
+
+        chunk.patch_reserved_jump(reserved_ok);
+
+        Ok(())
     }
 
     /// Compiles code to assign the top-most temp stack value into an indexed value such as list[index]
@@ -297,11 +323,11 @@ impl Compiler<'_> {
         // Value will be on stack, but we don't care as we crash
 
         // ERROR! Can't match!
-        chunk.push_opcode(OpCode::RaiseError, range.clone());
         chunk.push_constant_plus(
             "MATCH ERROR: The RHS value is of larger dimension than the assignee".into(),
             range.clone(),
         );
+        chunk.push_opcode(OpCode::RaiseError, range.clone());
 
         // TODO: Do this check in the beginning, so that we can actually print the lengths?
         // Exit the match successfully

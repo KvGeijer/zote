@@ -113,6 +113,13 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "e5ea92a5b6195c6ef2a0295ea818b312502c6fc94dde986c5553242e18fd4ce2"
 
 [[package]]
+name = "semantic_analyzer"
+version = "0.1.0"
+dependencies = [
+ "parser",
+]
+
+[[package]]
 name = "syn"
 version = "1.0.109"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -136,4 +143,5 @@ dependencies = [
  "enum_macros",
  "itertools 0.11.0",
  "parser",
+ "semantic_analyzer",
 ]

@@ -212,6 +212,6 @@ pub enum OpCode {
     ///    - RHS
     AssignSliceIndex, // TODO: How can we break this down into simpler instructions? Hard with stack-based operations
 
-    /// Raises an error, with the error message being the constant at the next offset
+    /// Raises an error, with the error message at the top of the stack
     RaiseError,
 }

@@ -70,7 +70,7 @@ pub fn disassemble_instruction<W: Write>(
             OpCode::Discard => simple_instruction("Discard", out),
             OpCode::Call => offset_instruction("Call", chunk, offset, out),
             OpCode::AssignUpValue => offset_instruction("AssignUpValue", chunk, offset, out),
-            OpCode::ReadUpValue => offset_instruction("AssignUpValue", chunk, offset, out),
+            OpCode::ReadUpValue => offset_instruction("ReadUpValue", chunk, offset, out),
             OpCode::InitClosure => closure_init(chunk, offset, out),
             OpCode::AssignPointer => offset_instruction("AssignPointer", chunk, offset, out),
             OpCode::ReadPointer => offset_instruction("ReadPointer", chunk, offset, out),

@@ -1,6 +1,9 @@
 f := {
 	x := 1337;
-	fn f() -> {print(x = x + 1)};
+	fn f() -> {
+		print(x = x + 1)
+		// print(x)
+	};
 	f
 };
 

@@ -82,7 +82,6 @@ impl Compiler<'_> {
                     chunk.push_opcode(OpCode::EmptyPointer, range.clone());
                     chunk.push_opcode(OpCode::AssignLocal, range.clone());
                     chunk.push_u8_offset(offset);
-                    chunk.push_opcode(OpCode::Discard, range.clone()); // TODO: This is not that nice
                 } else {
                     self.locals.add_local(name.to_owned(), false);
                 }
@@ -174,10 +173,12 @@ impl Compiler<'_> {
         chunk: &mut Chunk,
     ) -> CompRes {
         self.compile_expression(expr, chunk)?;
+
         self.compile_lvalue_stack_assign(lvalue, range, chunk)
     }
 
     /// Assigns the top value on the temp stack to the lvalue
+    /// Consumes the assigned value.
     fn compile_lvalue_stack_assign(
         &mut self,
         lvalue: &LValue,
@@ -188,7 +189,7 @@ impl Compiler<'_> {
             LValue::Index(collection, index) => {
                 self.compile_assign_index(collection, index, range, chunk)
             }
-            LValue::Var(name) => self.compile_assign(name, range, chunk),
+            LValue::Var(name) => self.compile_assign_var(name, range, chunk),
             LValue::Tuple(_) => todo!(),
             LValue::Constant(expected) => self.compile_assign_constant(expected, range, chunk),
         }
@@ -337,8 +338,10 @@ impl Compiler<'_> {
     }
 
     /// Assigns the topmost temp value to the named variable
-    fn compile_assign(&mut self, name: &str, range: CodeRange, chunk: &mut Chunk) -> CompRes {
-        // First checks if it is local
+    fn compile_assign_var(&mut self, name: &str, range: CodeRange, chunk: &mut Chunk) -> CompRes {
+        // As assigns should also return the value
+        chunk.push_opcode(OpCode::Duplicate, range.clone());
+
         if let Some((offset, pointer)) = self.locals.get_local(name) {
             if !pointer {
                 chunk.push_opcode(OpCode::AssignLocal, range);

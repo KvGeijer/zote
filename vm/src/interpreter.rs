@@ -180,7 +180,7 @@ impl VM {
             }
             OpCode::AssignGlobal => {
                 let offset = self.read_byte();
-                let x = self.peek();
+                let x = self.pop();
                 self.globals[offset as usize] = x;
             }
             OpCode::ReadGlobal => {
@@ -190,7 +190,7 @@ impl VM {
             }
             OpCode::AssignLocal => {
                 let offset = self.read_byte();
-                let x = self.peek();
+                let x = self.pop();
                 self.stack[self.rbp() + offset as usize] = x;
             }
             OpCode::ReadLocal => {
@@ -200,7 +200,7 @@ impl VM {
             }
             OpCode::AssignUpValue => {
                 let index = self.read_byte();
-                let x = self.peek();
+                let x = self.pop();
                 let closure = self.stack[self.rbp()]
                     .clone()
                     .to_closure()
@@ -251,7 +251,7 @@ impl VM {
             }
             OpCode::AssignPointer => {
                 let offset = self.read_byte();
-                let x = self.peek();
+                let x = self.pop();
                 let Value::Pointer(pointer) = &self.stack[self.rbp() + offset as usize] else {
                     panic!(
                         "No pointer found after assign pointer instruction. Instead {:?}",

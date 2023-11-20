@@ -68,7 +68,7 @@ pub enum OpCode {
     /// Assigns to a global variable
     ///
     /// Reads the offset of the global variable from the next bytecode byte.
-    /// The value is read from the stack, and it is kept on the stack.
+    /// The value is popped from the stack.
     AssignGlobal,
 
     /// Reads a global variable onto the stack
@@ -79,7 +79,7 @@ pub enum OpCode {
     /// Assigns to a local variable
     ///
     /// Reads the offset of the local variable from the rbp from the next bytecode byte.
-    /// The value is read from the stack, and it is kept on the stack.
+    /// The value is popped from the stack.
     AssignLocal,
 
     /// Reads a local variable onto the stack
@@ -90,7 +90,7 @@ pub enum OpCode {
     /// Assigns to a value closed over by a function
     ///
     /// The next byte specifies the index of the upvalue in the current closure.
-    /// The value is read from the stack, and it is kept on the stack.
+    /// The value is popped from the stack.
     AssignUpValue,
 
     /// Reads a value closed over by a function onto the stack
@@ -101,6 +101,7 @@ pub enum OpCode {
     /// Assigns to a local value behind a pointer
     ///
     /// The next byte specifies the offset of the pointer from the rbp.
+    /// The value is popped from the stack
     AssignPointer,
 
     /// Reads the value behind a value pointer

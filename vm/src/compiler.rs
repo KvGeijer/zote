@@ -92,7 +92,6 @@ impl<'a> Compiler<'a> {
             // Assign it to a global
             chunk.push_opcode(OpCode::AssignGlobal, range.clone());
             chunk.push_u8_offset(offset as u8);
-            chunk.push_opcode(OpCode::Discard, range.clone());
         }
     }
 }

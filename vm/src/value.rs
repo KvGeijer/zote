@@ -1,4 +1,7 @@
-use std::{fmt::Display, rc::Rc};
+use std::{
+    fmt::{Debug, Display},
+    rc::Rc,
+};
 
 use crate::error::{RunRes, RunResTrait, RuntimeError};
 
@@ -18,7 +21,7 @@ pub use value_pointer::ValuePointer;
 use self::{builtins::Native, string::ValueString};
 
 // OPT: Pack as bytesting instead? Very inefficiently stored now in 128 bits
-#[derive(Debug, Clone)]
+#[derive(Clone)]
 pub enum Value {
     Nil,
     Bool(bool),
@@ -363,7 +366,7 @@ impl Display for Value {
             Value::Function(func) => write!(f, "{}", func.name()),
             // Value::Function(func) => write!(f, "fn {}/{}", func.name(), func.arity()), // TODO
             Value::Native(native) => write!(f, "fn {}/{}", native.name(), native.arity()),
-            Value::Pointer(pointer) => pointer.get_clone().fmt(f),
+            Value::Pointer(pointer) => Display::fmt(&pointer.get_clone(), f),
             Value::Closure(closure) => write!(f, "{}", closure.function().name()),
             Value::List(list) => {
                 write!(f, "[")?;
@@ -378,6 +381,23 @@ impl Display for Value {
                 Ok(())
             }
             Value::String(string) => write!(f, "{}", string),
+        }
+    }
+}
+
+impl Debug for Value {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        match self {
+            Value::Nil => write!(f, "Nil"),
+            Value::Bool(value) => write!(f, "Bool({value})"),
+            Value::Int(value) => write!(f, "Int({value})"),
+            Value::Float(value) => write!(f, "Float({value})"),
+            Value::Function(value) => write!(f, "Function({})", value.name()),
+            Value::Closure(value) => write!(f, "Closure({})", value.function().name()),
+            Value::Native(value) => write!(f, "Native({})", value.name()),
+            Value::Pointer(value) => write!(f, "Pointer({:?})", value),
+            Value::List(value) => write!(f, "List({:?})", value),
+            Value::String(value) => write!(f, "String({value})"),
         }
     }
 }

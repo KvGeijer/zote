@@ -148,3 +148,9 @@ fn assign_tuple_too_few() {
     let output = interpret_error("tests/programs/assign_tuple_too_few.zote");
     assert!(output.contains("Index 2 out of bound for list of length 2"));
 }
+
+#[test]
+fn match_list() {
+    let output = interpret("tests/programs/match_list.zote");
+    assert_eq!(output, "Four!\notherwise [1, 2, 3, 4]\n")
+}

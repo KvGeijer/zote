@@ -3,7 +3,7 @@ use parser::{
     StmtNode, Stmts, UnOper,
 };
 
-use super::{Chunk, CompRes, Compiler, OpCode};
+use super::{Chunk, CompRes, CompRetRes, Compiler, OpCode};
 use crate::value::Value;
 
 mod conditionals;
@@ -169,7 +169,7 @@ impl Compiler<'_> {
                     name, rec_name, params, body, upvalues, nbr_locals, range, chunk,
                 )?;
             }
-            Expr::Match(_, _) => todo!(),
+            Expr::Match(base, arms) => self.compile_match(base, arms, range, chunk)?,
         };
 
         Ok(())
@@ -543,6 +543,128 @@ impl Compiler<'_> {
             }
         }
         Ok(())
+    }
+
+    // Try to match and assign to every pattern in a row, otherwise crashing
+    fn compile_match(
+        &mut self,
+        base: &ExprNode,
+        patterns: &[(LValue, ExprNode)],
+        range: CodeRange,
+        chunk: &mut Chunk,
+    ) -> CompRes {
+        // First, compile the base expression
+        self.compile_expression(base, chunk)?;
+
+        // All reserved jumps for exiting the match expressions successfully
+        let mut reserved_exit_jumps = vec![];
+
+        for (pattern, then) in patterns.iter() {
+            // Enter the match arm scope
+            self.locals.enter();
+
+            // Try to match against the pattern
+            let reserved_match_fail_jumps =
+                self.compile_try_match(pattern, range.clone(), chunk)?;
+
+            // If succesfull, assign into the pattern, consuming the value
+            self.declare_local(pattern, range.clone(), chunk, true)?;
+            self.compile_assign(pattern, range.clone(), chunk)?;
+
+            // Execute the expression, and leave it as the top stack value
+            self.compile_expression(then, chunk)?;
+
+            // Exit the match arm scope
+            let pointer_offsets = self.locals.exit();
+            self.drop_pointers(&pointer_offsets, range.clone(), chunk);
+
+            // Finally, exit the whole match expression
+            chunk.push_opcode(OpCode::Jump, range.clone());
+            reserved_exit_jumps.push(chunk.reserve_jump());
+
+            // If the match fails, try the next pattern
+            for reserved in reserved_match_fail_jumps {
+                chunk.patch_reserved_jump(reserved);
+            }
+        }
+
+        // No pattern matched, so error
+        chunk.push_constant_plus(
+            "Exhausted match patterns. No possible match found.".into(),
+            range.clone(),
+        );
+        chunk.push_opcode(OpCode::RaiseError, range.clone());
+
+        // Path the exit jumps
+        for reserved in reserved_exit_jumps {
+            chunk.patch_reserved_jump(reserved);
+        }
+
+        Ok(())
+    }
+
+    /// Try to match the top of the stack against an lvalue
+    ///
+    /// Returns all reserved indecies where the match failed and it should jump to the next pattern
+    /// Does not consume the top stack value. TODO: Should we consume it?
+    /// Does not actually assign or do anything in a succesful case.
+    fn compile_try_match(
+        &mut self,
+        pattern: &LValue,
+        range: CodeRange,
+        chunk: &mut Chunk,
+    ) -> CompRetRes<Vec<usize>> {
+        let mut abort_jumps = vec![];
+
+        match pattern {
+            LValue::Index(_, _) => {
+                // TODO: This could be supported as a normal variable binding if we want
+                return Err("Index-into lvalues not supported in match expressions".to_owned());
+            }
+            LValue::Var(_) => (), // Can match against anything
+            LValue::Tuple(lvalues) => {
+                // Check that the length is ok
+                chunk.push_opcode(OpCode::Duplicate, range.clone());
+                chunk.push_opcode(OpCode::Len, range.clone());
+                chunk.push_constant_plus((lvalues.len() as i64).into(), range.clone());
+                chunk.push_opcode(OpCode::Equality, range.clone());
+                chunk.push_opcode(OpCode::JumpIfFalse, range.clone());
+                abort_jumps.push(chunk.reserve_jump());
+
+                // Then check that it can match against all individual values
+                for (ind, lvalue) in lvalues.iter().enumerate() {
+                    if let LValue::Var(_) = lvalue {
+                        // Don't have to check anything here, just for simplicity
+                        continue;
+                    }
+                    // Take out the value from the collection
+                    chunk.push_opcode(OpCode::Duplicate, range.clone());
+                    chunk.push_constant_plus((ind as i64).into(), range.clone());
+                    chunk.push_opcode(OpCode::ReadAtIndex, range.clone());
+
+                    // See if the indexed value matches the lvalue
+                    abort_jumps.extend_from_slice(&mut self.compile_try_match(
+                        lvalue,
+                        range.clone(),
+                        chunk,
+                    )?);
+
+                    // Remember to discard the indexed value
+                    chunk.push_opcode(OpCode::Discard, range.clone());
+                }
+            }
+            LValue::Constant(constant) => {
+                chunk.push_opcode(OpCode::Duplicate, range.clone());
+                self.compile_expression(constant, chunk)?;
+                chunk.push_opcode(OpCode::Equality, range.clone());
+
+                // If the value is not equal to the constant, abort match
+                chunk.push_opcode(OpCode::JumpIfFalse, range.clone());
+                abort_jumps.push(chunk.reserve_jump());
+            }
+        }
+
+        Ok(abort_jumps)
     }
 }
 

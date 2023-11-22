@@ -1,6 +1,6 @@
 use std::{collections::HashMap, mem};
 
-use parser::{LValue, Stmts};
+use parser::{ExprNode, LValue, Stmts};
 
 use crate::{ref_id, visitor::AstVisitor, NodeAttr, RefId};
 
@@ -167,5 +167,15 @@ impl AstVisitor for Counter {
         self.scope.exit_block();
 
         self.global_scope = scope;
+    }
+
+    fn visit_match(&mut self, matched: &ExprNode, options: &[(LValue, ExprNode)]) {
+        self.visit_expr(matched);
+        for (lvalue, then) in options {
+            self.scope.enter_block();
+            self.visit_lvalue(lvalue, true);
+            self.visit_expr(then);
+            self.scope.exit_block();
+        }
     }
 }

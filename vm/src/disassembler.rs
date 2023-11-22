@@ -87,7 +87,7 @@ pub fn disassemble_instruction<W: Write>(
             OpCode::Len => simple_instruction("Len", out),
             OpCode::Swap => simple_instruction("Swap", out),
             OpCode::AssignSliceIndex => simple_instruction("AssignSliceIndex", out),
-            OpCode::RaiseError => offset_instruction("RaiseError", chunk, offset, out),
+            OpCode::RaiseError => simple_instruction("RaiseError", out),
             OpCode::Append => simple_instruction("Append", out),
         }
     } else {

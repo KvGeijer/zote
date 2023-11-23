@@ -506,6 +506,7 @@ impl<'a> Parser<'a> {
             Token::LPar => self.maybe_tuple(),
             Token::For => self.accept_for(),
             Token::Match => self.accept_match(),
+            Token::MacroInvocation(_) => self.accept_expr_macro_invocation(),
             _ => self.simple_primary(),
         }
     }
@@ -721,6 +722,26 @@ impl<'a> Parser<'a> {
 
         let end = *self.peek_last_end_loc()?;
         Some(ExprNode::new(Expr::Match(expr, arms), start, end))
+    }
+
+    /// Should accept the macro, and expand it as necessary
+    fn accept_expr_macro_invocation(&mut self) -> Option<ExprNode> {
+        todo!("Expression macro invocations not implemented. If naively implemented, they would clash with a statement macro invocation beginning a line");
+
+        // let _start = *self.peek_start_loc();
+        // let Token::MacroInvocation(name) = self.take().clone() else {
+        //     panic!("Incorrect accept of macro invocation")
+        // };
+
+        // Different handling depending on the macro
+        // match name.as_str() {
+        //     // Include should only be a part of the macro_stmts invocation rule
+        //     // "include!" => self.macro_include(start),
+        //     otherwise => {
+        //         self.error(&format!("Cannot find rule to expand macro '{otherwise}'"));
+        //         None
+        //     }
+        // };
     }
 
     // Same as match_op, but also makes sure the following token != "=" as in x += 2
@@ -939,7 +960,7 @@ mod tests {
             fake_token(Token::Eof),
         ];
 
-        let mut parser = Parser::new(&tokens, &mut error_reporter);
+        let mut parser = Parser::new("test", &tokens, &mut error_reporter);
 
         let expected = ExprNode::binary(
             ExprNode::binary(
@@ -996,7 +1017,7 @@ mod tests {
             fake_token(Token::Eof),
         ];
 
-        let mut parser = Parser::new(&tokens, &mut error_reporter);
+        let mut parser = Parser::new("test", &tokens, &mut error_reporter);
 
         assert_eq!(
             parser.expression().unwrap(),
@@ -1077,7 +1098,7 @@ mod tests {
             fake_token(Token::Eof),
         ];
         let mut error_reporter = ErrorReporter::new();
-        let mut pipe_parser = Parser::new(&tokens, &mut error_reporter);
+        let mut pipe_parser = Parser::new("test", &tokens, &mut error_reporter);
         let pipe_expr = pipe_parser.expression().unwrap();
 
         // Logically equal to "fake(print([print(1)]), 2)"
@@ -1099,7 +1120,7 @@ mod tests {
             fake_token(Token::Eof),
         ];
         let mut error_reporter = ErrorReporter::new();
-        let mut normal_parser = Parser::new(&tokens, &mut error_reporter);
+        let mut normal_parser = Parser::new("test", &tokens, &mut error_reporter);
         let normal_expr = normal_parser.expression().unwrap();
 
         // Just assert that they are equal. Maybe should also spell out what is should be
@@ -1119,7 +1140,7 @@ mod tests {
             fake_token(Token::Eof),
         ];
         let mut error_reporter = ErrorReporter::new();
-        let mut parser = Parser::new(&tokens, &mut error_reporter);
+        let mut parser = Parser::new("test", &tokens, &mut error_reporter);
         let expr = parser.expression().unwrap();
 
         assert_eq!(
@@ -1153,7 +1174,7 @@ mod tests {
             fake_token(Token::Eof),
         ];
         let mut error_reporter = ErrorReporter::new();
-        let mut parser = Parser::new(&tokens, &mut error_reporter);
+        let mut parser = Parser::new("test", &tokens, &mut error_reporter);
         let expr = parser.expression().unwrap();
 
         assert_eq!(

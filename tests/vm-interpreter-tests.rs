@@ -154,3 +154,9 @@ fn match_list() {
     let output = interpret("tests/programs/match_list.zote");
     assert_eq!(output, "Four!\notherwise [1, 2, 3, 4]\n")
 }
+
+#[test]
+fn include_print() {
+    let output = interpret("tests/programs/include_print.zote");
+    assert_eq!(output, "party!\nsuccess\n")
+}

@@ -8,6 +8,7 @@ mod code_loc;
 mod errors;
 mod expressions;
 mod generics;
+mod macros;
 mod scanner;
 mod statements;
 
@@ -24,14 +25,14 @@ pub struct AstNode<T> {
     pub end_loc: CodeLoc, // Not including last char. Should we change?
 }
 
-pub fn parse(code: &str) -> Option<Stmts> {
+pub fn parse(scriptname: &str, code: &str) -> Option<Stmts> {
     let mut error_reporter = errors::ErrorReporter::new();
-    let tokens = scanner::tokenize(code, &mut error_reporter);
+    let tokens = scanner::tokenize(code, scriptname, &mut error_reporter);
     if error_reporter.had_error {
         return None;
     }
 
-    let mut parser = Parser::new(&tokens, &mut error_reporter);
+    let mut parser = Parser::new(scriptname, &tokens, &mut error_reporter);
     match parser.statements(crate::scanner::Token::Eof).ok() {
         Some(ast) if !error_reporter.had_error => Some(ast),
         _otherwise => None,
@@ -40,6 +41,7 @@ pub fn parse(code: &str) -> Option<Stmts> {
 
 // All submodules will add some functionality to this, like parsing expressions
 struct Parser<'a> {
+    scriptname: &'a str,
     tokens: Vec<&'a TokenInfo>,
     current: usize,
     error_reporter: &'a mut ErrorReporter,

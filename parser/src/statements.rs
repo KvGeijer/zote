@@ -28,8 +28,8 @@ impl<'a> Parser<'a> {
 
         while self.peek() != &terminator && !self.at_end() {
             match self.statement(&terminator) {
-                Either::Left(stmt) => {
-                    stmts.stmts.push(stmt);
+                Either::Left(parsed_stmts) => {
+                    stmts.stmts.extend(parsed_stmts.into_iter());
                     stmts.output = false;
                 }
                 Either::Right(expr) => {
@@ -60,25 +60,25 @@ impl<'a> Parser<'a> {
     }
 
     // If allow_expr is on, it will match an expression instead of causing error if there is no closing ;
-    fn statement(&mut self, terminator: &Token) -> Either<StmtNode, ExprNode> {
-        if let Some(node) = self.fn_statement(terminator) {
-            node
+    fn statement(&mut self, terminator: &Token) -> Either<Vec<StmtNode>, ExprNode> {
+        if let Some(nodes) = self.fn_statement(terminator) {
+            nodes
         } else {
             // Should we propagate a result to here instead?
             self.synchronize_error();
-            Either::Left(StmtNode::new(
+            Either::Left(vec![StmtNode::new(
                 Stmt::Invalid,
                 *self.peek_start_loc(),
                 *self.peek_start_loc(),
-            ))
+            )])
         }
     }
 
-    fn fn_statement(&mut self, terminator: &Token) -> Option<Either<StmtNode, ExprNode>> {
+    fn fn_statement(&mut self, terminator: &Token) -> Option<Either<Vec<StmtNode>, ExprNode>> {
         // decl_stmt | "fn" var "(" parameters? ")" "->" expression ;
         let start = *self.peek_start_loc();
         if !self.match_token(Token::Fn) {
-            self.rest_stmt(terminator)
+            self.macro_stmt(terminator)
         } else if let Token::Identifier(name) = self.peek() {
             let name = name.to_string();
             self.take();
@@ -101,11 +101,11 @@ impl<'a> Parser<'a> {
                 end,
             );
 
-            Some(Either::Left(StmtNode::new(
+            Some(Either::Left(vec![StmtNode::new(
                 Stmt::Decl(LValue::Var(name), Some(func)),
                 start,
                 end,
-            )))
+            )]))
         } else {
             self.error("Expect function name after fn");
             None
@@ -131,7 +131,31 @@ impl<'a> Parser<'a> {
         }
     }
 
-    fn rest_stmt(&mut self, terminator: &Token) -> Option<Either<StmtNode, ExprNode>> {
+    /// Checks for a macro statement, before delegating to leading with an expression
+    fn macro_stmt(&mut self, terminator: &Token) -> Option<Either<Vec<StmtNode>, ExprNode>> {
+        // macro_stmt -> macro_invocation ( '(' args ')' )
+        if let Some(name) = self.match_macro_invocation() {
+            let res = match name {
+                "include!" => Some(Either::Left(self.macro_include_statement()?)),
+                otherwise => {
+                    let reason = &format!("Could not resolve statement macro '{otherwise}'");
+                    self.error(&reason);
+                    None
+                }
+            };
+
+            self.accept(
+                Token::Semicolon,
+                "Must end macro statement with a semicolon",
+            )?;
+
+            res
+        } else {
+            self.leading_expr_stmt(terminator)
+        }
+    }
+
+    fn leading_expr_stmt(&mut self, terminator: &Token) -> Option<Either<Vec<StmtNode>, ExprNode>> {
         // varDecl        → (expression | lvalue ":=" expression | expression ":>>" lvalue) ";" ;
         let start = *self.peek_start_loc();
         let expr = self.expression()?; // We can't separate lvalues and assignmen here :/
@@ -140,29 +164,44 @@ impl<'a> Parser<'a> {
             let rvalue = self.expression()?;
             let end = *self.peek_last_end_loc().unwrap();
             self.accept(Token::Semicolon, "Decl statement must end with ';'")?;
-            Some(Either::Left(StmtNode::new(
+            Some(Either::Left(vec![StmtNode::new(
                 Stmt::Decl(lvalue, Some(rvalue)),
                 start,
                 end,
-            )))
+            )]))
         } else if self.match_token(Token::ColonPipe) {
             let lvalue = self.lvalue(true)?;
             let end = *self.peek_end_loc();
             self.accept(Token::Semicolon, "Expect ';' after pipe decl statement")?;
-            Some(Either::Left(StmtNode::new(
+            Some(Either::Left(vec![StmtNode::new(
                 Stmt::Decl(lvalue, Some(expr)),
                 start,
                 end,
-            )))
+            )]))
         } else if self.match_token(Token::Semicolon) {
             let end = *self.peek_last_end_loc().unwrap();
-            Some(Either::Left(StmtNode::new(Stmt::Expr(expr), start, end)))
+            Some(Either::Left(vec![StmtNode::new(
+                Stmt::Expr(expr),
+                start,
+                end,
+            )]))
         } else if !semicolon_elision(&expr) && self.peek() != terminator {
             // A ; was expected, but not found
             self.error("Expect ';' after expression statement");
             None
         } else {
             Some(Either::Right(expr))
+        }
+    }
+
+    fn match_macro_invocation(&mut self) -> Option<&str> {
+        if matches!(self.peek(), Token::MacroInvocation(_)) {
+            let Token::MacroInvocation(name) = self.take() else {
+                panic!("Internal error at match macro invocation");
+            };
+            Some(name.as_ref())
+        } else {
+            None
         }
     }
 }

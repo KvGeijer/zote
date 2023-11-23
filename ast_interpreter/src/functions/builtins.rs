@@ -165,7 +165,10 @@ pub fn get_builtins() -> Vec<Rc<dyn Builtin>> {
 
     builtins.new_1arg("eval", |arg| {
         // Very powerful... And probably wrong...
-        if let Some(stmts) = parser::parse(arg.cast_string("Can only eval strings")?.as_ref()) {
+        if let Some(stmts) = parser::parse(
+            "evan builtin",
+            arg.cast_string("Can only eval strings")?.as_ref(),
+        ) {
             let env = Environment::new();
             match statements::eval_statements(&stmts, &env) {
                 Ok(Some(val)) => Ok(val),

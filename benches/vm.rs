@@ -4,8 +4,8 @@ use test::Bencher;
 
 extern crate test;
 
-fn run_str(code: &str) {
-    let stmts = parser::parse(code).expect("Was not able to parse code");
+fn run_str(name: &str, code: &str) {
+    let stmts = parser::parse(name, code).expect("Was not able to parse code");
     let ast = semantic_analyzer::analyze_ast(&stmts);
     let res = vm::interpret_once(&ast);
     assert_eq!(res, 0);
@@ -14,7 +14,7 @@ fn run_str(code: &str) {
 #[bench]
 fn vm_fibonachi(bench: &mut Bencher) {
     let code = include_str!("programs/fib.zote");
-    bench.iter(|| run_str(code));
+    bench.iter(|| run_str("fib.zote", code));
 }
 
 // #[bench]

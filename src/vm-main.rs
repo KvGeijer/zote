@@ -2,6 +2,7 @@ use clap::Parser;
 use std::{
     fs,
     io::{stdin, stdout, Write},
+    path::{Path, PathBuf},
     process::exit,
 };
 
@@ -23,14 +24,29 @@ fn main() {
 
 /// Interprets a text file as a Zote script, returning the exit code.
 fn run_file(file: &str) -> i32 {
-    // TODO: Real error
     let script = fs::read_to_string(file).expect("Could not open file.");
-    run_str(&script)
+    let saved = change_dir(file);
+    let res = run_str(file, &script);
+    restore_dir(saved);
+    res
 }
 
+/// Change the working dir to the files dir, and then return the previous dir
+fn change_dir(file_path: &str) -> Option<PathBuf> {
+    let current_dir = std::env::current_dir().ok()?;
+    std::env::set_current_dir(Path::new(file_path).parent()?).ok()?;
+    Some(current_dir)
+}
+
+/// Restores the working dir if it was succesfully changed
+fn restore_dir(saved: Option<PathBuf>) {
+    if let Some(path) = saved {
+        std::env::set_current_dir(&path).expect("Was not able to change back the path!");
+    }
+}
 /// Interprets the string as if from a file.
-fn run_str(code: &str) -> i32 {
-    if let Some(stmts) = parser::parse(code) {
+fn run_str(name: &str, code: &str) -> i32 {
+    if let Some(stmts) = parser::parse(name, code) {
         let ast = semantic_analyzer::analyze_ast(&stmts);
         vm::interpret_once(&ast)
     } else {
@@ -54,6 +70,6 @@ fn run_repl() {
         reader.read_line(&mut line).unwrap_or(0) > 0
     } {
         // Does not preserve program state between calls
-        run_str(&line);
+        run_str("REPL", &line);
     }
 }

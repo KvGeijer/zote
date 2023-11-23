@@ -438,7 +438,7 @@ mod tests {
 
     /// Helper to interpret an expression from a string
     fn interpret_expression_string(program: &str) -> RunRes<Value> {
-        let ast = parse(&program).unwrap();
+        let ast = parse("unit test", &program).unwrap();
         let env = Environment::new();
         define_builtins(&env);
         statements::eval_statements(&ast, &env)

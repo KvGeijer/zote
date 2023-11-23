@@ -6,7 +6,7 @@ extern crate test;
 
 fn run_str(code: &str) {
     let mut state = ast_interpreter::InterpreterState::new();
-    let stmts = parser::parse(code).unwrap();
+    let stmts = parser::parse("bench", code).unwrap();
     ast_interpreter::interpret(&stmts, &mut state);
     assert!(!state.had_error());
 }

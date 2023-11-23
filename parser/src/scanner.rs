@@ -23,6 +23,8 @@ pub enum Token {
     String(Rc<String>),
     Comment(String),
     // Invalid(String),
+    /// The name of a macro invocation, such as "include!" in "include!(path/to/file)"
+    MacroInvocation(String),
 
     // Special constructs
     Struct,
@@ -101,6 +103,7 @@ lazy_static! {
         (r#"".*?""#, |str| Token::String(Rc::new(parse_string(&str[1..str.len()-1])))),
         (r#"'.*?'"#, |str| Token::String(Rc::new(parse_string(&str[1..str.len()-1])))),
         (r"//[^\n]*", |str| Token::Comment(str[2..].to_owned())),
+        (r"[\w--\d]\w*!", |str| Token::MacroInvocation(str.to_string())),
         (r"struct", |_| Token::Struct),
         (r"fn", |_| Token::Fn),
         (r"if", |_| Token::If),
@@ -154,7 +157,11 @@ lazy_static! {
     ];
 }
 
-pub fn tokenize(code: &str, error_reporter: &mut ErrorReporter) -> Vec<TokenInfo> {
+pub fn tokenize(
+    code: &str,
+    scriptname: &str,
+    error_reporter: &mut ErrorReporter,
+) -> Vec<TokenInfo> {
     let mut tokens = vec![];
     let mut loc = CodeLoc::new(0, 1, 1);
 
@@ -172,7 +179,11 @@ pub fn tokenize(code: &str, error_reporter: &mut ErrorReporter) -> Vec<TokenInfo
             Some(token_info) => tokens.push(token_info),
             None => {
                 let scanned = &code[loc.index()..].chars().next().unwrap();
-                error_reporter.scan_error(&loc, &format!("Unexpected character: {}", scanned));
+                error_reporter.scan_error(
+                    &loc,
+                    &format!("Unexpected character: {}", scanned),
+                    scriptname,
+                );
                 loc.adv_col(1, scanned.len_utf8());
             }
         }
@@ -249,6 +260,7 @@ mod tests {
         let mut reporter = ErrorReporter::new();
         let tokens = tokenize(
             "hejsor for_forforwhile\n notersteWeanfnåÅö áßãåãåøœđéđł",
+            "test",
             &mut reporter,
         );
 
@@ -274,7 +286,7 @@ mod tests {
     #[test]
     fn numbers() {
         let mut reporter = ErrorReporter::new();
-        let tokens = tokenize("123.123123.123 1234 0123.00 123.412", &mut reporter);
+        let tokens = tokenize("123.123123.123 1234 0123.00 123.412", "test", &mut reporter);
 
         // The double dot and especially leading 0 are a bit strange and may be changed
         let expected_tokens = vec![
@@ -297,7 +309,7 @@ mod tests {
         let mut reporter = ErrorReporter::new();
         // Cannot have a newline inside of a string
         let code = "\"first\" \n'secondthird' \"'inner'\" '\"inner2\"'";
-        let tokens = tokenize(code, &mut reporter);
+        let tokens = tokenize(code, "test", &mut reporter);
 
         let expected_tokens = vec![
             Token::String(Rc::new("first".to_string())),
@@ -319,7 +331,7 @@ mod tests {
     fn mixed() {
         let mut reporter = ErrorReporter::new();
         let code = "// Test []!\nif {+ = -} (==) else [match return for while .,;true false and or */ <> <=>=]Nil>>";
-        let tokens = tokenize(code, &mut reporter);
+        let tokens = tokenize(code, "test", &mut reporter);
 
         let expected_tokens = vec![
             // Token::Comment(" Test []!".to_string()), // No longer emitted as tokens

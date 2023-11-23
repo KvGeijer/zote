@@ -63,7 +63,7 @@ mod tests {
 
     /// Helper to interpret an expression from a string
     fn interpret_string(program: &str) -> Option<RunRes<Option<Value>>> {
-        let ast = parse(program)?;
+        let ast = parse("unit_test", program)?;
         let env = Environment::new();
         define_builtins(&env);
         Some(eval_statements(&ast, &env))

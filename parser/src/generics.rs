@@ -25,8 +25,13 @@ impl<T: PartialEq> PartialEq for AstNode<T> {
 }
 
 impl<'a> Parser<'a> {
-    pub fn new(tokens: &'a [TokenInfo], error_reporter: &'a mut ErrorReporter) -> Self {
+    pub fn new(
+        filename: &'a str,
+        tokens: &'a [TokenInfo],
+        error_reporter: &'a mut ErrorReporter,
+    ) -> Self {
         Self {
+            scriptname: filename,
             tokens: Vec::from_iter(tokens.iter()),
             current: 0,
             error_reporter,
@@ -37,7 +42,8 @@ impl<'a> Parser<'a> {
         // Should probably have the error reporter outside of the parser...
         let loc = *self.peek_start_loc();
         let error_string = format!("{} at '{}' {}", loc.line(), &self.peek_string(), str);
-        self.error_reporter.comp_error(&loc, &error_string);
+        self.error_reporter
+            .comp_error(&loc, &error_string, &self.scriptname);
     }
 
     pub fn synchronize_error(&mut self) {

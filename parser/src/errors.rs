@@ -9,17 +9,17 @@ impl ErrorReporter {
         Self { had_error: false }
     }
 
-    pub fn scan_error(&mut self, loc: &CodeLoc, message: &str) {
-        self.error("Scanning", loc, message)
+    pub fn scan_error(&mut self, loc: &CodeLoc, message: &str, scriptname: &str) {
+        self.error("Scanning", loc, message, scriptname)
     }
 
-    pub fn comp_error(&mut self, loc: &CodeLoc, message: &str) {
-        self.error("Compilation", loc, message)
+    pub fn comp_error(&mut self, loc: &CodeLoc, message: &str, scriptname: &str) {
+        self.error("Compilation", loc, message, scriptname)
     }
 
-    fn error(&mut self, error_type: &str, loc: &CodeLoc, message: &str) {
+    fn error(&mut self, error_type: &str, loc: &CodeLoc, message: &str, scriptname: &str) {
         eprintln!(
-            "[line: {}, col: {}] {error_type} Error: {message}",
+            "[line: {}, col: {}] {error_type} Error: {message}. In {scriptname}",
             loc.line(),
             loc.col()
         );

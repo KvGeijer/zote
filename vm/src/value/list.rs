@@ -1,10 +1,10 @@
-use std::cell::RefCell;
+use std::cell::{Ref, RefCell};
 
 use itertools::Itertools;
 
 use crate::error::{RunRes, RunResTrait, RuntimeError};
 
-use super::Value;
+use super::{Dictionary, Value};
 
 /// A list of values
 ///
@@ -23,11 +23,11 @@ impl List {
 
     /// If the list has values
     pub fn truthy(&self) -> bool {
-        !self.empty()
+        !self.is_empty()
     }
 
     /// Is the list empty?
-    pub fn empty(&self) -> bool {
+    pub fn is_empty(&self) -> bool {
         self.len() == 0
     }
 
@@ -119,6 +119,22 @@ impl List {
         }
         new_vec.into()
     }
+
+    /// Deeply clones all contained values
+    pub fn deepclone(&self) -> List {
+        self.vec
+            .borrow()
+            .iter()
+            .map(|val| val.deepclone())
+            .collect::<Vec<Value>>()
+            .into()
+    }
+
+    /// Borrows a reference to the slice
+    /// This is a very dangerous function, as we can hand out several references
+    pub fn borrow_slice(&self) -> Ref<Vec<Value>> {
+        self.vec.borrow()
+    }
 }
 
 impl From<Vec<Value>> for List {
@@ -129,6 +145,28 @@ impl From<Vec<Value>> for List {
     }
 }
 
+impl TryInto<Dictionary> for &List {
+    type Error = RuntimeError;
+
+    fn try_into(self) -> Result<Dictionary, Self::Error> {
+        // TODO: make this better
+        let dict = Dictionary::new();
+        for value in self.vec.borrow().iter() {
+            let Value::List(list) = value else {
+                return RuntimeError::error(format!("When initializing a dict from a list, the list must be a list of key-value pair lists."));
+            };
+
+            if let Some((key, val)) = list.vec.borrow().iter().cloned().collect_tuple() {
+                dict.insert(key, val)?;
+            } else {
+                return RuntimeError::error(format!("When initializing a dict from a list, the list must be a list of key-value pair lists."));
+            }
+        }
+
+        Ok(dict)
+    }
+}
+
 impl PartialEq for List {
     fn eq(&self, other: &Self) -> bool {
         let other_ref = other.vec.borrow();
@@ -136,6 +174,7 @@ impl PartialEq for List {
         self.vec.borrow().eq(other_vec)
     }
 }
+impl Eq for List {}
 
 /// Returns the wrapped index into a list. Does not handle out of bounds
 fn index_wrap(index: i64, len: usize) -> usize {
@@ -187,4 +226,13 @@ pub fn slice_iter(
 
 fn empty_solo_slice(start: i64, stop: i64, step: i64) -> bool {
     start >= stop && step > 0 || start <= stop && step < 0
+}
+
+// A shallow clone, that only clones the values in the top list
+impl Clone for List {
+    fn clone(&self) -> Self {
+        Self {
+            vec: RefCell::new(self.vec.borrow().iter().cloned().collect()),
+        }
+    }
 }

@@ -160,3 +160,15 @@ fn include_print() {
     let output = interpret("tests/programs/include_print.zote");
     assert_eq!(output, "party!\nsuccess\n")
 }
+
+#[test]
+fn dict_creation() {
+    let output = interpret("tests/programs/dict_creation.zote");
+    assert_eq!(output, "2\ndict{1: 2}\ndict{}\n")
+}
+
+#[test]
+fn dict_read_write() {
+    let output = interpret("tests/programs/dict_read_write.zote");
+    assert_eq!(output, "10\n20\n11\n22\n")
+}

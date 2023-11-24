@@ -1,0 +1,13 @@
+dict := dict();
+
+dict[1] = 10;
+dict[2] = 20;
+
+print(dict[1]);
+print(dict[2]);
+
+dict[1] = 11;
+dict[2] = 22;
+
+print(dict[1]);
+print(dict[2]);

@@ -1,5 +1,6 @@
 use std::{
     fmt::{Debug, Display},
+    hash::Hash,
     rc::Rc,
 };
 
@@ -7,6 +8,7 @@ use crate::error::{RunRes, RunResTrait, RuntimeError};
 
 mod builtins;
 mod closure;
+mod dictionary;
 mod function;
 mod list;
 mod string;
@@ -14,6 +16,7 @@ mod value_pointer;
 
 pub use builtins::get_natives;
 pub use closure::Closure;
+pub use dictionary::Dictionary;
 pub use function::Function;
 pub use list::List;
 pub use value_pointer::ValuePointer;
@@ -39,6 +42,9 @@ pub enum Value {
 
     /// A string
     String(Rc<ValueString>),
+
+    /// A HashMap, where we use our own unstable wierd hashing
+    Dictionary(Rc<Dictionary>),
 }
 
 pub enum ValueType {
@@ -51,6 +57,7 @@ pub enum ValueType {
     Closure,
     List,
     String,
+    Dictionary,
 }
 
 /// Impl for delegating tasks between function types and implementing easy queries
@@ -67,6 +74,7 @@ impl Value {
             Value::Closure(_) => ValueType::Closure,
             Value::List(_) => ValueType::List,
             Value::String(_) => ValueType::String,
+            Value::Dictionary(_) => ValueType::Dictionary,
         }
     }
 
@@ -89,6 +97,7 @@ impl Value {
             }
             Value::List(list) => Ok(list.truthy()),
             Value::String(string) => Ok(string.truthy()),
+            Value::Dictionary(dict) => Ok(dict.truthy()),
         }
     }
 
@@ -122,6 +131,7 @@ impl Value {
         match self {
             Value::List(list) => Ok(Value::List(list)),
             Value::String(string) => Ok(Value::String(string)),
+            Value::Dictionary(dict) => Ok(dict.cast_list().into()),
             Value::Pointer(_) => panic!("Should not operate directly on a pointer"),
             Value::Nil
             | Value::Bool(_)
@@ -138,6 +148,7 @@ impl Value {
         match self {
             Value::List(list) => list.set(index.to_int()?, value),
             Value::String(string) => string.set(index.to_int()?, value),
+            Value::Dictionary(dict) => dict.set(index, value),
             otherwise => RunRes::new_err(format!("Cannot index into a {}", otherwise.type_of())),
         }
     }
@@ -147,6 +158,13 @@ impl Value {
         match self {
             Value::List(list) => list.get(index.to_int()?),
             Value::String(string) => string.get(index.to_int()?),
+            Value::Dictionary(dict) => {
+                Ok(dict
+                    .get(index.clone())?
+                    .ok_or(RuntimeError::bare_error(format!(
+                        "Key {index} does not exist in the dictionary"
+                    )))?)
+            }
             otherwise => RunRes::new_err(format!("Cannot index into a {}", otherwise.type_of())),
         }
     }
@@ -203,6 +221,7 @@ impl Value {
             Value::Pointer(_) => panic!("Tried to operate directly on a pointer (get len)"),
             Value::List(list) => Ok(list.len()),
             Value::String(string) => Ok(string.len()),
+            Value::Dictionary(dict) => Ok(dict.len()),
             Value::Nil
             | Value::Bool(_)
             | Value::Int(_)
@@ -232,6 +251,7 @@ impl Value {
             | Value::Function(_)
             | Value::Closure(_)
             | Value::Native(_)
+            | Value::Dictionary(_)
             | Value::Pointer(_)
             | Value::List(_) => {
                 RunRes::new_err(format!("Cannot convert {} to char", self.type_of()))
@@ -251,6 +271,52 @@ impl Value {
             )),
         }
     }
+
+    /// Deeply clones a value and all its contained references
+    pub fn deepclone(&self) -> Self {
+        match self {
+            Value::Nil => self.clone(),
+            Value::Bool(_) => self.clone(),
+            Value::Int(_) => self.clone(),
+            Value::Float(_) => self.clone(),
+            Value::Function(_) => self.clone(),
+            Value::Closure(_) => self.clone(),
+            Value::Native(_) => self.clone(),
+            Value::Pointer(pointer) => pointer.get_clone().deepclone(),
+            Value::List(list) => list.deepclone().into(),
+            Value::String(string) => string.as_ref().clone().into(),
+            Value::Dictionary(dict) => dict.deepclone().into(),
+        }
+    }
+
+    fn try_hash<H: std::hash::Hasher>(&self, state: &mut H) -> RunRes<()> {
+        // ERROR: Can potentially get stuck in infinite loops
+        match self {
+            Value::Nil => Ok(0u8.hash(state)),
+            Value::Bool(b) => Ok(b.hash(state)),
+            Value::Int(i) => Ok(i.hash(state)),
+            Value::Float(f) => {
+                let bytes = f.to_le_bytes();
+                Ok([bytes[5], bytes[3], bytes[1]].hash(state))
+            }
+            Value::List(l) => {
+                let len = l.len();
+                if len == 0 {
+                    Ok(0.hash(state))
+                } else {
+                    l.get(0).unwrap().try_hash(state)?;
+                    l.get((len / 2) as i64).unwrap().try_hash(state)?;
+                    l.get(len as i64 - 1).unwrap().try_hash(state)?;
+                    Ok(())
+                }
+            }
+            Value::Pointer(p) => p.borrow_value().try_hash(state),
+            Value::String(s) => Ok(s.hash(state)),
+            Value::Dictionary(_) | Value::Function(_) | Value::Closure(_) | Value::Native(_) => {
+                panic!("This should not be part of a KeyValue")
+            }
+        }
+    }
 }
 
 impl PartialOrd for Value {
@@ -262,7 +328,7 @@ impl PartialOrd for Value {
             (Value::Int(x), Value::Float(y)) => (*x as f64).partial_cmp(y),
             (Value::Float(x), Value::Int(y)) => x.partial_cmp(&(*y as f64)),
             (Value::Float(x), Value::Float(y)) => x.partial_cmp(y),
-            // (Value::String(x), Value::String(y)) => x.partial_cmp(y),
+            (Value::String(x), Value::String(y)) => x.partial_cmp(y),
             _ => None,
         }
     }
@@ -274,7 +340,7 @@ impl PartialEq for Value {
             (Value::Nil, Value::Nil) => true,
             (Value::Bool(a), Value::Bool(b)) => a == b, // Could allow eq between bool/int
             (Value::Int(a), Value::Int(b)) => a == b,
-            (Value::Float(a), Value::Float(b)) => a == b,
+            (Value::Float(a), Value::Float(b)) => a.total_cmp(b).is_eq(),
             (Value::Function(ref a), Value::Function(ref b)) => {
                 // Compare the pointers, to see if they are the exact same function
                 Rc::ptr_eq(a, b)
@@ -292,6 +358,9 @@ impl PartialEq for Value {
     }
 }
 
+/// We use the total order for floats, and otherwise we have no problem
+impl Eq for Value {}
+
 impl Display for ValueType {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         match self {
@@ -304,6 +373,7 @@ impl Display for ValueType {
             ValueType::Closure => write!(f, "Closure"),
             ValueType::List => write!(f, "List"),
             ValueType::String => write!(f, "String"),
+            ValueType::Dictionary => write!(f, "Dictionary"),
         }
     }
 }
@@ -356,6 +426,12 @@ impl From<&str> for Value {
     }
 }
 
+impl From<Dictionary> for Value {
+    fn from(value: Dictionary) -> Self {
+        Value::Dictionary(Rc::new(value))
+    }
+}
+
 impl Display for Value {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         match self {
@@ -381,6 +457,7 @@ impl Display for Value {
                 Ok(())
             }
             Value::String(string) => write!(f, "{}", string),
+            Value::Dictionary(dict) => write!(f, "{}", dict),
         }
     }
 }
@@ -398,6 +475,7 @@ impl Debug for Value {
             Value::Pointer(value) => write!(f, "Pointer({:?})", value),
             Value::List(value) => write!(f, "List({:?})", value),
             Value::String(value) => write!(f, "String({value})"),
+            Value::Dictionary(dict) => write!(f, "{:?}", dict),
         }
     }
 }

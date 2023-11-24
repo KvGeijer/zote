@@ -1,4 +1,7 @@
-use std::{cell::RefCell, rc::Rc};
+use std::{
+    cell::{Ref, RefCell},
+    rc::Rc,
+};
 
 use super::Value;
 
@@ -22,5 +25,10 @@ impl ValuePointer {
 
     pub fn get_clone(&self) -> Value {
         self.pointer.borrow().clone()
+    }
+
+    /// Borrows a reference to the underlying value
+    pub fn borrow_value(&self) -> Ref<Value> {
+        self.pointer.borrow()
     }
 }

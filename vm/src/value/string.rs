@@ -1,10 +1,10 @@
-use std::{cell::RefCell, fmt::Display};
+use std::{cell::RefCell, fmt::Display, hash::Hash};
 
 use crate::error::{RunRes, RunResTrait};
 
 use super::Value;
 
-#[derive(Debug)]
+#[derive(Debug, Clone)]
 pub struct ValueString {
     string: RefCell<Vec<u8>>,
 }
@@ -111,6 +111,7 @@ impl PartialEq for ValueString {
         self.string.borrow().eq(other_str)
     }
 }
+impl Eq for ValueString {}
 
 impl PartialOrd for ValueString {
     fn partial_cmp(&self, other: &Self) -> Option<std::cmp::Ordering> {
@@ -131,5 +132,18 @@ fn index_wrap(index: i64, len: usize) -> usize {
         }
     } else {
         index as usize
+    }
+}
+
+impl Hash for ValueString {
+    fn hash<H: std::hash::Hasher>(&self, state: &mut H) {
+        let vec = self.string.borrow();
+        for c in vec.iter().take(2) {
+            c.hash(state);
+        }
+
+        for c in vec.iter().rev().take(2) {
+            c.hash(state);
+        }
     }
 }

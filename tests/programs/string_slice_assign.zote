@@ -1,0 +1,4 @@
+str := "hejsan";
+str[0:2] = "de";
+
+print(str);

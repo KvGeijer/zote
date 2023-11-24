@@ -172,3 +172,14 @@ fn dict_read_write() {
     let output = interpret("tests/programs/dict_read_write.zote");
     assert_eq!(output, "10\n20\n11\n22\n")
 }
+
+#[test]
+fn string_slice_assign() {
+    let output = interpret("tests/programs/string_slice_assign.zote");
+    assert_eq!(output, "dejsan\n")
+}
+#[test]
+fn string_slice_read() {
+    let output = interpret("tests/programs/string_slice_read.zote");
+    assert_eq!(output, "he\n")
+}

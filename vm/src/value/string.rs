@@ -31,10 +31,16 @@ impl ValueString {
 
     pub fn get(&self, index: i64) -> RunRes<Value> {
         let string = self.string.borrow();
+        let len = string.len();
 
-        let uindex = index_wrap(index, string.len());
+        let uindex = index_wrap(index, len);
 
-        Ok(ValueString::from(string[uindex]).into())
+        match string.get(uindex) {
+            Some(&entry) => Ok(ValueString::from(entry).into()),
+            None => RunRes::new_err(format!(
+                "Index {index} out of bound for list of length {len}."
+            )),
+        }
     }
 
     pub fn push(&self, value: Value) -> RunRes<()> {
@@ -72,6 +78,19 @@ impl ValueString {
             string: RefCell::new(new_vec),
         }
     }
+
+    /// Constructs a new string from a slice of this one
+    pub fn slice(&self, start: Option<i64>, stop: Option<i64>, step: Option<i64>) -> RunRes<Self> {
+        let step = step.unwrap_or(1);
+
+        let string = self.string.borrow();
+        let mut slice = vec![];
+        for ind in super::list::slice_iter(start, stop, step, string.len())? {
+            slice.push(string[ind])
+        }
+
+        Ok(slice.into())
+    }
 }
 
 impl From<String> for ValueString {
@@ -94,6 +113,14 @@ impl From<u8> for ValueString {
     fn from(byte: u8) -> Self {
         Self {
             string: RefCell::new(vec![byte]),
+        }
+    }
+}
+
+impl From<Vec<u8>> for ValueString {
+    fn from(value: Vec<u8>) -> Self {
+        Self {
+            string: RefCell::new(value),
         }
     }
 }

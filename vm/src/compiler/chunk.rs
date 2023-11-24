@@ -88,6 +88,21 @@ impl Chunk {
         self.opcode_ranges.get(&offset)
     }
 
+    /// Gets the range preceeding offset
+    pub fn get_prev_range(&self, mut offset: usize) -> Option<&CodeRange> {
+        loop {
+            if let Some(range) = self.opcode_ranges.get(&offset) {
+                return Some(range);
+            }
+
+            if offset == 0 {
+                return None;
+            } else {
+                offset -= 1;
+            }
+        }
+    }
+
     pub fn len(&self) -> usize {
         self.code.len()
     }

@@ -1,0 +1,2 @@
+str := "hejsan";
+str[0:2] >> print;

@@ -51,11 +51,11 @@ impl List {
     /// Gets the value at the index, potentially wrapping for negative values
     pub fn get(&self, index: i64) -> RunRes<Value> {
         // println!("Getting {index} in list {:?}", self);
-        let mut vec = self.vec.borrow_mut();
+        let vec = self.vec.borrow();
         let len = vec.len();
 
         let uindex = index_wrap(index, len);
-        match vec.get_mut(uindex) {
+        match vec.get(uindex) {
             Some(entry) => Ok(entry.clone()),
             None => RunRes::new_err(format!(
                 "Index {index} out of bound for list of length {len}."

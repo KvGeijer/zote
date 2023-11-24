@@ -9,7 +9,7 @@ use std::{mem, rc::Rc};
 use crate::{
     compiler::{Chunk, OpCode},
     disassembler::disassemble_instruction,
-    error::{RunRes, RuntimeError},
+    error::{RunRes, RunResTrait, RuntimeError},
     value::{Closure, List, Value, ValuePointer},
 };
 
@@ -309,12 +309,22 @@ impl VM {
                 let step = self.pop().to_int_or_nil_none()?;
                 let stop = self.pop().to_int_or_nil_none()?;
                 let start = self.pop().to_int_or_nil_none()?;
-                let list = self.pop().to_list().ok_or(RuntimeError::bare_error(
-                    "Can only slice into list".to_string(),
-                ))?;
-
-                let slice = list.slice(start, stop, step)?;
-                self.push(slice.into());
+                match self.pop() {
+                    Value::List(list) => {
+                        let slice = list.slice(start, stop, step)?;
+                        self.push(slice.into());
+                    }
+                    Value::String(string) => {
+                        let slice = string.slice(start, stop, step)?;
+                        self.push(slice.into());
+                    }
+                    otherwise => {
+                        return RunRes::new_err(format!(
+                            "Can only slice into list or string. Got {}.",
+                            otherwise.type_of()
+                        ))
+                    }
+                }
             }
             OpCode::TopToIter => {
                 let iter = self.pop().conv_to_iter()?;
@@ -485,8 +495,8 @@ impl VM {
             let pc = call_frame.pc;
             let range = call_frame
                 .chunk()
-                .get_range(pc)
-                .expect("OpCodo should have range"); // ERROR: Not the correct pc?
+                .get_prev_range(pc)
+                .expect(&format!("OpCode {pc} should have range")); // ERROR: Not the correct pc?
             let name: String = match &self.stack[call_frame.rbp] {
                 Value::Closure(closure) => closure.function().name().to_owned(),
                 _ => "script".to_owned(),

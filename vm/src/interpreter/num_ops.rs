@@ -22,11 +22,14 @@ fn promote(x: Value, y: Value) -> RunRes<(Value, Value)> {
         (Value::Int(x), Value::Bool(y)) => (Value::Int(x), Value::Int(y as i64)),
         (Value::Int(x), Value::Float(y)) => (Value::Float(x as f64), Value::Float(y)),
         (Value::Int(x), Value::Int(y)) => (Value::Int(x), Value::Int(y)),
-        (x, y) => unimplemented!(
-            "Numerical promotion not implemented for {:?} and {:?}",
-            x,
-            y
-        ),
+        (Value::Pointer(x), y) => promote(x.get_clone(), y)?,
+        (x, Value::Pointer(y)) => promote(x, y.get_clone())?,
+        (x, y) => {
+            return RunRes::new_err(format!(
+                "Numerical promotion not supported for {:?} and {:?}",
+                x, y
+            ))
+        }
     };
 
     Ok(promoted)

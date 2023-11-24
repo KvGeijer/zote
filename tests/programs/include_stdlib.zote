@@ -1,0 +1,3 @@
+include!("stdlib");
+
+[1:4] >> map(\x -> x * "a") >> rev >> print;

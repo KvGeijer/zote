@@ -1,0 +1,64 @@
+// This is the part of the zote standard library written directly
+// in zote. It is included in every build of zote (vm version).
+
+/// Maps the function f over a collection of values
+fn map(coll, f) -> {
+	new := [];
+	for item in coll {
+		item >> f >> push(new);
+	}
+	new
+}
+
+/// Reverses a collection
+fn rev(coll) -> {
+	coll[::-1]
+}
+
+/// Enumerates a collection, starting at 0
+fn enumerate(coll) -> {
+	res := [];
+	ind := 0;
+	for item in coll {
+		[ind, item] >> push(res);
+		ind += 1;
+	}
+	res
+}
+
+/// Splits a collection at a delimiter
+///
+/// It never pushes empty items
+fn split(coll, delimiter) -> {
+	split_start := 0;
+	splits := [];
+	for (ind, entry) in coll >> enumerate {
+		if entry == delimiter {
+			if split_start != ind {
+				coll[split_start:ind] >> push(splits);
+			}
+			split_start = ind + 1;
+		}
+	}
+
+	if split_start != len(coll) - 1 {
+		coll[split_start:] >> push(splits);
+	}
+
+	splits
+}
+
+/// Slices the first values from a coll
+fn take(coll, k) -> {
+	// TODO: DO this in parsing instead
+	coll[:k]
+}
+
+/// Adds up all values in a collection
+fn sum(coll) -> {
+	sum := 0;
+	for item in coll {
+		sum += item;
+	}
+	sum
+}

@@ -7,15 +7,22 @@ impl<'a> Parser<'a> {
     pub(crate) fn macro_include_statement(&mut self) -> Option<Vec<StmtNode>> {
         self.accept(Token::LPar, "Expect parenthesis after 'include!'")?;
 
-        let Token::String(path) = self.take()  else {
+        let Token::String(path) = self.take() else {
             self.error("Expect file path as string in include macro");
-            return None
+            return None;
         };
         let path = path.clone();
 
-        let Ok(included_bytes) = read(path.as_ref()) else {
-            self.error(&format!("Could not open {path} for including code"));
-            return None;
+        // TODO: This is a really bad way to do this. Stdlib should always be included for the vm in some nice way...
+        let included_bytes = match path.as_str() {
+            "stdlib" => include_str!("../../vm/stdlib.zote").as_bytes().to_vec(),
+            otherwise => {
+                let Ok(included_bytes) = read(otherwise) else {
+                    self.error(&format!("Could not open {path} for including code"));
+                    return None;
+                };
+                included_bytes
+            }
         };
 
         let Ok(included_code) = String::from_utf8(included_bytes) else {

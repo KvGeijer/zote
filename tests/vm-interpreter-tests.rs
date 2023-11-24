@@ -178,8 +178,15 @@ fn string_slice_assign() {
     let output = interpret("tests/programs/string_slice_assign.zote");
     assert_eq!(output, "dejsan\n")
 }
+
 #[test]
 fn string_slice_read() {
     let output = interpret("tests/programs/string_slice_read.zote");
     assert_eq!(output, "he\n")
+}
+
+#[test]
+fn include_stdlib() {
+    let output = interpret("tests/programs/include_stdlib.zote");
+    assert_eq!(output, "[6, 4, 2]\n");
 }

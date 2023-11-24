@@ -46,7 +46,7 @@ fn restore_dir(saved: Option<PathBuf>) {
 }
 /// Interprets the string as if from a file.
 fn run_str(name: &str, code: &str) -> i32 {
-    if let Some(stmts) = parser::parse(name, code) {
+    if let Some(stmts) = parser::parse(name, &code) {
         let ast = semantic_analyzer::analyze_ast(&stmts);
         vm::interpret_once(&ast)
     } else {

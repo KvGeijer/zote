@@ -1,7 +1,7 @@
 use parser::{CodeRange, ExprNode, LValue};
 
 use crate::{
-    compiler::{Chunk, CompRes, Compiler, OpCode},
+    compiler::{Chunk, CompRes, CompRetRes, Compiler, OpCode},
     value::Function,
 };
 
@@ -13,7 +13,7 @@ impl Compiler<'_> {
     pub fn compile_function_def(
         &mut self,
         name: &str,
-        rec_name: Option<String>,
+        rec_name: Option<&String>,
         params: &[LValue],
         body: &ExprNode,
         upvalues: &[String],
@@ -31,7 +31,7 @@ impl Compiler<'_> {
 
         if let Some(binding) = rec_name {
             // The function should be able to call itself, so add it as an argument (it is also pushed before args on stack)
-            self.locals.add_local(binding, false);
+            self.locals.add_local(binding.to_owned(), false);
         } else {
             // Just add a dummy-value so that it cannot be refered to
             // ERROR: If we can create "" variable, or create conflicting dummy
@@ -41,13 +41,13 @@ impl Compiler<'_> {
         // The new chunk to use for the function
         let mut func_chunk = Chunk::new();
 
-        // Add all of the parameters as locals
-        for param in params {
-            // Parameters are just local variables in outermost scope
-            self.declare_local(param, range.clone(), &mut func_chunk, true)?;
-        }
+        // Add all of the parameters as reachable locals
         // The function and locals take up the first `arity + 1` spots in the call frame
+        // Then they also take up one extra spot for each parameter which is a pattern match
+        let extra_locals = self.declare_parameters(params, range.clone(), &mut func_chunk)?;
+        self.compile_parameter_expansion(params, range.clone(), &mut func_chunk)?;
 
+        // Compile the actual body into the func chunk
         self.compile_expression(body, &mut func_chunk)?;
 
         // Return implicitly in case of no other return
@@ -56,7 +56,12 @@ impl Compiler<'_> {
         // Exit the function scope
         self.locals.de_nest();
 
-        let func = Function::new(params.len() as u8, nbr_locals, name.to_string(), func_chunk);
+        let func = Function::new(
+            params.len() as u8,
+            nbr_locals + extra_locals,
+            name.to_string(),
+            func_chunk,
+        );
 
         // self.add_function(func);
         // chunk.push_constant_plus(func.into(), range);
@@ -88,6 +93,63 @@ impl Compiler<'_> {
         Ok(())
     }
 
+    /// Declares all the parameters as locals, handling pattern matching expanding
+    ///
+    /// Returns the extra number of locals needed to store arguments to expand into pattern matches
+    fn declare_parameters(
+        &mut self,
+        params: &[LValue],
+        range: CodeRange,
+        chunk: &mut Chunk,
+    ) -> CompRetRes<usize> {
+        // This is the nubmer of params which pattern match.
+        // Every such argument will be placed in its topmots form as an argument,
+        // and then it will be unpacked into local variables (the inner variables).
+        let mut extra_param_slots = params.len();
+
+        for param in params {
+            // Parameters are just local variables in outermost scope
+            if let LValue::Var(name) = param {
+                // TODO: Handle when one of them is an upvalue, where it should be wrapped in a pointer, as opposed to overwritten with a pointer as it is here
+                self.declare_local_var(name, range.clone(), chunk);
+
+                // This uses a normal spot, so we will not need an extra slot for it
+                extra_param_slots -= 1;
+            } else {
+                // Declare a dummy local as we will not be able to directly access the value placed in this argument location
+                self.declare_local_var(&"".to_string(), range.clone(), chunk);
+            }
+        }
+
+        Ok(extra_param_slots)
+    }
+
+    /// Compiles expansion of all arguments into pattern matches of parameters
+    fn compile_parameter_expansion(
+        &mut self,
+        params: &[LValue],
+        range: CodeRange,
+        chunk: &mut Chunk,
+    ) -> CompRes {
+        for (param_ind, param) in params.iter().enumerate() {
+            if !matches!(param, LValue::Var(_)) {
+                // Pattern matching lvalue. The arg is stored at the arg_ind offset from rbp
+
+                // 1: Declare the variables as locals
+                self.declare_local(param, range.clone(), chunk)?;
+
+                // 2: Read the matching arg
+                chunk.push_opcode(OpCode::ReadLocal, range.clone());
+                chunk.push_u8_offset((param_ind + 1) as u8);
+
+                // 3: assign the read value into the pattern
+                self.compile_assign(param, range.clone(), chunk)?;
+            }
+        }
+
+        Ok(())
+    }
+
     /// So far can only handle hard-coded print calls
     pub fn compile_call(
         &mut self,
@@ -103,7 +165,8 @@ impl Compiler<'_> {
         // Push the bound function variable to the stack
         self.compile_expression(func, chunk)?;
 
-        // Push the args onto the stack
+        // Push the arguments on the stack.
+        // HOWEVER: These must be re-assigned in a pattern matching way when calling
         for arg in args {
             self.compile_expression(arg, chunk)?;
         }

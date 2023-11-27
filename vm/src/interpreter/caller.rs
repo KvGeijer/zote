@@ -45,6 +45,7 @@ impl VM {
 
                 // Increment the stack top to cover all eventual local variables
                 self.stack_top += closure.nbr_locals() - arg_count;
+
                 Ok(())
             }
             Value::Native(native) => {

@@ -1,0 +1,11 @@
+// fn scoring_easy(arg) -> {
+// 	(you, opp) := arg;
+// 	print(you, " -- ", opp);
+// }
+
+fn scoring((you, opp)) -> print(you, " -- ", opp);
+
+// scoring_easy([1, 2]);
+// scoring_easy("ab");
+scoring([1, 2]);
+scoring("ab");

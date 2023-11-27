@@ -14,7 +14,7 @@ fn interpret_day(name: &str) -> String {
 }
 
 #[test]
-fn aoc_2022_1_vm() {
+fn vm_aoc_2022_1() {
     let output = interpret_day("day01");
     assert_eq!(output, "68923\n200044\n");
 }

@@ -40,6 +40,7 @@ impl Compiler<'_> {
         }
     }
 
+    /// Compiles a declaration. Declaring lhs after calculating rhs
     fn compile_declaration(
         &mut self,
         lvalue: &LValue,
@@ -47,13 +48,19 @@ impl Compiler<'_> {
         range: CodeRange,
         chunk: &mut Chunk,
     ) -> CompRes {
-        if !self.is_global() {
-            self.declare_local(lvalue, range.clone(), chunk, true)?;
-        }
         if let Some(expr) = expr {
-            self.compile_lvalue_assignment(lvalue, expr, range.clone(), chunk)?;
-            chunk.push_opcode(OpCode::Discard, range);
+            self.compile_expression(expr, chunk)?;
         }
+
+        if !self.is_global() {
+            self.declare_local(lvalue, range.clone(), chunk)?;
+        }
+
+        if expr.is_some() {
+            // Just do the assignment
+            self.compile_assign(lvalue, range, chunk)?;
+        }
+
         Ok(())
     }
 
@@ -61,42 +68,40 @@ impl Compiler<'_> {
     ///
     /// Mostly no codegen, but it assigns pointers to NIL for declared pointers.
     /// lvalue_top specifies if this is the topmost lvalue in a declaration
-    fn declare_local(
-        &mut self,
-        lvalue: &LValue,
-        range: CodeRange,
-        chunk: &mut Chunk,
-        lvalue_top: bool,
-    ) -> CompRes {
+    fn declare_local(&mut self, lvalue: &LValue, range: CodeRange, chunk: &mut Chunk) -> CompRes {
         match lvalue {
             LValue::Index(_, _) => {
                 return Err(format!("Cannot assign at an index in a declaration"))
             }
-            LValue::Var(name) => {
-                if self.attributes.is_upvalue(name) {
-                    // Declares the local as a pointer insteal of a flat value
-                    let offset = self.locals.add_local(name.to_owned(), true);
-
-                    // TODO: THis could be done with eg semantic analysis help in the first assignment
-                    // which would save computation, and remove codegen from this function.
-
-                    // Assign it a new empty pointer
-                    chunk.push_opcode(OpCode::EmptyPointer, range.clone());
-                    chunk.push_opcode(OpCode::AssignLocal, range.clone());
-                    chunk.push_u8_offset(offset);
-                } else {
-                    self.locals.add_local(name.to_owned(), false);
-                }
-            }
+            LValue::Var(name) => self.declare_local_var(name, range, chunk),
             LValue::Tuple(lvalues) => {
                 for lvalue in lvalues.iter() {
-                    self.declare_local(lvalue, range.clone(), chunk, false)?;
+                    self.declare_local(lvalue, range.clone(), chunk)?;
                 }
             }
-            LValue::Constant(_) if lvalue_top => return Err(format!("Cannot declare a constant")),
             LValue::Constant(_) => (),
         }
         Ok(())
+    }
+
+    /// Inner function of declare_local, which declares the Var variant
+    ///
+    /// The name has to be the reference to the name in the Lvalue Var for semantic analysis
+    pub fn declare_local_var(&mut self, name: &String, range: CodeRange, chunk: &mut Chunk) {
+        if self.attributes.is_upvalue(name) {
+            // Declares the local as a pointer insteal of a flat value
+            let offset = self.locals.add_local(name.to_owned(), true);
+
+            // TODO: THis could be done with eg semantic analysis help in the first assignment
+            // which would save computation, and remove codegen from this function.
+
+            // Assign it a new empty pointer
+            chunk.push_opcode(OpCode::EmptyPointer, range.clone());
+            chunk.push_opcode(OpCode::AssignLocal, range.clone());
+            chunk.push_u8_offset(offset);
+        } else {
+            self.locals.add_local(name.to_owned(), false);
+        }
     }
 
     pub fn declare_global(&mut self, name: &str) -> usize {
@@ -160,13 +165,25 @@ impl Compiler<'_> {
             Expr::FunctionDefinition(name, params, body) => {
                 let upvalues = self.attributes.upvalue_names(node.as_ref()).unwrap_or(&[]);
                 let rec_name = self.attributes.rec_name(node.as_ref());
+                let name = match &rec_name {
+                    Some(rec_name) => rec_name,
+                    None => name,
+                };
+
                 let nbr_locals = self
                     .attributes
                     .local_count(node.as_ref())
                     .expect("Function must have local count"); // TODO: DO this in compilation phase?
 
                 self.compile_function_def(
-                    name, rec_name, params, body, upvalues, nbr_locals, range, chunk,
+                    &name,
+                    rec_name.as_ref(),
+                    params,
+                    body,
+                    upvalues,
+                    nbr_locals,
+                    range,
+                    chunk,
                 )?;
             }
             Expr::Match(base, arms) => self.compile_match(base, arms, range, chunk)?,
@@ -568,7 +585,7 @@ impl Compiler<'_> {
                 self.compile_try_match(pattern, range.clone(), chunk)?;
 
             // If succesfull, assign into the pattern, consuming the value
-            self.declare_local(pattern, range.clone(), chunk, true)?;
+            self.declare_local(pattern, range.clone(), chunk)?;
             self.compile_assign(pattern, range.clone(), chunk)?;
 
             // Execute the expression, and leave it as the top stack value

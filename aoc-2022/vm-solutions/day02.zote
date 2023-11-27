@@ -1,3 +1,5 @@
+include!("stdlib");
+
 fn to_int(char) -> 
 	match char {
 		'A' -> 0,
@@ -12,11 +14,13 @@ fn score1((opp, you)) -> you + 1 + ((you - opp + 1) % 3) * 3;
 
 fn score2((opp, res)) -> res*3 + (opp + res - 1) % 3 + 1;
 
-[score1, score2] >> map(\score -> 
-	read("aoc-2022/inputs/02.txt") 
-		>> split("\n") 
-		>> map(\>> split(" ") >> map(to_int) >> score)
-		>> sum 
-		>> print
-	);
+[score1, score2] >> map(\score -> {
+		score := score; // Just to get around upvalue problem for a while
+		read("../inputs/02.txt") 
+			>> split("\n") 
+			>> map(\>> split(" ") >> map(to_int) >> score) // Good test: score is both an upvalue and an argument
+			>> sum 
+			>> print
+	}
+);
 	

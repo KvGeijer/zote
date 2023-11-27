@@ -1,0 +1,40 @@
+rocks := set();
+
+for line in read("aoc-2022/inputs/14.txt") >> split("\n") {
+	pairs := split(line, " -> ") >> map(\>> split(",") >> map(int));
+	for ((x1, y1), (x2, y2)) in zip(pairs, pairs[1:]) {
+		// print()
+		if y1 == y2 for x in [min(x1, x2):max(x1,x2)+1] {
+			[x, y1] >> insert(rocks);
+		}
+		else for y in [min(y1, y2):max(y1, y2)+1] {
+			[x1, y] >> insert(rocks);
+		}
+	}
+}
+
+maxy := rocks >> map(\((_, y),_) -> y) >> max;
+
+origin := [500, 0];
+visited := set();
+
+part1 := false;
+
+fn dfs((x, y)) -> {
+	if ([x, y] >> in(visited)) or ([x, y] >> in(rocks)) or y >= maxy + 2 return;
+
+	if y >= maxy and !part1 {
+		print(len(visited));
+		part1 = true;
+		return
+	}
+
+	dfs([x, y+1]);
+	dfs([x-1, y+1]);
+	dfs([x+1, y+1]);
+	
+	[x, y] >> insert(visited);
+}
+
+dfs(origin);
+print(len(visited));

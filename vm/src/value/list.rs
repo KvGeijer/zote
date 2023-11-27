@@ -4,7 +4,7 @@ use itertools::Itertools;
 
 use crate::error::{RunRes, RunResTrait, RuntimeError};
 
-use super::{Dictionary, Value};
+use super::{Closure, Dictionary, Value};
 
 /// A list of values
 ///
@@ -134,6 +134,58 @@ impl List {
     /// This is a very dangerous function, as we can hand out several references
     pub fn borrow_slice(&self) -> Ref<Vec<Value>> {
         self.vec.borrow()
+    }
+
+    /// Sorts the list in ascending order
+    pub fn sort(&self) -> RunRes<Self> {
+        let mut vec = self.vec.borrow().clone();
+        let mut errors: Vec<String> = vec![];
+
+        vec.sort_by(|a, b| {
+            a.partial_cmp(&b).unwrap_or_else(|| {
+                errors.push(format!(
+                    "ERROR: Trying to sort with both {} and {}",
+                    a.type_of(),
+                    b.type_of()
+                ));
+                std::cmp::Ordering::Equal
+            })
+        });
+
+        if errors.is_empty() {
+            Ok(vec.into())
+        } else {
+            RunRes::new_err(errors.into_iter().next().unwrap())
+        }
+    }
+
+    /// Sorts the list in ascending order, by the comparator supplied
+    pub fn sort_by(&self, _cmp: &Closure) -> RunRes<Self> {
+        // TODO: We need access to the vm for this, as we need to call custom functions within this one
+        RunRes::new_err("Sorting by a custom function not yet implemented in vm".to_string())
+    }
+
+    pub fn split(&self, delim: Value) -> List {
+        let mut splits: Vec<Value> = vec![];
+        let mut last_start_ind = 0;
+        let vec = self.vec.borrow();
+        for (ind, value) in vec.iter().enumerate() {
+            if value == &delim {
+                // split, unless emtpy
+                if ind != last_start_ind {
+                    splits.push(
+                        List::from(vec[last_start_ind..ind].iter().cloned().collect_vec()).into(),
+                    )
+                }
+                last_start_ind = ind + 1;
+            }
+        }
+        // Possible last split
+        if last_start_ind != vec.len() {
+            splits.push(List::from(vec[last_start_ind..].iter().cloned().collect_vec()).into())
+        }
+
+        splits.into()
     }
 }
 

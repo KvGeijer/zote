@@ -1,0 +1,57 @@
+read("aoc-2022/inputs/09.txt")
+	>> split("\n")
+	>> map(\>> split(" "))
+	:>> instrs;
+
+// Add to some stdlib
+sgn := \x -> 
+	if x > 0 {1} 
+	else if x < 0 {-1} 
+	else {0};
+
+solve := \length -> {
+	points := [];
+	for _ in [0:length] {
+		[0, 0] >> push(points);
+	}
+	visited := set();
+
+	for (dir, len) in instrs {
+		for _ in [0:int(len)] {
+			match dir {
+				'D' -> points[0][1] -= 1,
+				'U' -> points[0][1] += 1,
+				'L' -> points[0][0] -= 1,
+				'R' -> points[0][0] += 1,
+			}
+
+			for (i, ((x_front, y_front), (x_back, y_back))) in enumerate(zip(points[:-1], points[1:])) {
+				match [x_back - x_front, y_back - y_front] {
+					(-2, y) -> {
+						points[i+1][0] += 1;
+						points[i+1][1] -= sgn(y);
+					},
+					( 2, y) -> {
+						points[i+1][0] -= 1;
+						points[i+1][1] -= sgn(y);
+					},
+					(x, -2) -> {
+						points[i+1][1] += 1;
+						points[i+1][0] -= sgn(x);
+					},
+					(x,  2) -> {
+						points[i+1][1] -= 1;
+						points[i+1][0] -= sgn(x);
+					},
+					_ -> {},
+				}
+
+				points[-1] >> insert(visited);
+			}
+		}
+	}
+
+	visited >> len >> print;
+}; // TODO: Remove need for semicolon here?
+
+[2, 10] >> map(solve);

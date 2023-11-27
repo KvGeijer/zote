@@ -27,6 +27,14 @@ impl VM {
                 // Ok(())
             }
             Value::Closure(closure) => {
+                if !closure.function().validate_argcount(arg_count) {
+                    return RunRes::new_err(format!(
+                        "Tried to call function {} with {arg_count}, but expected {}",
+                        closure.function().name(),
+                        closure.function().arity()
+                    ));
+                }
+
                 // Create the next call frame
                 // The closure and args should be pushed on the stack
                 let new_rbp = self.stack_top - 1 - arg_count;

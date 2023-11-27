@@ -1,6 +1,6 @@
 use std::{cell::RefCell, fmt::Display, hash::Hash};
 
-use crate::error::{RunRes, RunResTrait};
+use crate::error::{RunRes, RunResTrait, RuntimeError};
 
 use super::Value;
 
@@ -90,6 +90,51 @@ impl ValueString {
         }
 
         Ok(slice.into())
+    }
+
+    /// Tries to parse the string as an int
+    pub fn parse_int(&self) -> RunRes<i64> {
+        self.to_string()
+            .parse()
+            .map_err(|reason| RuntimeError::bare_error(format!("Failed parsing an int: {reason}")))
+    }
+
+    /// Tries to parse the string as a float
+    pub fn parse_float(&self) -> RunRes<f64> {
+        self.to_string()
+            .parse()
+            .map_err(|reason| RuntimeError::bare_error(format!("Failed parsing an int: {reason}")))
+    }
+
+    /// Splits string into a list around dgiven delimiter. Cannot get empty entries
+    pub fn split(&self, delimiter: Value) -> RunRes<Vec<ValueString>> {
+        let Some(str_delim) = delimiter.to_valuestring() else {
+            return RunRes::new_err(format!("Can only split string around another string."));
+        };
+
+        let mut splits: Vec<ValueString> = vec![];
+        let mut last_start_ind = 0;
+
+        let string = self.string.borrow();
+        let other = str_delim.string.borrow();
+
+        let mut start_ind = 0;
+        while start_ind <= string.len() - other.len() {
+            if string[start_ind..(start_ind + other.len())] == other[..] {
+                if last_start_ind != start_ind {
+                    splits.push(string[last_start_ind..start_ind].to_vec().into())
+                }
+                start_ind += str_delim.len();
+                last_start_ind = start_ind;
+            } else {
+                start_ind += 1;
+            }
+        }
+        if last_start_ind != start_ind {
+            splits.push(string[last_start_ind..].to_vec().into());
+        }
+
+        Ok(splits.into())
     }
 }
 

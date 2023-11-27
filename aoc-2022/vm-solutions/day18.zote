@@ -1,0 +1,56 @@
+read("aoc-2022/inputs/18.txt") 
+	>> split("\n")
+	>> map(\>> split(",") >> map(int))
+	>> set
+	:>> rock;
+
+exposed := 0;
+for ind in keys(rock) {
+	for d in [1, -1] for i in [0:3] {
+		neigh := ind >> map(id);
+		neigh[i] += d;
+		if !in(neigh, rock) exposed += 1;
+	}
+}
+print(exposed);
+
+maxs := [Nil, Nil, Nil];
+mins := [Nil, Nil, Nil];
+for i in [0:3] {
+	maxs[i] = rock >> keys
+		>> map(\p -> p[i])
+		>> max;
+	mins[i] = rock >> keys
+		>> map(\p -> p[i])
+		>> min;
+}
+
+fn in_bounds(at) -> {
+	for i in [0:3] {
+		if at[i] > maxs[i] + 1 or at[i] < mins[i] - 1 return false;
+	}
+	true
+}
+
+outside := set();
+exposed_out := 0;
+next_round := [maxs, mins];
+
+while next_round {
+	this_round := next_round;
+	next_round = [];
+	for at in this_round if !in(at, outside) and in_bounds(at) {
+		at >> insert(outside);
+
+		for d in [1, -1] for i in [0:3] {
+			neigh := at >> map(id);
+			neigh[i] += d;
+			if in(neigh, rock) {
+				exposed_out += 1;
+			} else {
+				neigh >> push(next_round);
+			}
+		}
+	}
+}
+print(exposed_out);

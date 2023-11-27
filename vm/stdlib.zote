@@ -26,27 +26,28 @@ fn enumerate(coll) -> {
 	res
 }
 
-/// Splits a collection at a delimiter
-///
-/// It never pushes empty items
-fn split(coll, delimiter) -> {
-	split_start := 0;
-	splits := [];
-	for (ind, entry) in coll >> enumerate {
-		if entry == delimiter {
-			if split_start != ind {
-				coll[split_start:ind] >> push(splits);
-			}
-			split_start = ind + 1;
-		}
-	}
+// We want to handle lists and strings differently eg when delimiter is several characters long
+// /// Splits a collection at a delimiter
+// ///
+// /// It never pushes empty items
+// fn split(coll, delimiter) -> {
+// 	split_start := 0;
+// 	splits := [];
+// 	for (ind, entry) in coll >> enumerate {
+// 		if entry == delimiter {
+// 			if split_start != ind {
+// 				coll[split_start:ind] >> push(splits);
+// 			}
+// 			split_start = ind + 1;
+// 		}
+// 	}
 
-	if split_start != len(coll) {
-		coll[split_start:] >> push(splits);
-	}
+// 	if split_start != len(coll) {
+// 		coll[split_start:] >> push(splits);
+// 	}
 
-	splits
-}
+// 	splits
+// }
 
 /// Slices the first values from a coll
 fn take(coll, k) -> {

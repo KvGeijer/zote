@@ -125,6 +125,14 @@ impl Value {
         }
     }
 
+    pub fn to_valuestring(self) -> Option<Rc<ValueString>> {
+        if let Value::String(string) = self {
+            Some(string)
+        } else {
+            None
+        }
+    }
+
     /// Tries to convert a value to something iterable
     pub fn conv_to_iter(self) -> RunRes<Value> {
         let typ = self.type_of();
@@ -399,6 +407,12 @@ impl From<Native> for Value {
 impl From<i64> for Value {
     fn from(int: i64) -> Self {
         Value::Int(int)
+    }
+}
+
+impl From<f64> for Value {
+    fn from(float: f64) -> Self {
+        Value::Float(float)
     }
 }
 

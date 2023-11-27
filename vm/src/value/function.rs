@@ -26,6 +26,13 @@ impl Function {
         self.arity
     }
 
+    pub fn validate_argcount(&self, count: usize) -> bool {
+        if count >= u8::MAX as usize {
+            return false;
+        }
+        self.arity == count as u8
+    }
+
     pub fn name(&self) -> &str {
         &self.name
     }

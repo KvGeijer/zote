@@ -41,7 +41,7 @@ fn split(coll, delimiter) -> {
 		}
 	}
 
-	if split_start != len(coll) - 1 {
+	if split_start != len(coll) {
 		coll[split_start:] >> push(splits);
 	}
 

@@ -188,5 +188,5 @@ fn string_slice_read() {
 #[test]
 fn include_stdlib() {
     let output = interpret("tests/programs/include_stdlib.zote");
-    assert_eq!(output, "[6, 4, 2]\n");
+    assert_eq!(output, "[6, 4, 2]\n[[2, 3], [52], [5]]\n[hej, på, dig]\n");
 }

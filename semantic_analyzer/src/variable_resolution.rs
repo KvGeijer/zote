@@ -195,11 +195,18 @@ impl<'a> AstVisitor for Resolver<'a> {
             }
         }
 
+        // The parameters are created in a new scope
+        let global_scope = self.global_scope;
+        self.global_scope = false;
+
         // Default visit
         for param in params {
             self.visit_lvalue(param, true);
         }
         self.visit_expr(body);
+
+        // Reset global scope status
+        self.global_scope = global_scope;
 
         // Ugly way to do it
         let scope = mem::replace(&mut self.scope, VarScope::empty());

@@ -73,7 +73,7 @@ impl Compiler<'_> {
             LValue::Index(_, _) => {
                 return Err(format!("Cannot assign at an index in a declaration"))
             }
-            LValue::Var(name) => self.declare_local_var(name, range, chunk),
+            LValue::Var(name) => self.declare_local_var(name, false, range, chunk),
             LValue::Tuple(lvalues) => {
                 for lvalue in lvalues.iter() {
                     self.declare_local(lvalue, range.clone(), chunk)?;
@@ -87,7 +87,13 @@ impl Compiler<'_> {
     /// Inner function of declare_local, which declares the Var variant
     ///
     /// The name has to be the reference to the name in the Lvalue Var for semantic analysis
-    pub fn declare_local_var(&mut self, name: &String, range: CodeRange, chunk: &mut Chunk) {
+    pub fn declare_local_var(
+        &mut self,
+        name: &String,
+        already_inplace: bool,
+        range: CodeRange,
+        chunk: &mut Chunk,
+    ) {
         if self.attributes.is_upvalue(name) {
             // Declares the local as a pointer insteal of a flat value
             let offset = self.locals.add_local(name.to_owned(), true);
@@ -95,10 +101,29 @@ impl Compiler<'_> {
             // TODO: THis could be done with eg semantic analysis help in the first assignment
             // which would save computation, and remove codegen from this function.
 
-            // Assign it a new empty pointer
-            chunk.push_opcode(OpCode::EmptyPointer, range.clone());
-            chunk.push_opcode(OpCode::AssignLocal, range.clone());
-            chunk.push_u8_offset(offset);
+            if !already_inplace {
+                // Assign it a new empty pointer
+                chunk.push_opcode(OpCode::EmptyPointer, range.clone());
+                chunk.push_opcode(OpCode::AssignLocal, range.clone());
+                chunk.push_u8_offset(offset);
+            } else {
+                // Mainly for argument, where it is alredy in place where it should be
+                // Therefore we must instead wrap an existing value in a pointer
+                // TODO: We could combine this with EmptyPointer to only have one
+
+                // 1: Read the value and temporarily store in on top of stack
+                chunk.push_opcode(OpCode::ReadLocal, range.clone());
+                chunk.push_u8_offset(offset);
+
+                // 2: Assign a new empty pointer to the variable
+                chunk.push_opcode(OpCode::EmptyPointer, range.clone());
+                chunk.push_opcode(OpCode::AssignLocal, range.clone());
+                chunk.push_u8_offset(offset);
+
+                // 3: Assign the value into the pointer
+                chunk.push_opcode(OpCode::AssignPointer, range);
+                chunk.push_u8_offset(offset);
+            }
         } else {
             self.locals.add_local(name.to_owned(), false);
         }

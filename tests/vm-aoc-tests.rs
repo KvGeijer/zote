@@ -18,3 +18,9 @@ fn vm_aoc_2022_1() {
     let output = interpret_day("day01");
     assert_eq!(output, "68923\n200044\n");
 }
+
+#[test]
+fn vm_aoc_2022_2() {
+    let output = interpret_day("day02");
+    assert_eq!(output, "12586\n13193\n");
+}

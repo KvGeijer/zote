@@ -196,3 +196,9 @@ fn vm_assign_arg_tuple() {
     let output = interpret("tests/programs/assign_arg_tuple.zote");
     assert_eq!(output, "1 -- 2\na -- b\n");
 }
+
+#[test]
+fn vm_upvalue_param() {
+    let output = interpret("tests/programs/upvalue_param.zote");
+    assert_eq!(output, "yes\n");
+}

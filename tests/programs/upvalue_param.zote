@@ -1,0 +1,8 @@
+fn outer(x) -> {
+	fn inner() -> {
+		print(x);
+	}
+	inner
+}
+
+outer("yes")();

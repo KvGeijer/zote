@@ -110,14 +110,14 @@ impl Compiler<'_> {
         for param in params {
             // Parameters are just local variables in outermost scope
             if let LValue::Var(name) = param {
-                // TODO: Handle when one of them is an upvalue, where it should be wrapped in a pointer, as opposed to overwritten with a pointer as it is here
-                self.declare_local_var(name, range.clone(), chunk);
+                // Set already-inplace to signify we have already pushed the value at this point
+                self.declare_local_var(name, true, range.clone(), chunk);
 
                 // This uses a normal spot, so we will not need an extra slot for it
                 extra_param_slots -= 1;
             } else {
                 // Declare a dummy local as we will not be able to directly access the value placed in this argument location
-                self.declare_local_var(&"".to_string(), range.clone(), chunk);
+                self.declare_local_var(&"".to_string(), true, range.clone(), chunk);
             }
         }
 

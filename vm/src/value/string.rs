@@ -2,7 +2,7 @@ use std::{cell::RefCell, fmt::Display, hash::Hash};
 
 use crate::error::{RunRes, RunResTrait, RuntimeError};
 
-use super::Value;
+use super::{List, Value};
 
 #[derive(Debug, Clone)]
 pub struct ValueString {
@@ -217,5 +217,15 @@ impl Hash for ValueString {
         for c in vec.iter().rev().take(2) {
             c.hash(state);
         }
+    }
+}
+
+impl Into<List> for &ValueString {
+    fn into(self) -> List {
+        self.to_string()
+            .chars()
+            .map(|char| Value::Int(char as usize as i64))
+            .collect::<Vec<Value>>()
+            .into()
     }
 }

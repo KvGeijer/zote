@@ -7,7 +7,8 @@ use super::Builtin;
 use std::rc::Rc;
 
 pub fn get_builtins() -> Vec<Rc<dyn Builtin>> {
-    let mut builtins: Vec<Rc<dyn Builtin>> = vec![Rc::new(DictNative), Rc::new(SortNative)];
+    let mut builtins: Vec<Rc<dyn Builtin>> =
+        vec![Rc::new(DictNative), Rc::new(SortNative), Rc::new(SetNative)];
 
     builtins.new_1arg("pop", |collection| collection.pop());
 
@@ -74,6 +75,8 @@ pub fn get_builtins() -> Vec<Rc<dyn Builtin>> {
         parse(value)
     });
 
+    builtins.new_1arg("to_ascii", |value| Ok(Value::Int(value.to_char()? as i64)));
+
     builtins.new_2arg("split", |value, delimiter| match value {
         Value::String(valuestring) => Ok(List::from(
             valuestring
@@ -90,6 +93,17 @@ pub fn get_builtins() -> Vec<Rc<dyn Builtin>> {
     builtins.new_2arg("push", |value, collection| {
         collection.push(value)?;
         Ok(collection)
+    });
+
+    builtins.new_2arg("intersect", |dict1, dict2| {
+        let (t1, t2) = (dict1.type_of(), dict2.type_of());
+        let (Some(d1), Some(d2)) = (dict1.to_dict(), dict2.to_dict()) else {
+            return RunRes::new_err(format!(
+                "intersect must take two dictionaries, but got {} and {}",
+                t1, t2
+            ));
+        };
+        Ok(d1.intersect(d2.as_ref()).into())
     });
 
     builtins.new_any_arg("print", |args| {
@@ -109,7 +123,7 @@ impl Builtin for DictNative {
         if let Some(value) = args.into_iter().next() {
             let kind = value.type_of();
             let list: Rc<List> = value.to_list().ok_or(RuntimeError::bare_error(format!("The function 'dict' takes a single list as argument with all its pairs, or no list, but got {kind}")))?;
-            let dict: Dictionary = list.as_ref().try_into()?;
+            let dict: Dictionary = list.as_ref().try_into_dict()?;
             Ok(dict.into())
         } else {
             Ok(Dictionary::new().into())
@@ -122,6 +136,35 @@ impl Builtin for DictNative {
 
     fn name(&self) -> &str {
         "dict"
+    }
+
+    fn arity(&self) -> &str {
+        "[0, 1]"
+    }
+}
+
+struct SetNative;
+impl Builtin for SetNative {
+    fn run(&self, args: Vec<Value>) -> RunRes<Value> {
+        if let Some(value) = args.into_iter().next() {
+            let list: Rc<List> = value.conv_to_list().map_err(|reason| {
+                RuntimeError::bare_error(format!(
+                    "{reason} When trying to create a set from a list"
+                ))
+            })?;
+            let dict: Dictionary = list.as_ref().try_into_set()?;
+            Ok(dict.into())
+        } else {
+            Ok(Dictionary::new().into())
+        }
+    }
+
+    fn accept_arity(&self, arity: usize) -> bool {
+        [0, 1].contains(&arity)
+    }
+
+    fn name(&self) -> &str {
+        "set"
     }
 
     fn arity(&self) -> &str {

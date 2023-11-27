@@ -187,20 +187,9 @@ impl List {
 
         splits.into()
     }
-}
 
-impl From<Vec<Value>> for List {
-    fn from(value: Vec<Value>) -> Self {
-        Self {
-            vec: RefCell::new(value),
-        }
-    }
-}
-
-impl TryInto<Dictionary> for &List {
-    type Error = RuntimeError;
-
-    fn try_into(self) -> Result<Dictionary, Self::Error> {
+    /// Tries to convert into dict (cannot use TryInto, as we want both set and dict which are the same type)
+    pub fn try_into_dict(&self) -> RunRes<Dictionary> {
         // TODO: make this better
         let dict = Dictionary::new();
         for value in self.vec.borrow().iter() {
@@ -216,6 +205,25 @@ impl TryInto<Dictionary> for &List {
         }
 
         Ok(dict)
+    }
+
+    /// Tries to convert into set (cannot use TryInto, as we want both set and dict which are the same type)
+    pub fn try_into_set(&self) -> RunRes<Dictionary> {
+        // TODO: make this better
+        let dict = Dictionary::new();
+        for value in self.vec.borrow().iter() {
+            dict.insert(value.clone(), Value::Nil)?;
+        }
+
+        Ok(dict)
+    }
+}
+
+impl From<Vec<Value>> for List {
+    fn from(value: Vec<Value>) -> Self {
+        Self {
+            vec: RefCell::new(value),
+        }
     }
 }
 

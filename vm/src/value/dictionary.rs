@@ -1,6 +1,6 @@
 use std::{
     cell::{Ref, RefCell, RefMut},
-    collections::HashMap,
+    collections::{HashMap, HashSet},
     fmt::Display,
     hash::Hash,
 };
@@ -112,6 +112,22 @@ impl Dictionary {
             .map(|(key, val)| (key.clone(), val.deepclone()))
             .collect::<HashMap<_, _>>()
             .into()
+    }
+
+    /// Calculates the intersection of two dicts over keys, using values from the first one
+    pub fn intersect(&self, other: &Self) -> Self {
+        let other_borrow = other.borrow();
+        let other_keys = other_borrow.keys().collect::<HashSet<&KeyValue>>();
+
+        let mut intersection = HashMap::new();
+
+        for (key, value) in self.borrow().iter() {
+            if other_keys.contains(key) {
+                intersection.insert(key.clone(), value.clone());
+            }
+        }
+
+        intersection.into()
     }
 
     /// Borrows the map
@@ -228,5 +244,17 @@ fn valid_key(value: &Value, depth: usize) -> bool {
         Value::List(l) => l.borrow_slice().iter().all(|v| valid_key(v, depth + 1)),
         Value::String(_) => true,
         Value::Dictionary(_) => false,
+    }
+}
+
+impl Into<List> for &Dictionary {
+    fn into(self) -> List {
+        self.borrow()
+            .iter()
+            .map(|(KeyValue(key), value)| {
+                Value::from(List::from(vec![key.deepclone(), value.clone()]))
+            })
+            .collect::<Vec<Value>>()
+            .into()
     }
 }

@@ -63,3 +63,18 @@ fn sum(coll) -> {
 	}
 	sum
 }
+
+/// Takes the first item from an iterator
+fn head(coll) -> {
+	coll[0]
+}
+
+/// Get all the keys from a dictionary
+fn keys(dict) -> {
+	keys := [];
+	for (key, value) in dict {
+		key >> push(keys);
+	}
+	keys
+}
+

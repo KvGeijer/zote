@@ -133,6 +133,14 @@ impl Value {
         }
     }
 
+    pub fn to_dict(self) -> Option<Rc<Dictionary>> {
+        if let Value::Dictionary(dict) = self {
+            Some(dict)
+        } else {
+            None
+        }
+    }
+
     /// Tries to convert a value to something iterable
     pub fn conv_to_iter(self) -> RunRes<Value> {
         let typ = self.type_of();
@@ -140,6 +148,24 @@ impl Value {
             Value::List(list) => Ok(Value::List(list)),
             Value::String(string) => Ok(Value::String(string)),
             Value::Dictionary(dict) => Ok(dict.cast_list().into()),
+            Value::Pointer(_) => panic!("Should not operate directly on a pointer"),
+            Value::Nil
+            | Value::Bool(_)
+            | Value::Int(_)
+            | Value::Float(_)
+            | Value::Function(_)
+            | Value::Closure(_)
+            | Value::Native(_) => RunRes::new_err(format!("Cannot iterate over {}", typ)),
+        }
+    }
+
+    /// Tries to convers the value to a list
+    pub fn conv_to_list(self) -> RunRes<Rc<List>> {
+        let typ = self.type_of();
+        match self {
+            Value::List(list) => Ok(list),
+            Value::String(string) => Ok(Rc::new(string.as_ref().into())),
+            Value::Dictionary(dict) => Ok(Rc::new(dict.as_ref().into())),
             Value::Pointer(_) => panic!("Should not operate directly on a pointer"),
             Value::Nil
             | Value::Bool(_)

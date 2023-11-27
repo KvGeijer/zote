@@ -130,6 +130,20 @@ impl Dictionary {
         intersection.into()
     }
 
+    /// Calculates the union of two dicts over keys, prefering values from the first one
+    pub fn union(&self, other: &Self) -> Self {
+        let mut union = HashMap::new();
+
+        for (key, value) in other.borrow().iter() {
+            union.insert(key.clone(), value.clone());
+        }
+        for (key, value) in self.borrow().iter() {
+            union.insert(key.clone(), value.clone());
+        }
+
+        union.into()
+    }
+
     /// Borrows the map
     fn borrow(&self) -> Ref<HashMap<KeyValue, Value>> {
         self.map.borrow()
@@ -256,5 +270,24 @@ impl Into<List> for &Dictionary {
             })
             .collect::<Vec<Value>>()
             .into()
+    }
+}
+
+impl PartialEq for Dictionary {
+    fn eq(&self, other: &Self) -> bool {
+        let this = self.borrow();
+        let other = other.borrow();
+
+        if this.len() != other.len() {
+            return false;
+        }
+
+        for (key, value) in this.iter() {
+            if other.get(key) != Some(value) {
+                return false;
+            }
+        }
+
+        true
     }
 }

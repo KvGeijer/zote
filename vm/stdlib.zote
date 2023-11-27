@@ -78,3 +78,7 @@ fn keys(dict) -> {
 	keys
 }
 
+/// Just casts a value to a bool 
+fn bool(value) -> if value true else false;
+
+

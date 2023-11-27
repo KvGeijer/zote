@@ -385,6 +385,7 @@ impl PartialEq for Value {
             }
             (Value::String(x), Value::String(y)) => x.eq(y),
             (Value::List(x), Value::List(y)) => x.eq(y),
+            (Value::Dictionary(x), Value::Dictionary(y)) => x.eq(y),
             (Value::Pointer(pointer), other) => pointer.get_clone().eq(other),
             (other, Value::Pointer(pointer)) => other.eq(&pointer.get_clone()),
             _ => false, // All other combinations are not equal

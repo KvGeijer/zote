@@ -106,6 +106,17 @@ pub fn get_builtins() -> Vec<Rc<dyn Builtin>> {
         Ok(d1.intersect(d2.as_ref()).into())
     });
 
+    builtins.new_2arg("union", |dict1, dict2| {
+        let (t1, t2) = (dict1.type_of(), dict2.type_of());
+        let (Some(d1), Some(d2)) = (dict1.to_dict(), dict2.to_dict()) else {
+            return RunRes::new_err(format!(
+                "union must take two dictionaries, but got {} and {}",
+                t1, t2
+            ));
+        };
+        Ok(d1.union(d2.as_ref()).into())
+    });
+
     builtins.new_any_arg("print", |args| {
         for arg in args.iter() {
             print!("{}", arg);

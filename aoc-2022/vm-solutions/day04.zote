@@ -1,0 +1,25 @@
+include!("stdlib");
+
+fn collect_points((start, end)) -> set([int(start):int(end) + 1]);
+
+pair_ranges := read("../inputs/04.txt") 
+	>> split("\n")
+	>> map(\>> split(",")
+			>> map(\>> split("-") >> collect_points));
+
+fn covers((s1, s2)) -> {
+	s1 >> union(s2)  :>> union;
+	union == s1 or union == s2
+}
+
+fn intersects((s1, s2)) -> {
+	s1 >> intersect(s2) >> bool
+}
+
+for method in [covers, intersects] {
+	pair_ranges
+		>> map(method)
+		>> sum
+		>> print;
+}
+

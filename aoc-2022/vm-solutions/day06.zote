@@ -1,0 +1,12 @@
+include!("stdlib");
+
+read("../inputs/06.txt")  :>> signal;
+
+for size in [4, 14]
+	for end in [size:len(signal)] {
+		marker := signal[end - size:end];
+		if len(set(marker)) == size {
+			print(end);
+			break;
+		}
+	}

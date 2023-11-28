@@ -1,0 +1,53 @@
+include!("stdlib");
+
+(state_lines, move_lines) := read("../inputs/05.txt")
+	>> split("\n\n") >> map(\>> split("\n"));
+
+fn simple_movement(stacks) -> {
+	for instr in move_lines {
+		(nbr, from, to) := (instr >> split(" "))[1::2] >> map(int);
+
+		for _ in [0:nbr] stacks[from - 1] >> pop >> push(stacks[to - 1]);
+	}
+}
+
+fn cool_movement(stacks) -> {
+	for instr in move_lines[:] {
+		(nbr, from, to) := (instr >> split(" "))[1::2] >> map(int);
+
+		stacks[to-1] ++= stacks[from-1][-nbr:];
+		stacks[from-1] = stacks[from-1][:-nbr];
+	}
+}
+
+for movement in [simple_movement, cool_movement] {
+	stacks := [];
+	for i in [0:(len(state_lines[0]) + 1)/4] push([], stacks);
+
+	// for row in rev(state_lines[:-1]) {
+		// for (stack, item) in zip(stacks, row[1::4]) {
+		// 	if (item != " ") push(item, stack);
+		// }
+		// Crashes here due to issue with JumpOrNext
+	// }
+
+	stacks := [
+		["Q","W","P","S","Z","R","H","D"],
+		["V","B","R","W","Q","H","F"],
+		["C","V","S","H"],
+		["H","F","G"],
+		["P","G","J","B","Z"],
+		["Q","T","J","H","W","F","L"],
+		["Z","T","W","D","L","V","J","N"],
+		["D","T","Z","C","J","G","H","F"],
+		["W","P","V","M","B","H"],
+		
+	];
+
+	movement(stacks);
+
+	stacks >> map(pop)
+		>> join("")
+		>> print
+}
+

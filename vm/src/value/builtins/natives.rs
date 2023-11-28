@@ -125,6 +125,35 @@ pub fn get_builtins() -> Vec<Rc<dyn Builtin>> {
         Ok(args.get(0).cloned().unwrap_or(Value::Nil))
     });
 
+    builtins.new_any_arg("zip", |args| {
+        let colls = args
+            .into_iter()
+            .map(|value| {
+                value.conv_to_iter().map_err(|reason| {
+                    RuntimeError::bare_error(format!("{reason} Must pass iterables to 'zip'"))
+                })
+            })
+            .collect::<Result<Vec<Value>, RuntimeError>>()?;
+        let len = colls
+            .iter()
+            .map(|val| val.len().expect("Iter should have len"))
+            .max()
+            .unwrap_or(0);
+
+        let mut zipped = vec![];
+        for i in 0..len {
+            let ind: Value = (i as i64).into();
+            let mut level_zips = vec![];
+            for coll in colls.iter() {
+                // TOOD: Inefficient?
+                let indexed = coll.read_at_index(ind.clone())?;
+                level_zips.push(indexed);
+            }
+            zipped.push(List::from(level_zips).into());
+        }
+        Ok(List::from(zipped).into())
+    });
+
     builtins
 }
 

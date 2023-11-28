@@ -81,4 +81,17 @@ fn keys(dict) -> {
 /// Just casts a value to a bool 
 fn bool(value) -> if value true else false;
 
-
+/// Concatenate a list of values to a single string
+fn join(coll, sep) -> {
+	// Probably quite slow
+	res := "";
+	for value in coll {
+		res = res ++ value ++ sep;
+	}
+	// Don't include last separator
+	if len(sep) == 0 {
+		res
+	} else {
+		res[:-len(sep)]
+	}
+}

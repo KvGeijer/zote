@@ -170,6 +170,9 @@ impl Compiler<'_> {
         chunk.push_opcode(OpCode::Discard, range.clone());
         chunk.push_opcode(OpCode::Discard, range.clone());
 
+        // Push a NIL as the return value from the loop
+        chunk.push_opcode(OpCode::Nil, range.clone());
+
         Ok(())
     }
 

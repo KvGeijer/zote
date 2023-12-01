@@ -149,7 +149,7 @@ lazy_static! {
         (r">", |_| Token::Gt),
         (r"<=", |_| Token::Leq),
         (r">=", |_| Token::Geq),
-        (r"Nil", |_| Token::Nil),
+        (r"nil", |_| Token::Nil),
         (r">>", |_| Token::Pipe),
         (r":>>", |_| Token::ColonPipe),
         (r"=>>", |_| Token::EqPipe),

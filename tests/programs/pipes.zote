@@ -1,6 +1,6 @@
 add := \x, y -> x + y;
 
-mid := Nil;
+mid := nil;
 
 [1:10] =>> mid >> print >> map(\>> add(-1)) =>> mid >> print;
 

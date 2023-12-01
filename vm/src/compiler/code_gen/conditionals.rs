@@ -109,12 +109,20 @@ impl Compiler<'_> {
         // Evaluate body, potentially containing wierd control flow
         self.compile_expression(body, chunk)?;
 
+        // Discard the result of the body computation
+        chunk.push_opcode(OpCode::Discard, range.clone());
+
         // Jump back to the start
-        chunk.push_opcode(OpCode::Jump, range);
+        chunk.push_opcode(OpCode::Jump, range.clone());
         chunk.push_jump(start_label);
 
         // Close the loop
-        self.flow_points.close_loop(chunk)
+        self.flow_points.close_loop(chunk)?;
+
+        // Push an ending Nil for the expression
+        chunk.push_opcode(OpCode::Nil, range.clone());
+
+        Ok(())
     }
 
     /// Compiles a for loop

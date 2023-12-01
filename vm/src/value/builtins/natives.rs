@@ -77,6 +77,15 @@ pub fn get_builtins() -> Vec<Rc<dyn Builtin>> {
 
     builtins.new_1arg("to_ascii", |value| Ok(Value::Int(value.to_char()? as i64)));
 
+    builtins.new_1arg("values", |value| {
+        let kind = value.type_of();
+        let dict = value.to_dict().ok_or(RuntimeError::bare_error(format!(
+            "Can only call 'values' on a dictionary, but got {kind}."
+        )))?;
+
+        Ok(List::from(dict.values()).into())
+    });
+
     builtins.new_2arg("split", |value, delimiter| match value {
         Value::String(valuestring) => Ok(List::from(
             valuestring
@@ -115,6 +124,16 @@ pub fn get_builtins() -> Vec<Rc<dyn Builtin>> {
             ));
         };
         Ok(d1.union(d2.as_ref()).into())
+    });
+
+    builtins.new_2arg("in", |value, collection| match collection {
+        Value::List(list) => Ok(list.contains(&value).into()),
+        Value::String(string) => string.contains_subsequence(value).map(|b| b.into()),
+        Value::Dictionary(dict) => Ok(dict.contains_key(value).into()),
+        otherwise => RunRes::new_err(format!(
+            "Cannot use 'in' on value of type {}",
+            otherwise.type_of()
+        )),
     });
 
     builtins.new_any_arg("print", |args| {

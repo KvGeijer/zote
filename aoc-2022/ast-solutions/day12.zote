@@ -3,7 +3,7 @@ read("aoc-2022/inputs/12.txt")
 	>> map(\>> list)
 	:>> problem_map;
 
-(start, end) := [Nil, Nil];
+(start, end) := [nil, nil];
 for row in [0:len(problem_map)] for col in [0:len(problem_map[0])] {
 	match problem_map[row][col] {
 		"E" -> {
@@ -26,7 +26,7 @@ next_round := [start];
 discovered := set();
 round := 0;
 
-ans := Nil;
+ans := nil;
 
 while true {
 	this_round := next_round;
@@ -35,7 +35,7 @@ while true {
 		if pos >> in(discovered) continue;
 		this := height_map[pos[0]][pos[1]];
 
-		if this == to_ascii("a") and ans == Nil ans = round;
+		if this == to_ascii("a") and ans == nil ans = round;
 		if pos == end {
 			print(round);
 			print(ans);

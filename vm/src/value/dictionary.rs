@@ -153,6 +153,20 @@ impl Dictionary {
     fn borrow_mut(&self) -> RefMut<HashMap<KeyValue, Value>> {
         self.map.borrow_mut()
     }
+
+    /// Checks if a key is present in the dictionary
+    pub fn contains_key(&self, value: Value) -> bool {
+        if !valid_key(&value, 0) {
+            // Can also throw error here
+            return false;
+        };
+        self.borrow().contains_key(&KeyValue(value))
+    }
+
+    /// Gets a copy of all the values in the dictionary
+    pub fn values(&self) -> Vec<Value> {
+        self.borrow().values().cloned().collect()
+    }
 }
 
 impl Default for Dictionary {

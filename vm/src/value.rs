@@ -443,6 +443,12 @@ impl From<f64> for Value {
     }
 }
 
+impl From<bool> for Value {
+    fn from(bool: bool) -> Self {
+        Value::Bool(bool)
+    }
+}
+
 impl From<List> for Value {
     fn from(list: List) -> Self {
         Value::List(Rc::new(list))

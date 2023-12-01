@@ -217,6 +217,11 @@ impl List {
 
         Ok(dict)
     }
+
+    /// Checks if the list contains a value
+    pub fn contains(&self, value: &Value) -> bool {
+        self.vec.borrow().contains(value)
+    }
 }
 
 impl From<Vec<Value>> for List {

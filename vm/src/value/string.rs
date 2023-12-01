@@ -136,6 +136,20 @@ impl ValueString {
 
         Ok(splits.into())
     }
+
+    /// Checks if the string contains a char or another string
+    pub fn contains_subsequence(&self, value: Value) -> RunRes<bool> {
+        if let Ok(byte) = value.to_char() {
+            return Ok(self.string.borrow().contains(&(byte as u8)));
+        }
+
+        let kind = value.type_of();
+        let Some(other_str) = value.to_valuestring() else {
+            return RunRes::new_err(format!("Can only check if a char, or a string is contained within another string. Got {}.", kind));
+        };
+
+        Ok(self.to_string().contains(&other_str.to_string()))
+    }
 }
 
 impl From<String> for ValueString {

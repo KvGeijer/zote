@@ -95,3 +95,52 @@ fn join(coll, sep) -> {
 		res[:-len(sep)]
 	}
 }
+
+/// Converts an iterable to a list, only keeping items that clear the predicate
+fn filter(collection, pred) -> {
+	list := [];
+	for item in collection {
+		if pred(item) push(item, list);
+	} 
+	list
+}
+
+/// Gets the maximum of an iterable
+fn maximum(iterable) -> {
+	max := nil;
+	for value in iterable {
+		if max == nil or value > max {
+			max = value;
+		}
+	}
+	max
+}
+
+/// Gets the min of an iterable
+fn minimum(iterable) -> {
+	min := nil;
+	for value in iterable {
+		if min == nil or value < min {
+			min = value;
+		}
+	}
+	min
+}
+
+// Gets the max of two values
+fn max(x, y) -> {
+	if x > y {
+		x
+	} else {
+		y
+	}
+}
+
+// Gets the min of two values
+fn min(x, y) -> {
+	if x < y {
+		x
+	} else {
+		y
+	}
+}

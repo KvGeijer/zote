@@ -10,7 +10,7 @@ fn fib(n) -> {
 		1
 	else {
 		x := 2;
-		y := Nil;
+		y := nil;
 
 		x = fib(n-2) + (y = fib(n-1))
 	}

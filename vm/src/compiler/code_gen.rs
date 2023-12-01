@@ -606,6 +606,7 @@ impl Compiler<'_> {
             self.locals.enter();
 
             // Try to match against the pattern
+            chunk.push_opcode(OpCode::Duplicate, range.clone()); // As the try_match will consume the top
             let reserved_match_fail_jumps =
                 self.compile_try_match(pattern, range.clone(), chunk)?;
 
@@ -648,7 +649,7 @@ impl Compiler<'_> {
     /// Try to match the top of the stack against an lvalue
     ///
     /// Returns all reserved indecies where the match failed and it should jump to the next pattern
-    /// Does not consume the top stack value. TODO: Should we consume it?
+    /// Does consume the top stack value, as it would otherwise destroy recursion.
     /// Does not actually assign or do anything in a succesful case.
     fn compile_try_match(
         &mut self,
@@ -661,17 +662,28 @@ impl Compiler<'_> {
         match pattern {
             LValue::Index(_, _) => {
                 // TODO: This could be supported as a normal variable binding if we want
+                chunk.push_opcode(OpCode::Discard, range.clone());
                 return Err("Index-into lvalues not supported in match expressions".to_owned());
             }
-            LValue::Var(_) => (), // Can match against anything
+            LValue::Var(_) => chunk.push_opcode(OpCode::Discard, range.clone()), // Can match against anything
             LValue::Tuple(lvalues) => {
+                let mut halfway_abort_jumps = vec![];
+
                 // Check that the length is ok
                 chunk.push_opcode(OpCode::Duplicate, range.clone());
                 chunk.push_opcode(OpCode::Len, range.clone());
                 chunk.push_constant_plus((lvalues.len() as i64).into(), range.clone());
-                chunk.push_opcode(OpCode::Equality, range.clone());
+                chunk.push_opcode(OpCode::NonEquality, range.clone());
                 chunk.push_opcode(OpCode::JumpIfFalse, range.clone());
+                let success_jump = chunk.reserve_jump();
+
+                // In case lengths don't match, consume the value and abort
+                chunk.push_opcode(OpCode::Discard, range.clone());
+                chunk.push_opcode(OpCode::Jump, range.clone());
                 abort_jumps.push(chunk.reserve_jump());
+
+                // Continue with the work
+                chunk.patch_reserved_jump(success_jump);
 
                 // Then check that it can match against all individual values
                 for (ind, lvalue) in lvalues.iter().enumerate() {
@@ -685,18 +697,32 @@ impl Compiler<'_> {
                     chunk.push_opcode(OpCode::ReadAtIndex, range.clone());
 
                     // See if the indexed value matches the lvalue
-                    abort_jumps.extend_from_slice(&mut self.compile_try_match(
+                    // This will consume the indexed value, but we still need to consume the original
+                    halfway_abort_jumps.extend_from_slice(&mut self.compile_try_match(
                         lvalue,
                         range.clone(),
                         chunk,
                     )?);
-
-                    // Remember to discard the indexed value
-                    chunk.push_opcode(OpCode::Discard, range.clone());
                 }
+
+                chunk.push_opcode(OpCode::Jump, range.clone());
+                let ok_exit = chunk.reserve_jump();
+
+                // Discard value after failed match, and abort
+                for reserved_abort in halfway_abort_jumps.into_iter() {
+                    chunk.patch_reserved_jump(reserved_abort);
+                }
+                chunk.push_opcode(OpCode::Discard, range.clone());
+                chunk.push_opcode(OpCode::Jump, range.clone());
+                abort_jumps.push(chunk.reserve_jump());
+
+                // Resume ok exit
+                chunk.patch_reserved_jump(ok_exit);
+
+                // Remember to consume the interating value
+                chunk.push_opcode(OpCode::Discard, range.clone());
             }
             LValue::Constant(constant) => {
-                chunk.push_opcode(OpCode::Duplicate, range.clone());
                 self.compile_expression(constant, chunk)?;
                 chunk.push_opcode(OpCode::Equality, range.clone());
 

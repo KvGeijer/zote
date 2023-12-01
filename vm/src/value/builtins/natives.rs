@@ -100,8 +100,8 @@ pub fn get_builtins() -> Vec<Rc<dyn Builtin>> {
     });
 
     builtins.new_2arg("push", |value, collection| {
-        collection.push(value)?;
-        Ok(collection)
+        collection.push(value.clone())?;
+        Ok(value)
     });
 
     builtins.new_2arg("intersect", |dict1, dict2| {

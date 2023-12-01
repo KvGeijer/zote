@@ -127,7 +127,7 @@ fn minimum(iterable) -> {
 	min
 }
 
-// Gets the max of two values
+/// Gets the max of two values
 fn max(x, y) -> {
 	if x > y {
 		x
@@ -136,11 +136,24 @@ fn max(x, y) -> {
 	}
 }
 
-// Gets the min of two values
+/// Gets the min of two values
 fn min(x, y) -> {
 	if x < y {
 		x
 	} else {
 		y
 	}
+}
+
+/// Inserts an item into a set
+fn insert(item, set) -> {
+	set[item] = nil;
+}
+
+/// Absolute value of a numeric
+fn abs(nbr) -> {
+	if nbr >= 0
+		nbr
+	else
+		-nbr
 }

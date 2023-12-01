@@ -178,4 +178,14 @@ impl AstVisitor for Counter {
             self.scope.exit_block();
         }
     }
+
+    fn visit_for(&mut self, lvalue: &LValue, collection: &ExprNode, body: &ExprNode) {
+        self.scope.enter_block();
+
+        self.visit_lvalue(lvalue, true);
+        self.visit_expr(collection);
+        self.visit_expr(body);
+
+        self.scope.exit_block();
+    }
 }

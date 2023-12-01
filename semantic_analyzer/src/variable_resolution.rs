@@ -3,7 +3,7 @@ use std::{
     mem,
 };
 
-use parser::{LValue, Stmts};
+use parser::{ExprNode, LValue, Stmts};
 
 use crate::{ref_id, visitor::AstVisitor, AttributedAst, NodeAttr, RefId};
 
@@ -221,6 +221,35 @@ impl<'a> AstVisitor for Resolver<'a> {
 
         // Default
         self.visit_stmts(stmts);
+
+        self.global_scope = scope;
+    }
+
+    fn visit_for(&mut self, lvalue: &LValue, collection: &ExprNode, body: &ExprNode) {
+        // Have to reset scope here as well
+        let scope = self.global_scope;
+        self.global_scope = false;
+
+        // Default
+        self.visit_lvalue(lvalue, true);
+        self.visit_expr(collection);
+        self.visit_expr(body);
+
+        self.global_scope = scope;
+    }
+
+    fn visit_match(&mut self, matched: &ExprNode, options: &[(LValue, ExprNode)]) {
+        self.visit_expr(matched);
+
+        // Handle scope
+        let scope = self.global_scope;
+        self.global_scope = false;
+
+        // Default
+        for (lvalue, then) in options {
+            self.visit_lvalue(lvalue, true);
+            self.visit_expr(then);
+        }
 
         self.global_scope = scope;
     }

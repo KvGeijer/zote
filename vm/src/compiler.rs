@@ -60,6 +60,10 @@ impl<'a> Compiler<'a> {
 
         self.compile_stmts(self.attributes.stmts(), &mut chunk);
 
+        if self.attributes.stmts().output {
+            chunk.push_opcode(OpCode::Return, CodeRange::from_ints(0, 0, 0, 0, 0, 0));
+        }
+
         match self.had_error {
             false => Some(chunk),
             true => None,

@@ -1,3 +1,4 @@
+use crate::compiler;
 use crate::error::{RunRes, RunResTrait, RuntimeError};
 use crate::value::string::ValueString;
 use crate::value::{Dictionary, List, Value};
@@ -86,6 +87,40 @@ pub fn get_builtins() -> Vec<Rc<dyn Builtin>> {
         Ok(List::from(dict.values()).into())
     });
 
+    builtins.new_1arg("clone", |value| Ok(value.shallowclone()));
+
+    builtins.new_1arg("deepclone", |value| Ok(value.deepclone()));
+
+    // Do we actually want this? Do we want types as an actual value type?
+    builtins.new_1arg("type_of", |value| {
+        Ok(ValueString::from(value.type_of().to_string()).into())
+    });
+
+    // this is so horrible, we must have it! However, it will be encapsulated and not able
+    // to read or write to variables. Also, of course, very inefficient.
+    builtins.new_1arg("eval", |value| {
+        let kind = value.type_of();
+        let Some(string) = value.to_valuestring() else {
+            return RunRes::new_err(format!("Can only 'eval' strings, but got {kind}"));
+        };
+
+        let Some(stmts) = parser::parse("eval-native", &string.to_string()) else {
+            return RunRes::new_err("failed to parse input to eval as zote code".to_owned());
+        };
+
+        let ast = semantic_analyzer::analyze_ast(&stmts);
+
+        let Some(chunk) = compiler::compile(&ast) else {
+            return RunRes::new_err("failed to compile input to eval as zote bytecode".to_owned());
+        };
+
+        let mut vm = crate::interpreter::VM::new(Rc::new(chunk));
+        match vm.run(false) {
+            Ok(value) => Ok(value.unwrap_or(Value::Nil)),
+            Err(reason) => RunRes::new_err(format!("Error within eval function: {reason}")),
+        }
+    });
+
     builtins.new_2arg("split", |value, delimiter| match value {
         Value::String(valuestring) => Ok(List::from(
             valuestring
@@ -156,7 +191,7 @@ pub fn get_builtins() -> Vec<Rc<dyn Builtin>> {
         let len = colls
             .iter()
             .map(|val| val.len().expect("Iter should have len"))
-            .max()
+            .min()
             .unwrap_or(0);
 
         let mut zipped = vec![];
@@ -170,6 +205,7 @@ pub fn get_builtins() -> Vec<Rc<dyn Builtin>> {
             }
             zipped.push(List::from(level_zips).into());
         }
+
         Ok(List::from(zipped).into())
     });
 

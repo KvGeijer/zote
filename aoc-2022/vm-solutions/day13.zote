@@ -1,0 +1,43 @@
+include!("stdlib");
+
+fn cmp(x, y) -> {
+	match [type_of(x), type_of(y)] {
+		("Int", "Int") -> {
+			if x < y 1
+			else if x == y 0
+			else -1
+		}
+		("List", "List") -> {
+			for (x, y) in zip(x, y) {
+				match cmp(x, y) {
+					0 -> continue,
+					res -> return res,
+				}
+			} 
+			if len(x) < len(y) 1
+			else if len(x) == len(y) 0
+			else -1
+		}
+		("List", "Int") -> cmp(x, [y]),
+		("Int", "List") -> cmp([x], y),
+	}
+}
+
+read("../inputs/13.txt")
+	>> split("\n\n")
+	>> map(\>> split("\n") >> map(eval)) // The slowest and most un-safe possible solution, using eval to parse lists xD
+	:>> pairs;
+
+// pairs >> enumerate >> [0] >> print;
+
+res := 0;
+for (ind, (x, y)) in enumerate(pairs) if cmp(x, y) == 1 res += 1 + ind;
+res >> print;
+
+(ind2, ind6) := [1,2];
+for pair in pairs for item in pair {
+	if cmp(item, [[2]]) == 1 ind2 += 1;
+	if cmp(item, [[6]]) == 1 ind6 += 1;
+	 
+}
+ind2*ind6 >> print;

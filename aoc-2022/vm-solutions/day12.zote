@@ -1,0 +1,60 @@
+include!("stdlib");
+
+read("../inputs/12.txt")
+	>> split("\n")
+	:>> problem_map;
+
+(start, end) := [nil, nil];
+for row in [0:len(problem_map)] for col in [0:len(problem_map[0])] {
+	match problem_map[row][col] {
+		"E" -> {
+			start = [row, col];
+			problem_map[row][col] = 'z';
+		}
+		"S" -> {
+			end = [row, col];
+			problem_map[row][col] = 'a';
+		}
+		_ -> {},
+	}
+}
+
+problem_map
+	>> map(\>> map(to_ascii))
+	:>> height_map;
+
+next_round := [start];
+discovered := set();
+round := 0;
+
+ans := nil;
+
+while true {
+	this_round := next_round;
+	next_round = [];
+	for pos in this_round {
+		if pos >> in(discovered) continue;
+		this := height_map[pos[0]][pos[1]];
+
+		if this == to_ascii("a") and ans == nil ans = round;
+		if pos == end {
+			print(round);
+			print(ans);
+			return;
+		}
+
+		insert(pos, discovered);
+		for d in [-1, 1] for i in [0, 1] {
+			pos_clone := pos >> clone;
+			pos_clone[i] += d;
+			// TODO: Ugly out of bounds check. How can we make this easier? Get function for arrays? Chained comparisons?
+			if pos_clone[0] == -1 or pos_clone[0] == len(height_map) or pos_clone[1] == -1 or pos_clone[1] == len(height_map[0]) continue;
+			neigh := height_map[pos_clone[0]][pos_clone[1]];
+			if neigh - this >= -1 {
+				push(pos_clone, next_round);
+			}
+		}
+	}
+	round += 1;
+}
+

@@ -1,0 +1,56 @@
+include!("stdlib");
+
+at := \x, i -> x[i];
+
+prod := \list -> {
+	prod := 1;
+	for v in list prod *= v;
+	prod
+};
+
+// Taking monkeys as input is very slow insted of caching that modulo. But then we would like a clone function to fix it in some way
+tempers := [
+	\worry, monkeys -> worry / 3,
+	\worry, monkeys -> worry % (monkeys >> map(\>> at(2)) >> prod)
+];
+
+apply_op := \op, l, r -> match op {
+	"*" -> l * r,
+	"+" -> l + r,
+};
+
+get_val := \rule, old -> if rule == "old" old else int(rule);
+
+
+for (temper, rounds) in zip(tempers, [20, 10000]) {
+	read("../inputs/11.txt")
+		>> split("\n\n")
+		>> map(\>> split("\n"))
+		>> map(\monkey -> [
+			monkey[1] >> split(": ") >> at(1) >> split(", ") >> map(int),
+			monkey[2] >> split("new = ") >> at(1) >> split(" "),
+			monkey[3] >> split(" ") >> at(-1) >> int,
+			monkey[4] >> split(" ") >> at(-1) >> int,
+			monkey[5] >> split(" ") >> at(-1) >> int
+		])
+		:>> monkeys;
+
+	activity := monkeys >> map(\>> const(0));
+
+	for round in [0:rounds] {
+		for (monkey_i, (items, (l, op, r), div, then, otherwise)) in enumerate(monkeys) {
+			for item in items {
+				(x, y) := [l, r] >> map(\>> get_val(item));
+				new := apply_op(op, x, y) >> temper(monkeys);
+				match new % div {
+					0 -> push(new, monkeys[then][0]),
+					_ -> push(new, monkeys[otherwise][0]),
+				}
+			}
+			activity[monkey_i] += len(items);
+			monkeys[monkey_i][0] = [];
+		}	
+	}
+
+	(activity >> sort)[-2:] >> prod >> print;
+}

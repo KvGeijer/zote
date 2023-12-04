@@ -114,6 +114,15 @@ impl Dictionary {
             .into()
     }
 
+    /// Shallowly clones all contained values
+    pub fn shallowclone(&self) -> Self {
+        self.borrow()
+            .iter()
+            .map(|(key, val)| (key.clone(), val.clone()))
+            .collect::<HashMap<_, _>>()
+            .into()
+    }
+
     /// Calculates the intersection of two dicts over keys, using values from the first one
     pub fn intersect(&self, other: &Self) -> Self {
         let other_borrow = other.borrow();

@@ -64,6 +64,17 @@ fn sum(coll) -> {
 	sum
 }
 
+// Multiplies all the values in a collection 
+fn prod(coll)-> {
+	prod := coll[0];
+	i := 0;
+	len := len(coll);
+	while (i += 1) < len {
+		prod *= coll[i];
+	}
+	prod
+}
+
 /// Takes the first item from an iterator
 fn head(coll) -> {
 	coll[0]
@@ -157,3 +168,19 @@ fn abs(nbr) -> {
 	else
 		-nbr
 }
+
+/// The constant function always returns the second argument
+fn const(x, y) -> y;
+
+/// returns true if all values fulfill the predicate
+fn all(coll, pred) -> {
+	for value in coll if !pred(value) return false;
+	true
+}
+
+/// returns true if all values fulfill the predicate
+fn any(coll, pred) -> {
+	for value in coll if pred(value) return true;
+	false
+}
+

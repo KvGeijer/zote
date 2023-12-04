@@ -50,11 +50,11 @@ impl List {
 
     /// Gets the value at the index, potentially wrapping for negative values
     pub fn get(&self, index: i64) -> RunRes<Value> {
-        // println!("Getting {index} in list {:?}", self);
         let vec = self.vec.borrow();
         let len = vec.len();
 
         let uindex = index_wrap(index, len);
+
         match vec.get(uindex) {
             Some(entry) => Ok(entry.clone()),
             None => RunRes::new_err(format!(
@@ -128,6 +128,11 @@ impl List {
             .map(|val| val.deepclone())
             .collect::<Vec<Value>>()
             .into()
+    }
+
+    /// Shallowly clones all contained values
+    pub fn shallowclone(&self) -> List {
+        self.vec.borrow().iter().cloned().collect::<Vec<_>>().into()
     }
 
     /// Borrows a reference to the slice

@@ -19,7 +19,7 @@ const STACK_SIZE: usize = 4096;
 const GLOBALS_SIZE: usize = 256;
 const FRAMES_SIZE: usize = 128;
 
-struct VM {
+pub(crate) struct VM {
     // TODO: Try to have some of these in vecs instead
     /// Keeps the stack of call frames
     call_frames: [CallFrame; FRAMES_SIZE],
@@ -46,11 +46,22 @@ pub fn interpret(chunk: Rc<Chunk>, debug: bool) -> Result<(), String> {
         stack: [NIL; STACK_SIZE],
         stack_top: 0,
     };
-    vm.run(debug)
+    vm.run(debug).map(|_| ())
 }
 
 impl VM {
-    fn run(&mut self, debug: bool) -> Result<(), String> {
+    pub(crate) fn new(chunk: Rc<Chunk>) -> Self {
+        Self {
+            frame_count: 1,
+            // TODO: Unsafe or array_init, or custom macro like `vec!`?
+            call_frames: vec![CallFrame::new(chunk); FRAMES_SIZE].try_into().unwrap(),
+            globals: [NIL; GLOBALS_SIZE],
+            stack: [NIL; STACK_SIZE],
+            stack_top: 0,
+        }
+    }
+
+    pub(crate) fn run(&mut self, debug: bool) -> Result<Option<Value>, String> {
         while self.pc() < self.chunk().len() {
             // TODO: Change to compile feature?
             if debug {
@@ -71,7 +82,7 @@ impl VM {
                 .expect("Cannot read opcode at expected ip");
             match self.handle_opcode(opcode) {
                 Ok(InstrResult::Ok) => (),
-                Ok(InstrResult::Return) => return Ok(()),
+                Ok(InstrResult::Return(val)) => return Ok(Some(val)),
                 Err(error) => {
                     // TODO: Add whole stack trace. Change so that an opcode just returns Res<..., String>
                     let err_message = self.stack_trace(&error);
@@ -82,7 +93,7 @@ impl VM {
                 println!("Top value: {:?}", self.stack[self.stack_top - 1])
             }
         }
-        Ok(())
+        Ok(None)
     }
 
     fn handle_opcode(&mut self, opcode: OpCode) -> RunRes<InstrResult> {
@@ -91,7 +102,7 @@ impl VM {
                 let ret_val = self.pop();
                 if self.frame_count == 1 {
                     // self.pop(); // TODO: Book pushes a script func here, which we should push in case we also do
-                    return Ok(InstrResult::Return);
+                    return Ok(InstrResult::Return(ret_val));
                 }
                 while self.stack_top > self.frame().rbp {
                     // Must de-allocate stack at return to not keep pointers which would confuse the program, assigning through them
@@ -511,7 +522,7 @@ impl VM {
 // The different results from a sucsesfully evaled opcode
 enum InstrResult {
     Ok,
-    Return,
+    Return(Value),
 }
 
 fn add_i16_to_usize(value: usize, diff: i16) -> usize {

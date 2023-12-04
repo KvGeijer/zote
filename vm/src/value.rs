@@ -323,6 +323,25 @@ impl Value {
         }
     }
 
+    /// Shallowly clones a value and all its contained references
+    ///
+    /// For any collection type, it copies all the references (does not deeply clone them)
+    pub fn shallowclone(&self) -> Self {
+        match self {
+            Value::Nil => self.clone(),
+            Value::Bool(_) => self.clone(),
+            Value::Int(_) => self.clone(),
+            Value::Float(_) => self.clone(),
+            Value::Function(_) => self.clone(),
+            Value::Closure(_) => self.clone(),
+            Value::Native(_) => self.clone(),
+            Value::Pointer(pointer) => pointer.get_clone().shallowclone(),
+            Value::List(list) => list.shallowclone().into(),
+            Value::String(string) => string.as_ref().clone().into(),
+            Value::Dictionary(dict) => dict.shallowclone().into(),
+        }
+    }
+
     fn try_hash<H: std::hash::Hasher>(&self, state: &mut H) -> RunRes<()> {
         // ERROR: Can potentially get stuck in infinite loops
         match self {

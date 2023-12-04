@@ -125,7 +125,9 @@ impl<'a> Parser<'a> {
         let expr = self.pipe()?;
 
         // Ugly duplication as we need different code for logical and binary
-        if let Some(oper) = FromToken::try_from(self.peek()) && self.peek2() == Some(&Token::Eq) {
+        if let Some(oper) = FromToken::try_from(self.peek())
+            && self.peek2() == Some(&Token::Eq)
+        {
             self.take(); // Take the token corresponding to the oper. (ERROR potential)
             self.accept(
                 Token::Eq,
@@ -140,8 +142,9 @@ impl<'a> Parser<'a> {
             let binary = ExprNode::binary(expr, oper, rvalue);
             let assign = Expr::Assign(lvalue, binary);
             Some(ExprNode::new(assign, start, end))
-
-        } else if let Some(oper) = FromToken::try_from(self.peek()) && self.peek2() == Some(&Token::Eq) {
+        } else if let Some(oper) = FromToken::try_from(self.peek())
+            && self.peek2() == Some(&Token::Eq)
+        {
             self.take(); // Take the token corresponding to the oper. (ERROR potential)
             self.accept(
                 Token::Eq,
@@ -156,7 +159,6 @@ impl<'a> Parser<'a> {
             let logical = ExprNode::logical(expr, oper, rvalue);
             let assign = Expr::Assign(lvalue, logical);
             Some(ExprNode::new(assign, start, end))
-
         } else if self.match_token(Token::Eq) {
             let start = expr.start_loc;
             let lvalue = self.expr_to_lvalue(expr, false)?;
@@ -186,7 +188,7 @@ impl<'a> Parser<'a> {
     }
 
     fn pipe(&mut self) -> Option<ExprNode> {
-        // pipe       → lambda ( (">>" lambda | "=>>" lvalue ))* ;
+        // pipe       → lambda ( ">>" lambda | "=>>" lvalue | ">>" index )* ;
         let mut expr = self.lambda()?;
 
         loop {
@@ -195,6 +197,8 @@ impl<'a> Parser<'a> {
                 expr = self.add_pipe_call(expr)?;
             } else if self.match_token(Token::EqPipe) {
                 expr = self.add_pipe_assign(expr)?;
+            } else if self.match_token(Token::LBrack) {
+                expr = self.add_pipe_index(expr)?;
             } else {
                 return Some(expr);
             }
@@ -214,6 +218,16 @@ impl<'a> Parser<'a> {
         let (func, mut args, end) = self.accept_call_pipe()?;
         args.insert(0, expr); // Does this really work with ownership?
         Some(ExprNode::new(Expr::Call(func, args), start, end))
+    }
+
+    fn add_pipe_index(&mut self, expr: ExprNode) -> Option<ExprNode> {
+        let start = expr.start_loc;
+        let index = self.accept_indexing()?;
+        Some(ExprNode::new(
+            Expr::IndexInto(expr, index),
+            start,
+            self.peek_last_end_loc().unwrap().clone(),
+        ))
     }
 
     fn accept_call_pipe(&mut self) -> Option<(ExprNode, Vec<ExprNode>, CodeLoc)> {

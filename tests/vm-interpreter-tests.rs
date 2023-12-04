@@ -202,3 +202,9 @@ fn vm_upvalue_param() {
     let output = interpret("tests/programs/upvalue_param.zote");
     assert_eq!(output, "yes\n");
 }
+
+#[test]
+fn vm_pipe_index() {
+    let output = interpret("tests/programs/pipe_index.zote");
+    assert_eq!(output, "9\n[4, 5, 6]\n[4, 3, 2, 1, 0]\n");
+}

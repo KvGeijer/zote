@@ -189,19 +189,29 @@ impl<'a> Parser<'a> {
 
     fn pipe(&mut self) -> Option<ExprNode> {
         // pipe       → lambda ( ">>" lambda | "=>>" lvalue | ">>" index )* ;
-        let mut expr = self.lambda()?;
+        let expr = self.lambda()?;
+        self.pipe_extension(expr)
+    }
 
+    /// Extends an expression with a series of pipe stages
+    fn pipe_extension(&mut self, mut expr: ExprNode) -> Option<ExprNode> {
         loop {
             // Do we want to add :>> here as well?
             if self.match_token(Token::Pipe) {
-                expr = self.add_pipe_call(expr)?;
+                expr = self.pipe_transform_stage(expr)?;
             } else if self.match_token(Token::EqPipe) {
                 expr = self.add_pipe_assign(expr)?;
-            } else if self.match_token(Token::LBrack) {
-                expr = self.add_pipe_index(expr)?;
             } else {
                 return Some(expr);
             }
+        }
+    }
+
+    fn pipe_transform_stage(&mut self, expr: ExprNode) -> Option<ExprNode> {
+        if self.match_token(Token::LBrack) {
+            self.add_pipe_index(expr)
+        } else {
+            self.add_pipe_call(expr)
         }
     }
 
@@ -258,7 +268,7 @@ impl<'a> Parser<'a> {
             Some((call, vec![], end))
         } else {
             self.error(
-                "Expected variable, partially applied function call, or lambda following pipe",
+                "Expected variable, partially applied function call, indexing, or lambda following pipe",
             );
             None
         }
@@ -304,14 +314,13 @@ impl<'a> Parser<'a> {
                 start.line(),
                 start.col()
             );
+
             let hidden_var_name = "@__hidden_chain_var";
             let params = vec![LValue::Var(hidden_var_name.to_string())];
             let var = ExprNode::new(Expr::Var(hidden_var_name.to_string()), start, start);
 
-            let mut expr = self.add_pipe_call(var)?;
-            while self.match_token(Token::Pipe) {
-                expr = self.add_pipe_call(expr)?;
-            }
+            let initial_expr = self.pipe_transform_stage(var)?;
+            let expr = self.pipe_extension(initial_expr)?;
 
             Some(ExprNode::new(
                 Expr::FunctionDefinition(name, params, expr),

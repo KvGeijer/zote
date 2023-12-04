@@ -1,0 +1,5 @@
+list := [0:10];
+
+list >> [-1] >> print;
+list >> [4:-3] >> print;
+list >> [4::-1] >> print;

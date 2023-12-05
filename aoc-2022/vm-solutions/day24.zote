@@ -1,0 +1,75 @@
+include!("stdlib");
+
+vadd := \x, y -> zip(x, y) >> map(sum);
+add := \x, y -> x + y;
+
+read("../inputs/24.txt")
+	>> split('\n')
+	:>> lines;
+
+goal := [len(lines) - 1, len(lines[0]) - 2];
+start := [0, 1];
+
+blizzards := dict();
+walls := set([start >> vadd([-1, 0]), goal >> vadd([1, 0])]);
+
+width := len(lines[0]);
+height := len(lines);
+
+for (r, line) in enumerate(lines) for (c, char) in enumerate(line) match char {
+	'#' -> [r,c] >> insert(walls),
+	'.' -> continue,
+	'v' -> blizzards[[r, c]] = [[1, 0]],
+	'^' -> blizzards[[r, c]] = [[-1, 0]],
+	'>' -> blizzards[[r, c]] = [[0, 1]],
+	'<' -> blizzards[[r, c]] = [[0, -1]],
+}
+
+fn update_blizzards(blizzards) -> {
+	new_blizz := dict();
+	for (pos, dirs) in blizzards for dir in dirs {
+		new := pos >> vadd(dir);
+		if      new[0] >= height - 1 new[0] = 1
+		else if new[0] == 0          new[0] = height - 2
+		else if new[1] >= width - 1  new[1] = 1
+		else if new[1] == 0          new[1] = width - 2;
+
+		if !in(new, new_blizz) new_blizz[new] = [];
+
+		dir >> push(new_blizz[new]);
+	}
+	new_blizz
+}
+
+walk_dirs := [
+	[1, 0],
+	[0, 1],
+	[-1, 0],
+	[0, -1],
+	[0, 0],
+];
+
+fn bfs(from, to) -> {
+	reached := [from];
+	steps := 0;
+	while !in(to, reached) {
+		reachable := set();
+		blizzards = update_blizzards(blizzards);
+		for pos in reached {
+			for dir in walk_dirs {
+				new := vadd(pos, dir);
+				if !in(new, walls) and !in(new, blizzards) 
+					new >> insert(reachable);
+			}
+		}
+		reached = reachable >> keys;
+		steps += 1;
+	}
+	steps
+}
+
+bfs(start, goal)
+	>> print
+	>> add(bfs(goal, start))
+	>> add(bfs(start, goal))
+	>> print;

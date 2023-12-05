@@ -90,3 +90,29 @@ fn vm_aoc_2022_13() {
     let output = interpret_day("day13");
     assert_eq!(output, "6369\n25800\n");
 }
+
+#[test]
+fn vm_aoc_2022_22() {
+    let output = interpret_day("day22");
+    assert_eq!(output, "103224\n189097\n");
+}
+
+#[ignore]
+#[test]
+fn vm_aoc_2022_23() {
+    let output = interpret_day("day23");
+    assert_eq!(output, "3871\n925\n");
+}
+
+#[ignore]
+#[test]
+fn vm_aoc_2022_24() {
+    let output = interpret_day("day24");
+    assert_eq!(output, "299\n899\n");
+}
+
+#[test]
+fn vm_aoc_2022_25() {
+    let output = interpret_day("day25");
+    assert_eq!(output, "2--1=0=-210-1=00=-=1\n");
+}

@@ -67,11 +67,21 @@ impl Chunk {
     }
 
     pub fn push_constant(&mut self, value: Value) {
+        if let Some(index) = self
+            .constants
+            .iter()
+            .enumerate()
+            .find_map(|(ind, const_value)| value.eq(const_value).then_some(ind))
+        {
+            self.code.push(index as u8);
+        } else {
+            self.code.push(self.constants.len() as u8);
+            self.constants.push(value);
+        }
+
         if self.constants.len() > u8::MAX as usize {
             panic!("Cannot have more than 255 constants, as we store index in u8");
         }
-        self.code.push(self.constants.len() as u8);
-        self.constants.push(value);
     }
 
     /// Pushes a constant and its opcode to the bytecode

@@ -130,7 +130,7 @@ impl ValueString {
                 start_ind += 1;
             }
         }
-        if last_start_ind != start_ind {
+        if last_start_ind < string.len() {
             splits.push(string[last_start_ind..].to_vec().into());
         }
 

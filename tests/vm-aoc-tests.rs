@@ -91,6 +91,45 @@ fn vm_aoc_2022_13() {
     assert_eq!(output, "6369\n25800\n");
 }
 
+#[ignore]
+#[test]
+fn vm_aoc_2022_16() {
+    let output = interpret_day("day16");
+    assert_eq!(output, "1716\n2504\n");
+}
+
+#[test]
+fn vm_aoc_2022_17() {
+    let output = interpret_day("day17");
+    assert_eq!(output, "3159\n1566272189352\n");
+}
+
+#[test]
+fn vm_aoc_2022_18() {
+    let output = interpret_day("day18");
+    assert_eq!(output, "3448\n2052\n");
+}
+
+#[ignore]
+#[test]
+fn vm_aoc_2022_19() {
+    let output = interpret_day("day19");
+    assert_eq!(output, "1356\n27720\n");
+}
+
+#[ignore]
+#[test]
+fn vm_aoc_2022_20() {
+    let output = interpret_day("day20");
+    assert_eq!(output, "2827\n7834270093909\n");
+}
+
+#[test]
+fn vm_aoc_2022_21() {
+    let output = interpret_day("day21");
+    assert_eq!(output, "309248622142100\n3757272361782\n");
+}
+
 #[test]
 fn vm_aoc_2022_22() {
     let output = interpret_day("day22");

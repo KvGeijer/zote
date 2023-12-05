@@ -1,0 +1,87 @@
+include!("stdlib");
+
+gusts := read("../inputs/17.txt")[:-1] >> map(\c -> c == '>'); // TODO: eq func, as well as for all common operations
+chamber := set();
+
+for x in [0:7] {
+	insert([0, x], chamber);
+}
+
+rocks := [
+	[[0, 0], [0, 1], [0, 2], [0, 3]],
+	[[2, 1], [1, 0], [1, 1], [1, 2], [0, 1]],
+	[[2, 2], [1, 2], [0, 0], [0, 1], [0, 2]],
+	[[3, 0], [2, 0], [1, 0], [0, 0]],
+	[[1, 0], [1, 1], [0, 0], [0, 1]],
+];
+
+fn valid_move((py, px), rock) -> {
+	for (ry, rx) in rock {
+		y := ry + py;
+		x := rx + px;
+		if x < 0 or x >= 7 or in([y, x], chamber) return false;
+	}
+	true
+}
+
+max_y := 0;
+gust_i := 0;
+
+fn simulate_rock(rock) -> {
+	height := rock >> map(\(y, _) -> y) >> maximum;
+	pos := [max_y + 4, 2];
+
+	while true {
+		// First move with the wind
+		drift_pos := pos >> \(y, x) -> [y, x + if gusts[gust_i] { 1 } else { -1 }]; // TODO: Vector addition
+		gust_i = (gust_i + 1) % len(gusts);
+
+		if valid_move(drift_pos, rock) pos = drift_pos;
+
+		// Then sink one
+		sink_pos := pos >> \(y, x) -> [y - 1, x]; // TODO: Vector addition
+		if !valid_move(sink_pos, rock) break;
+		pos = sink_pos;
+	}
+
+	for ind in rock {
+		zip(ind, pos) >> map(\(x, y) -> x + y) >> insert(chamber);
+	}
+	max_y = max(max_y, pos[0] + height);
+}
+
+// Part 1
+for round in [0:2022] rocks[round % len(rocks)] >> simulate_rock;
+print(max_y);
+
+
+// Part 2: Now we want a way to find a repeating pattern in the rock fall. This is specific to input
+heights := [];
+round := 2022;
+while round < 100000 {
+	for i in [0:2] {
+		rocks[round % len(rocks)] >> simulate_rock;
+		round += 1;
+		max_y >> push(heights);
+	}
+	
+	cycle_len := len(heights)/2;
+	if cycle_len < 10 continue;
+	
+	diff := heights[cycle_len] - heights[0];
+	poss := true;
+	for i in [0:cycle_len]  if heights[cycle_len + i] - heights[i] != diff {
+		poss = false;
+		break;
+	}
+	
+	if poss {
+		// found the repeating length!
+		from_arr_start := 1000000000000 - 2022;
+		cycle_rounds := from_arr_start / cycle_len;
+		arr_start := from_arr_start - cycle_len * cycle_rounds - 1;
+
+		print(heights[arr_start] + cycle_rounds*diff);
+		return;
+	}
+}

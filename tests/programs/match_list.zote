@@ -4,11 +4,11 @@ match [1,2,3,4] {
 	(a, b, c, d) -> print("Four!"),
 	(a, b, c, d, e) -> print("Five!"),
 	one -> print(one),
-}
+};
 
 match [1,2,3,4] {
 	(a, b) -> print("Two!"),
 	(a, b, c) -> print("Three!"),
 	(a, b, c, d, e) -> print("Five!"),
 	otherwise -> print("otherwise ", otherwise),
-}
+};

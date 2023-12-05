@@ -204,9 +204,9 @@ impl Compiler<'_> {
         range: CodeRange,
         chunk: &mut Chunk,
     ) -> CompRes {
-        if self.is_global() {
-            return Err("Cannot return from top-level scope".to_string());
-        }
+        // if self.locals.parent.is_none() {
+        //     return Err("Cannot return from top-level scope".to_string());
+        // }
         self.compile_opt_expression(opt_expr, chunk)?;
 
         // Drop all pointers before returning

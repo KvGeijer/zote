@@ -203,6 +203,16 @@ impl Value {
         }
     }
 
+    /// Tries to read at an index of the value
+    pub fn safe_read_at_index(&self, index: Value) -> RunRes<Option<Value>> {
+        match self {
+            Value::List(list) => Ok(list.get(index.to_int()?).ok()),
+            Value::String(string) => Ok(string.get(index.to_int()?).ok()),
+            Value::Dictionary(dict) => Ok(dict.get(index.clone())?),
+            otherwise => RunRes::new_err(format!("Cannot index into a {}", otherwise.type_of())),
+        }
+    }
+
     /// Tries to push a value to the end of this one
     pub fn push(&self, value: Value) -> RunRes<()> {
         match self {

@@ -171,6 +171,10 @@ pub fn get_builtins() -> Vec<Rc<dyn Builtin>> {
         )),
     });
 
+    builtins.new_3arg("get_or", |key, coll, or| {
+        Ok(coll.safe_read_at_index(key)?.unwrap_or(or))
+    });
+
     builtins.new_any_arg("print", |args| {
         for arg in args.iter() {
             print!("{}", arg);

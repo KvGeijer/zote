@@ -14,6 +14,11 @@ pub trait BuiltinTemplate {
         name: &'static str,
         func: impl Fn(Value, Value) -> RunRes<Value> + 'static,
     );
+    fn new_3arg(
+        &mut self,
+        name: &'static str,
+        func: impl Fn(Value, Value, Value) -> RunRes<Value> + 'static,
+    );
     fn new_any_arg(
         &mut self,
         name: &'static str,
@@ -44,6 +49,18 @@ impl BuiltinTemplate for Vec<Rc<dyn Builtin>> {
         func: impl Fn(Value, Value) -> RunRes<Value> + 'static,
     ) {
         let builtin = Rc::new(TwoArgBuiltin {
+            name,
+            func: Box::new(func),
+        });
+        self.push(builtin);
+    }
+
+    fn new_3arg(
+        &mut self,
+        name: &'static str,
+        func: impl Fn(Value, Value, Value) -> RunRes<Value> + 'static,
+    ) {
+        let builtin = Rc::new(ThreeArgBuiltin {
             name,
             func: Box::new(func),
         });
@@ -135,6 +152,34 @@ impl Builtin for TwoArgBuiltin {
 
     fn arity(&self) -> &str {
         "2"
+    }
+}
+
+struct ThreeArgBuiltin {
+    name: &'static str,
+    func: Box<dyn Fn(Value, Value, Value) -> RunRes<Value>>,
+}
+
+impl Builtin for ThreeArgBuiltin {
+    fn run(&self, args: Vec<Value>) -> RunRes<Value> {
+        let (x, y, z) = args
+            .into_iter()
+            .tuples()
+            .next()
+            .expect("Incorrect number of args");
+        (self.func)(x, y, z)
+    }
+
+    fn accept_arity(&self, arity: usize) -> bool {
+        arity == 3
+    }
+
+    fn name(&self) -> &str {
+        self.name
+    }
+
+    fn arity(&self) -> &str {
+        "3"
     }
 }
 

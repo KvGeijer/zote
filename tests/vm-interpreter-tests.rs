@@ -214,3 +214,9 @@ fn vm_return_toplevel() {
     let output = interpret("tests/programs/return_toplevel.zote");
     assert_eq!(output, "Hello, World!\n");
 }
+
+#[test]
+fn vm_conversions() {
+    let output = interpret("tests/programs/conversions.zote");
+    assert_eq!(output, "true\n[1, false, hej]\n42\n1337\n");
+}

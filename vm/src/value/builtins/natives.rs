@@ -11,6 +11,12 @@ pub fn get_builtins() -> Vec<Rc<dyn Builtin>> {
     let mut builtins: Vec<Rc<dyn Builtin>> =
         vec![Rc::new(DictNative), Rc::new(SortNative), Rc::new(SetNative)];
 
+    builtins.new_1arg("id", Ok);
+
+    builtins.new_1arg("str", |value| {
+        Ok(ValueString::from(value.to_string()).into())
+    });
+
     builtins.new_1arg("pop", |collection| collection.pop());
 
     builtins.new_1arg("read", |path| {

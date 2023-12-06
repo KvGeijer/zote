@@ -1,0 +1,6 @@
+true >> id >> print;
+[1, false, "hej"] >> id >> print;
+
+42 >> str >> print;
+(13 >> str) ++ (37 >> str) >> print;
+

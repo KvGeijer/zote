@@ -25,18 +25,18 @@ fn ast_string_manips(bench: &mut Bencher) {
 
 #[bench]
 fn ast_aoc_2022_1(bench: &mut Bencher) {
-    let code = include_str!("../aoc-2022/day01.zote");
+    let code = include_str!("../aoc-2022/ast-solutions/day01.zote");
     bench.iter(|| run_str(code));
 }
 
 #[bench]
 fn ast_aoc_2022_2(bench: &mut Bencher) {
-    let code = include_str!("../aoc-2022/day02.zote");
+    let code = include_str!("../aoc-2022/ast-solutions/day02.zote");
     bench.iter(|| run_str(code));
 }
 
 #[bench]
 fn ast_aoc_2022_4(bench: &mut Bencher) {
-    let code = include_str!("../aoc-2022/day04.zote");
+    let code = include_str!("../aoc-2022/ast-solutions/day04.zote");
     bench.iter(|| run_str(code));
 }

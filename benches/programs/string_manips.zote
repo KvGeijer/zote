@@ -1,5 +1,5 @@
 i := 0;
-s1 := Nil;
+s1 := nil;
 s2 := "start";
 while (i = i +1) < 30000 {
 	s1 = "hello, " ++ "world" ++ "!";

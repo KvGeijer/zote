@@ -17,11 +17,11 @@ fn vm_fibonachi(bench: &mut Bencher) {
     bench.iter(|| run_str("fib.zote", code));
 }
 
-// #[bench]
-// fn vm_string_manips(bench: &mut Bencher) {
-//     let code = include_str!("programs/string_manips.zote");
-//     bench.iter(|| run_str(code));
-// }
+#[bench]
+fn vm_string_manips(bench: &mut Bencher) {
+    let code = include_str!("programs/string_manips.zote");
+    bench.iter(|| run_str("string_manips.zote", code));
+}
 
 // #[bench]
 // fn aoc_2022_1(bench: &mut Bencher) {

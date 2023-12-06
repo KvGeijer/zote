@@ -36,6 +36,12 @@ fn ast_aoc_2022_2(bench: &mut Bencher) {
 }
 
 #[bench]
+fn ast_aoc_2022_3(bench: &mut Bencher) {
+    let code = include_str!("../aoc-2022/ast-solutions/day03.zote");
+    bench.iter(|| run_str(code));
+}
+
+#[bench]
 fn ast_aoc_2022_4(bench: &mut Bencher) {
     let code = include_str!("../aoc-2022/ast-solutions/day04.zote");
     bench.iter(|| run_str(code));

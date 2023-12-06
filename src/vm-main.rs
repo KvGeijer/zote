@@ -44,6 +44,7 @@ fn restore_dir(saved: Option<PathBuf>) {
         std::env::set_current_dir(&path).expect("Was not able to change back the path!");
     }
 }
+
 /// Interprets the string as if from a file.
 fn run_str(name: &str, code: &str) -> i32 {
     if let Some(stmts) = parser::parse(name, &code) {

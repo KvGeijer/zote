@@ -1,0 +1,32 @@
+include!("stdlib");
+
+read("../inputs/15.txt") 
+	>> split("\n") 
+	>> map(\>> split(": ") >> map(\>> split(", ") >> map(\>> split("=") >> [-1] >> int)))
+	>> map(\((x, y), (xb, yb)) -> [x, y, abs(x-xb) + abs(y-yb)])
+	:>> sensors;
+
+
+// Part 1, we assume the only open location is not here, so the difference should be enough.
+y := 2000000;
+minx := sensors >> map(\(x, ys, d) -> if abs(ys - y) <= d { x - (d - abs(ys - y)) }) >> filter(\x -> x != nil) >> minimum;
+maxx := sensors >> map(\(x, ys, d) -> if abs(ys - y) <= d { x + (d - abs(ys - y)) }) >> filter(\x -> x != nil) >> maximum;
+print(maxx - minx);
+
+
+for y in [0:4000001] {
+	x := 0;
+	maxx := 4000000;
+
+	while x <= maxx {
+		done := true;
+		for (xs, ys, d) in sensors if abs(ys - y) + abs(xs - x) <= d {
+			x = xs + d - abs(ys - y) + 1;
+			done = false;
+		}
+		if done {
+			x*maxx + y >> print;
+			return;
+		}
+	}
+}

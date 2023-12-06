@@ -91,6 +91,20 @@ fn vm_aoc_2022_13() {
     assert_eq!(output, "6369\n25800\n");
 }
 
+#[test]
+fn vm_aoc_2022_14() {
+    let output = interpret_day("day14");
+    assert_eq!(output, "1078\n30157\n");
+}
+
+// Still incredibly slow... Taking 2 minutes to run :s
+#[ignore]
+#[test]
+fn vm_aoc_2022_15() {
+    let output = interpret_day("day15");
+    assert_eq!(output, "5525990\n11756174628223\n");
+}
+
 #[ignore]
 #[test]
 fn vm_aoc_2022_16() {

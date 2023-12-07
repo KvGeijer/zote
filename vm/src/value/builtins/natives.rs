@@ -127,6 +127,17 @@ pub fn get_builtins() -> Vec<Rc<dyn Builtin>> {
         }
     });
 
+    builtins.new_1arg("bit_not", |value| Ok(Value::Int(!value.to_int()?)));
+    builtins.new_2arg("bit_or", |x, y| Ok(Value::Int(x.to_int()? | y.to_int()?)));
+    builtins.new_2arg("bit_xor", |x, y| Ok(Value::Int(x.to_int()? ^ y.to_int()?)));
+    builtins.new_2arg("bit_and", |x, y| Ok(Value::Int(x.to_int()? & y.to_int()?)));
+    builtins.new_2arg("bit_lshift", |x, shift| {
+        Ok(Value::Int(x.to_int()? << shift.to_int()?))
+    });
+    builtins.new_2arg("bit_rshift", |x, shift| {
+        Ok(Value::Int(x.to_int()? >> shift.to_int()?))
+    });
+
     builtins.new_2arg("split", |value, delimiter| match value {
         Value::String(valuestring) => Ok(List::from(
             valuestring

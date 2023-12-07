@@ -306,3 +306,19 @@ impl Clone for List {
         }
     }
 }
+
+impl PartialOrd for List {
+    fn partial_cmp(&self, other: &Self) -> Option<std::cmp::Ordering> {
+        for (x, y) in self.vec.borrow().iter().zip(other.vec.borrow().iter()) {
+            match x.partial_cmp(y) {
+                Some(ord) => {
+                    if !ord.is_eq() {
+                        return Some(ord);
+                    }
+                }
+                None => return None,
+            }
+        }
+        self.len().partial_cmp(&other.len())
+    }
+}

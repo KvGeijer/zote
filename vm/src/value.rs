@@ -392,6 +392,7 @@ impl PartialOrd for Value {
             (Value::Float(x), Value::Int(y)) => x.partial_cmp(&(*y as f64)),
             (Value::Float(x), Value::Float(y)) => x.partial_cmp(y),
             (Value::String(x), Value::String(y)) => x.partial_cmp(y),
+            (Value::List(x), Value::List(y)) => x.partial_cmp(y),
             _ => None,
         }
     }

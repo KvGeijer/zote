@@ -1,0 +1,7 @@
+include!("stdlib");
+
+{
+	fib := \x -> [0:x-1] >> map(\>> fib) >> sum >> add(1);
+
+	fib(8) >> print;
+}

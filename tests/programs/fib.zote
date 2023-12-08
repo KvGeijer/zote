@@ -1,26 +1,28 @@
-fn fib(n) -> {
-	// Just testing out returns, and comments
-	if n < 0 {
-		return 0;
-	}
+{
+	fn fib(n) -> {
+		// Just testing out returns, and comments
+		if n < 0 {
+			return 0;
+		}
 	
-	if n == 0
-		1
-	else if n == 1 
-		1
-	else {
-		x := 2;
-		y := nil;
+		if n == 0
+			1
+		else if n == 1 
+			1
+		else {
+			x := 2;
+			y := nil;
 
-		x = fib(n-2) + (y = fib(n-1))
+			x = fib(n-2) + (y = fib(n-1))
+		}
 	}
+
+
+	serie := [];
+	for i in [0:20:1]
+		fib(i) >> push(serie);
+
+	print(serie[0]);
+	print(serie);
+	print(serie[-1]);
 }
-
-
-serie := [];
-for i in [0:20:1]
-	fib(i) >> push(serie);
-
-print(serie[0]);
-print(serie);
-print(serie[-1]);

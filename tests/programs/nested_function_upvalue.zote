@@ -1,0 +1,14 @@
+{
+	fn f(x) -> {
+		fn g() -> {
+			f = print;
+			print("cg");
+		}
+		print("fprint ", x);
+		g()
+	}
+
+	f("test");
+	f("test");
+	f("test");
+}

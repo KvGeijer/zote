@@ -1,0 +1,16 @@
+{
+	fn f(x) -> {
+		fn g() -> {
+			fn h(y) -> {
+				print("Outer: ", x, ", Inner: ", y)
+			}
+			return \ -> h("h")
+		}
+		g
+	}
+
+	func := f("test");
+
+	func()();
+	func()(); 
+}

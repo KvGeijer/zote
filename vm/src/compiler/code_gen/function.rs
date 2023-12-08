@@ -29,9 +29,12 @@ impl Compiler<'_> {
             self.locals.add_upvalue(upvalue_name.to_string());
         }
 
-        if let Some(binding) = rec_name {
+        if let Some(_binding) = rec_name {
             // The function should be able to call itself, so add it as an argument (it is also pushed before args on stack)
-            self.locals.add_local(binding.to_owned(), false);
+            // NO! We cannot bind to it here, as it can then overwrite the self reference.
+            // Instead we should allow it to bind to the outer variable declaration
+            // self.locals.add_local(binding.to_owned(), false);
+            self.locals.add_local("".to_string(), false);
         } else {
             // Just add a dummy-value so that it cannot be refered to
             // ERROR: If we can create "" variable, or create conflicting dummy
@@ -73,11 +76,12 @@ impl Compiler<'_> {
         // Push how many upvalues to capture
         chunk.push_u8_offset(upvalues.len() as u8);
 
-        // Push the upvalues
+        // Push the upvalues to the stack
+        // TODO: We want to have access to the function binding, which is in the outer scope
         for upvalue in upvalues {
             if let Some((stack_offset, pointer)) = self.locals.get_local(upvalue) {
                 // Captured from stack
-                assert!(pointer);
+                assert!(pointer, "Assumed {upvalue} would be pointer at {range}");
                 chunk.push_bool(false);
                 chunk.push_u8_offset(stack_offset);
             } else if let Some(upvalue_index) = self.locals.get_upvalue(upvalue) {
@@ -86,7 +90,9 @@ impl Compiler<'_> {
                 chunk.push_u8_offset(upvalue_index);
             } else {
                 // Not declared! However, this should then not be flagged as an upvalue!
-                panic!("Upvalue from semantic analysis not found during compile phase!")
+                panic!(
+                    "Upvalue {upvalue} from semantic analysis not found during compile phase! at {range}"
+                )
             }
         }
 

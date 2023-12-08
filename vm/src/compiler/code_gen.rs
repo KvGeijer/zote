@@ -48,17 +48,29 @@ impl Compiler<'_> {
         range: CodeRange,
         chunk: &mut Chunk,
     ) -> CompRes {
-        if let Some(expr) = expr {
-            self.compile_expression(expr, chunk)?;
-        }
+        if let Some(expr_node) = expr && matches!(expr_node.node.as_ref(), Expr::FunctionDefinition(_, _, _))
+        {
+            // Special case for function declarations: Allow them to be recursive, so define the variable before initing the function
+            if !self.is_global() {
+                self.declare_local(lvalue, range.clone(), chunk)?;
+            }
 
-        if !self.is_global() {
-            self.declare_local(lvalue, range.clone(), chunk)?;
-        }
-
-        if expr.is_some() {
-            // Just do the assignment
+            self.compile_expression(expr_node, chunk)?;
             self.compile_assign(lvalue, range, chunk)?;
+        } else {
+            // Default case where we declare variable after instansiating the variable
+            if let Some(expr) = expr {
+                self.compile_expression(expr, chunk)?;
+            }
+
+            if !self.is_global() {
+                self.declare_local(lvalue, range.clone(), chunk)?;
+            }
+
+            if expr.is_some() {
+                // Just do the assignment
+                self.compile_assign(lvalue, range, chunk)?;
+            }
         }
 
         Ok(())

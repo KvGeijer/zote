@@ -220,3 +220,21 @@ fn vm_conversions() {
     let output = interpret("tests/programs/conversions.zote");
     assert_eq!(output, "true\n[1, false, hej]\n42\n1337\n");
 }
+
+#[test]
+fn vm_nested_function_upvalue() {
+    let output = interpret("tests/programs/nested_function_upvalue.zote");
+    assert_eq!(output, "fprint test\ncg\ntest\ntest\n");
+}
+
+#[test]
+fn vm_recursive_function_upvalue() {
+    let output = interpret("tests/programs/recursive_function_upvalue.zote");
+    assert_eq!(output, "34\n");
+}
+
+#[test]
+fn vm_deep_upvalue() {
+    let output = interpret("tests/programs/deep_upvalue.zote");
+    assert_eq!(output, "Outer: test, Inner: h\nOuter: test, Inner: h\n");
+}

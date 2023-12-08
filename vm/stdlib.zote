@@ -184,3 +184,18 @@ fn any(coll, pred) -> {
 	false
 }
 
+// Wrappers around standard operators
+neg := \x -> -x;
+add := \x, y -> x + y;
+sub := \x, y -> x - y;
+mul := \x, y -> x * y;
+div := \x, y -> x / y;
+
+not := \x -> !x;
+eq :=  \x, y -> x == y;
+neq := \x, y -> x != y;
+gt :=  \x, y -> x > y;
+geq := \x, y -> x >= y;
+lt :=  \x, y -> x < y;
+leq := \x, y -> x <= y;
+

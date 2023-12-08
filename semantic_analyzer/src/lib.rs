@@ -18,7 +18,12 @@ pub struct AttributedAst<'a> {
 
 pub fn analyze_ast<'a>(stmts: &'a Stmts) -> AttributedAst<'a> {
     let mut attr_ast = AttributedAst::new(stmts);
-    attr_ast.analyze_variable_bindings();
+    attr_ast.merge_singles(find_recursion_names(attr_ast.stmts));
+
+    // Requires the names of recursive functions to work properly
+    let upvalue_attrs = find_upvalues(attr_ast.stmts);
+    attr_ast.merge_singles(upvalue_attrs);
+
     attr_ast.merge_singles(count_locals(stmts));
 
     attr_ast
@@ -115,18 +120,6 @@ impl<'a> AttributedAst<'a> {
         for (id, attr) in attrs {
             self.attributes.entry(id).or_insert(vec![]).push(attr)
         }
-    }
-
-    /// Finds:
-    ///    * Names for functions when recursing
-    ///    * Which declarations are upvalues
-    ///    * Which upvalues are included in each closure init
-    fn analyze_variable_bindings(&mut self) {
-        self.merge_singles(find_recursion_names(self.stmts));
-
-        // Requires the names of recursive functions to work properly
-        let upvalue_attrs = find_upvalues(self.stmts, self);
-        self.merge_singles(upvalue_attrs);
     }
 }
 

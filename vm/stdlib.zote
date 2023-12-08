@@ -109,7 +109,7 @@ fn join(coll, sep) -> {
 
 /// Converts an iterable to a list, only keeping items that clear the predicate
 fn filter(collection, pred) -> {
-	list := [];
+	list := collection[0:0];
 	for item in collection {
 		if pred(item) push(item, list);
 	} 

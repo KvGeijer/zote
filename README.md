@@ -119,20 +119,20 @@ Zote is in development, and there is no real documentation, except reading all t
   * **Math** works as in most modern languages, maybe with the exception that exponentiation is `^` and that there are no bit-operations, and that `!` is used for negation while `and`/`or` are used instead of `&&`/`||`.
   * **Blocks** `{...}` contains a sequence of statements, and returns Nil or the value of the last statement if it is not terminated with a `;`.
   * Everything except declarations are expressions and return values (such as if-expressions), but loops currently only return Nil.
-  * **Loops**, while loops are as you expect, and for loops are only for each loops, in the form `for x in [1, 2, 3] {...}` (same as `for x in [1:4] {...}`).
+  * **Loops**, while loops are as you expect, and for loops are for-each loops, in the form `for x in [1, 2, 3] {...}` (same as `for x in [1:4] {...}`).
   * **Slicing**, you can slice lists much as in Python with `xs[start:exclusive_stop:step]`.
   * One neat thing is that everything such as loops/if-expressions/functions expects expressions as their bodies, which does not have to be blocks. So you can e.g. write loops as `for line in lines for char in line if char != "#" {...}` or similar.
-* **Standard library**, so far there is no standard library in the ast-interpreter and no way of importing files (something like C includes will be added in the future). But it has quite several built-in functions which all are in [one file](src/ast_interpreter/functions/builtins.rs), and are quite easy to look up.
+* **Standard library**, there is a standard library in [stdlib.zote](vm/stdlib.zote) which can be included with a `include!("stdlib")` macro. This macro can also be used to include any other local file such as `include!("aoc.zote")`. Otherwise there are also native functions such as `print`, `push` and more in [vm-natives](vm/src/value/builtins/natives.rs) and [ast-builtins](ast_interpreter/src/functions/builtins.rs).
 
 
 ## Development
 
 I read the excellent book [Crafting Interpreters](craftinginterpreters.com) for inspiration and advice in what order to implement things. Zote does not have any big innovations but instead combines ideas from [Rust](https://www.rust-lang.org/), [Julia](https://julialang.org/), [Python](https://www.python.org/) and [Noulith](https://github.com/betaveros/noulith), in no particular order (and of course from other languages as well).
 
-Currently, at the beginning of December 2023, there is a working simple interpreter directly traversing the abstract syntax tree (AST). It does not contain every feature I want in the language, but most core features. The next virtual machine interpreter is more interesting, and mostly in a working state. However, it still contains some bugs.
+At the time of writing (the beginning of December 2023) the virtual machine interpreter is working and the default `zote` binary. The simpler `ast-zote` is also working, but simpler and usually slower.
 
 So what is next? It would be very nice to add some more features, such as efficient iterators, tinker a bit with the syntax of pattern matching, and improve the standard library (indluding documentations). Then, as I have started using it for Advent of Code, it would be lovely to get some syntax highlightig (and a LSP, but that is probably too much work).
 
 ## Benchmarks
 
-There are some performance benchmarks [here](./benches), and using GitHub actions, you can track their approximate performance over time [here](https://kvgeijer.github.io/zote/dev/bench/). These are temporarily disabled, but will soon be re-enabled when the vm interpreter is mature enough.
+There are some performance benchmarks [here](./benches), and using GitHub actions, you can track their approximate performance over time [here](https://kvgeijer.github.io/zote/dev/bench/). These are temporarily disabled, but will soon be re-enabled when I have time to set them up for the vm.

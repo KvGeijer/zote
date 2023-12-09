@@ -1,0 +1,10 @@
+heap := priority_queue();
+
+for v in [-5, -3, -1, 0, 2, 4, 6] {
+	v >> push_pq(v^2 , heap);
+}
+
+heap >> len >> print;
+while heap {
+	heap >> pop >> print;
+}

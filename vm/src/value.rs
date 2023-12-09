@@ -11,9 +11,11 @@ mod closure;
 mod dictionary;
 mod function;
 mod list;
+mod priority_queue;
 mod string;
 mod value_pointer;
 
+pub use self::priority_queue::PriorityQueue;
 pub use builtins::get_natives;
 pub use closure::Closure;
 pub use dictionary::Dictionary;
@@ -45,6 +47,9 @@ pub enum Value {
 
     /// A HashMap, where we use our own unstable wierd hashing
     Dictionary(Rc<Dictionary>),
+
+    /// A priority queue
+    PriorityQueue(Rc<PriorityQueue>),
 }
 
 pub enum ValueType {
@@ -58,6 +63,7 @@ pub enum ValueType {
     List,
     String,
     Dictionary,
+    PriorityQueue,
 }
 
 /// Impl for delegating tasks between function types and implementing easy queries
@@ -75,6 +81,7 @@ impl Value {
             Value::List(_) => ValueType::List,
             Value::String(_) => ValueType::String,
             Value::Dictionary(_) => ValueType::Dictionary,
+            Value::PriorityQueue(_) => ValueType::PriorityQueue,
         }
     }
 
@@ -98,6 +105,7 @@ impl Value {
             Value::List(list) => Ok(list.truthy()),
             Value::String(string) => Ok(string.truthy()),
             Value::Dictionary(dict) => Ok(dict.truthy()),
+            Value::PriorityQueue(prioq) => Ok(prioq.truthy()),
         }
     }
 
@@ -155,6 +163,7 @@ impl Value {
             | Value::Float(_)
             | Value::Function(_)
             | Value::Closure(_)
+            | Value::PriorityQueue(_)
             | Value::Native(_) => RunRes::new_err(format!("Cannot iterate over {}", typ)),
         }
     }
@@ -173,6 +182,7 @@ impl Value {
             | Value::Float(_)
             | Value::Function(_)
             | Value::Closure(_)
+            | Value::PriorityQueue(_)
             | Value::Native(_) => RunRes::new_err(format!("Cannot iterate over {}", typ)),
         }
     }
@@ -228,6 +238,10 @@ impl Value {
         match self {
             Value::List(list) => list.pop(),
             Value::String(string) => string.pop(),
+            Value::PriorityQueue(prioq) => {
+                let (value, prio) = prioq.pop_max()?;
+                Ok(List::from(vec![value, prio]).into())
+            }
             otherwise => RunRes::new_err(format!("Cannot pop from a {}", otherwise.type_of())),
         }
     }
@@ -266,6 +280,7 @@ impl Value {
             Value::List(list) => Ok(list.len()),
             Value::String(string) => Ok(string.len()),
             Value::Dictionary(dict) => Ok(dict.len()),
+            Value::PriorityQueue(prioq) => Ok(prioq.len()),
             Value::Nil
             | Value::Bool(_)
             | Value::Int(_)
@@ -297,6 +312,7 @@ impl Value {
             | Value::Native(_)
             | Value::Dictionary(_)
             | Value::Pointer(_)
+            | Value::PriorityQueue(_)
             | Value::List(_) => {
                 RunRes::new_err(format!("Cannot convert {} to char", self.type_of()))
             }
@@ -330,6 +346,7 @@ impl Value {
             Value::List(list) => list.deepclone().into(),
             Value::String(string) => string.as_ref().clone().into(),
             Value::Dictionary(dict) => dict.deepclone().into(),
+            Value::PriorityQueue(prioq) => prioq.deepclone().into(),
         }
     }
 
@@ -349,6 +366,7 @@ impl Value {
             Value::List(list) => list.shallowclone().into(),
             Value::String(string) => string.as_ref().clone().into(),
             Value::Dictionary(dict) => dict.shallowclone().into(),
+            Value::PriorityQueue(prioq) => prioq.as_ref().clone().into(),
         }
     }
 
@@ -375,8 +393,12 @@ impl Value {
             }
             Value::Pointer(p) => p.borrow_value().try_hash(state),
             Value::String(s) => Ok(s.hash(state)),
-            Value::Dictionary(_) | Value::Function(_) | Value::Closure(_) | Value::Native(_) => {
-                panic!("This should not be part of a KeyValue")
+            Value::PriorityQueue(_)
+            | Value::Dictionary(_)
+            | Value::Function(_)
+            | Value::Closure(_)
+            | Value::Native(_) => {
+                panic!("Value {} should not be part of a KeyValue", self.type_of())
             }
         }
     }
@@ -439,6 +461,7 @@ impl Display for ValueType {
             ValueType::List => write!(f, "List"),
             ValueType::String => write!(f, "String"),
             ValueType::Dictionary => write!(f, "Dictionary"),
+            ValueType::PriorityQueue => write!(f, "PriorityQueue"),
         }
     }
 }
@@ -509,6 +532,12 @@ impl From<Dictionary> for Value {
     }
 }
 
+impl From<PriorityQueue> for Value {
+    fn from(value: PriorityQueue) -> Self {
+        Value::PriorityQueue(Rc::new(value))
+    }
+}
+
 impl Display for Value {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         match self {
@@ -535,6 +564,7 @@ impl Display for Value {
             }
             Value::String(string) => write!(f, "{}", string),
             Value::Dictionary(dict) => write!(f, "{}", dict),
+            Value::PriorityQueue(prioq) => write!(f, "{}", prioq),
         }
     }
 }
@@ -553,6 +583,7 @@ impl Debug for Value {
             Value::List(value) => write!(f, "List({:?})", value),
             Value::String(value) => write!(f, "String({value})"),
             Value::Dictionary(dict) => write!(f, "{:?}", dict),
+            Value::PriorityQueue(prioq) => write!(f, "{:?}", prioq),
         }
     }
 }

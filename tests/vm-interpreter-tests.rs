@@ -238,3 +238,12 @@ fn vm_deep_upvalue() {
     let output = interpret("tests/programs/deep_upvalue.zote");
     assert_eq!(output, "Outer: test, Inner: h\nOuter: test, Inner: h\n");
 }
+
+#[test]
+fn vm_prioq_simple() {
+    let output = interpret("tests/programs/prioq_simple.zote");
+    assert_eq!(
+        output,
+        "7\n[6, 36]\n[-5, 25]\n[4, 16]\n[-3, 9]\n[2, 4]\n[-1, 1]\n[0, 0]\n"
+    )
+}

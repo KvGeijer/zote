@@ -1,7 +1,7 @@
 use crate::compiler;
 use crate::error::{RunRes, RunResTrait, RuntimeError};
 use crate::value::string::ValueString;
-use crate::value::{Dictionary, List, Value};
+use crate::value::{Dictionary, List, PriorityQueue, Value};
 
 use super::templates::BuiltinTemplate;
 use super::Builtin;
@@ -10,6 +10,8 @@ use std::rc::Rc;
 pub fn get_builtins() -> Vec<Rc<dyn Builtin>> {
     let mut builtins: Vec<Rc<dyn Builtin>> =
         vec![Rc::new(DictNative), Rc::new(SortNative), Rc::new(SetNative)];
+
+    builtins.new_0arg("priority_queue", || Ok(PriorityQueue::new().into()));
 
     builtins.new_1arg("id", Ok);
 
@@ -53,6 +55,7 @@ pub fn get_builtins() -> Vec<Rc<dyn Builtin>> {
                 | Value::Closure(_)
                 | Value::Native(_)
                 | Value::List(_)
+                | Value::PriorityQueue(_)
                 | Value::Dictionary(_) => RunRes::new_err(format!("Cannot convert {kind} to int")),
             }
         }
@@ -74,6 +77,7 @@ pub fn get_builtins() -> Vec<Rc<dyn Builtin>> {
                 | Value::Closure(_)
                 | Value::Native(_)
                 | Value::List(_)
+                | Value::PriorityQueue(_)
                 | Value::Dictionary(_) => {
                     RunRes::new_err(format!("Cannot convert {kind} to float"))
                 }
@@ -186,6 +190,18 @@ pub fn get_builtins() -> Vec<Rc<dyn Builtin>> {
             "Cannot use 'in' on value of type {}",
             otherwise.type_of()
         )),
+    });
+
+    builtins.new_3arg("push_pq", |value, prio, coll| {
+        let typ = coll.type_of();
+        if let Value::PriorityQueue(prioq) = coll {
+            prioq.push(value.clone(), prio);
+            Ok(value)
+        } else {
+            RunRes::new_err(format!(
+                "Third arg to push_pq must be a priority queue, but got {typ}"
+            ))
+        }
     });
 
     builtins.new_3arg("get_or", |key, coll, or| {

@@ -47,7 +47,9 @@ pub fn interpret(chunk: Rc<Chunk>, debug: bool) -> Result<(), String> {
         stack_top: 0,
     };
     vm.run(debug).map(|value| {
-        if let Some(value) = value && value != Value::Nil {
+        if let Some(value) = value
+            && value != Value::Nil
+        {
             println!("{value}")
         };
         ()

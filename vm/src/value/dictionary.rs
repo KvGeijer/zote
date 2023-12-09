@@ -281,6 +281,7 @@ fn valid_key(value: &Value, depth: usize) -> bool {
         Value::List(l) => l.borrow_slice().iter().all(|v| valid_key(v, depth + 1)),
         Value::String(_) => true,
         Value::Dictionary(_) => false,
+        Value::PriorityQueue(_) => false,
     }
 }
 

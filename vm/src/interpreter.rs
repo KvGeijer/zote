@@ -123,7 +123,7 @@ impl VM {
             OpCode::Constant => {
                 // Deserialize the constant
                 let constant = self.read_constant();
-                self.push(constant);
+                self.push(constant.deepclone());
             }
             OpCode::Nil => self.push(Value::Nil),
             OpCode::True => self.push(Value::Bool(true)),

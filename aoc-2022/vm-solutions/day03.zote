@@ -4,7 +4,7 @@ fn simple_overlap(left, right) -> {
 	set(left)
 		>> intersect(set(right))
 		>> keys
-		>> head
+		>> [0]
 }
 
 fn priority(char) -> {
@@ -35,7 +35,7 @@ fn group_overlap((e1, e2, e3)) -> {
 		>> intersect(set(e2))
 		>> intersect(set(e3)) 
 		>> keys 
-		>> head
+		>> [0]
 }
 
 [0:len(lines)/3] 

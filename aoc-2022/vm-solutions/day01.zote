@@ -9,5 +9,5 @@ read("../inputs/01.txt")
 	:>> elfs;
 
 elfs[0] >> print;
-elfs >> take(3) >> sum >> print;
+elfs >> [:3] >> sum >> print;
 

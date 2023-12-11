@@ -19,6 +19,8 @@ pub fn get_builtins() -> Vec<Rc<dyn Builtin>> {
         Ok(ValueString::from(value.to_string()).into())
     });
 
+    builtins.new_1arg("list", |value| value.conv_to_list().map(Value::List));
+
     builtins.new_1arg("pop", |collection| collection.pop());
 
     builtins.new_1arg("read", |path| {
@@ -87,6 +89,17 @@ pub fn get_builtins() -> Vec<Rc<dyn Builtin>> {
     });
 
     builtins.new_1arg("to_ascii", |value| Ok(Value::Int(value.to_char()? as i64)));
+    builtins.new_1arg("from_ascii", |value| {
+        Ok(ValueString::from({
+            let int = value.to_int()?;
+            if int >= 0 && int <= 127 {
+                (int as usize as u8 as char).to_string()
+            } else {
+                return RunRes::new_err(format!("Cannot format {int} as ascii char"));
+            }
+        })
+        .into())
+    });
 
     builtins.new_1arg("values", |value| {
         let kind = value.type_of();

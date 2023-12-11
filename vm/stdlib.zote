@@ -26,35 +26,6 @@ fn enumerate(coll) -> {
 	res
 }
 
-// We want to handle lists and strings differently eg when delimiter is several characters long
-// /// Splits a collection at a delimiter
-// ///
-// /// It never pushes empty items
-// fn split(coll, delimiter) -> {
-// 	split_start := 0;
-// 	splits := [];
-// 	for (ind, entry) in coll >> enumerate {
-// 		if entry == delimiter {
-// 			if split_start != ind {
-// 				coll[split_start:ind] >> push(splits);
-// 			}
-// 			split_start = ind + 1;
-// 		}
-// 	}
-
-// 	if split_start != len(coll) {
-// 		coll[split_start:] >> push(splits);
-// 	}
-
-// 	splits
-// }
-
-/// Slices the first values from a coll
-fn take(coll, k) -> {
-	// TODO: DO this in parsing instead
-	coll[:k]
-}
-
 /// Adds up all values in a collection
 fn sum(coll) -> {
 	sum := 0;
@@ -73,11 +44,6 @@ fn prod(coll)-> {
 		prod *= coll[i];
 	}
 	prod
-}
-
-/// Takes the first item from an iterator
-fn head(coll) -> {
-	coll[0]
 }
 
 /// Get all the keys from a dictionary
@@ -159,6 +125,7 @@ fn min(x, y) -> {
 /// Inserts an item into a set
 fn insert(item, set) -> {
 	set[item] = nil;
+	item
 }
 
 /// Absolute value of a numeric

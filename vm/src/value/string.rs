@@ -67,15 +67,10 @@ impl ValueString {
 
     /// Appends two strings, creating a new one with copied contents
     pub fn append(&self, other: &Self) -> Self {
-        let mut new_vec = vec![];
-        for value in self.string.borrow().iter() {
-            new_vec.push(value.clone());
-        }
-        for value in other.string.borrow().iter() {
-            new_vec.push(value.clone());
-        }
+        let mut new = self.string.borrow().clone();
+        new.extend(other.string.borrow().iter());
         Self {
-            string: RefCell::new(new_vec),
+            string: RefCell::new(new),
         }
     }
 

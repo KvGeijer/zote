@@ -225,9 +225,9 @@ impl<'a> AstVisitor for Resolver {
         let scope = self.global_scope;
         self.global_scope = false;
 
-        // Default
-        self.visit_lvalue(lvalue, true);
+        // Default, but switched order
         self.visit_expr(collection);
+        self.visit_lvalue(lvalue, true);
         self.visit_expr(body);
 
         self.global_scope = scope;

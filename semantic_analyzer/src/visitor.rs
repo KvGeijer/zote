@@ -193,5 +193,15 @@ pub trait AstVisitor {
         }
     }
 
-    fn visit_slice(&mut self, _slice: &Slice) {}
+    fn visit_slice(&mut self, slice: &Slice) {
+        if let Some(start) = &slice.start {
+            self.visit_expr(start)
+        };
+        if let Some(stop) = &slice.stop {
+            self.visit_expr(stop)
+        };
+        if let Some(step) = &slice.step {
+            self.visit_expr(step)
+        };
+    }
 }

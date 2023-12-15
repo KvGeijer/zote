@@ -27,11 +27,11 @@ impl PriorityQueue {
 
     /// Pops the element with the highest priority
     ///
-    /// The first return value is the value, the second is the associated priority
+    /// The first return value is the priority, the second is the associated value
     pub fn pop_max(&self) -> RunRes<(Value, Value)> {
         if let Some(item) = self.borrow_mut().pop() {
             if !item.has_error() {
-                Ok((item.value, item.prio))
+                Ok((item.prio, item.value))
             } else {
                 RunRes::new_err(format!(
                     "PriorityQueue comparison error: {}",

@@ -23,6 +23,16 @@ pub fn get_builtins() -> Vec<Rc<dyn Builtin>> {
 
     builtins.new_1arg("pop", |collection| collection.pop());
 
+    builtins.new_1arg("shuffle", |value| {
+        Ok(value
+            .to_list()
+            .ok_or(RuntimeError::bare_error(format!(
+                "Can only call shuffle on a List"
+            )))?
+            .shuffled()
+            .into())
+    });
+
     builtins.new_1arg("read", |path| {
         let kind = path.type_of();
         let str_path = path

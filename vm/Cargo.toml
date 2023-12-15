@@ -9,4 +9,5 @@ edition = "2021"
 enum_macros = { path = "enum_macros" }
 itertools = "0.11.0"
 parser = { path = "../parser" }
+rand = "0.8.5"
 semantic_analyzer = { path = "../semantic_analyzer" }

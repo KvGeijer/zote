@@ -6,5 +6,5 @@ for v in [-5, -3, -1, 0, 2, 4, 6] {
 
 heap >> len >> print;
 while heap {
-	heap >> pop >> print;
+	heap >> pop >> [::-1] >> print;
 }

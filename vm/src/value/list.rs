@@ -1,3 +1,5 @@
+use rand::seq::SliceRandom;
+use rand::thread_rng;
 use std::cell::{Ref, RefCell};
 
 use itertools::Itertools;
@@ -226,6 +228,13 @@ impl List {
     /// Checks if the list contains a value
     pub fn contains(&self, value: &Value) -> bool {
         self.vec.borrow().contains(value)
+    }
+
+    /// Returns a randomly shuffled list
+    pub fn shuffled(&self) -> Self {
+        let mut vec = self.vec.borrow().clone();
+        vec.shuffle(&mut thread_rng());
+        vec.into()
     }
 }
 

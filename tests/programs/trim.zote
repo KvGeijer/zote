@@ -1,0 +1,6 @@
+include!("stdlib");
+
+"  \n hej! da  \n" >> trim >> print;
+"hej! da\n" >> trim >> print;
+"\n\rhej! da\n" >> trim >> print;
+"   \n \r  " >> trim >> print;

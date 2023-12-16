@@ -247,3 +247,9 @@ fn vm_prioq_simple() {
         "7\n[6, 36]\n[-5, 25]\n[4, 16]\n[-3, 9]\n[2, 4]\n[-1, 1]\n[0, 0]\n"
     )
 }
+
+#[test]
+fn vm_trim() {
+    let output = interpret("tests/programs/trim.zote");
+    assert_eq!(output, "hej! da\nhej! da\nhej! da\n\n");
+}

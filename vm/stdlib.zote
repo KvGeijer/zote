@@ -166,3 +166,17 @@ geq := \x, y -> x >= y;
 lt :=  \x, y -> x < y;
 leq := \x, y -> x <= y;
 
+
+/// Trims leading and ending \n \r and ' ' from a string
+fn trim(string) -> {
+	spaces := "\n\r ";
+	lstr := len(string);
+
+	starti := 0;
+	while (starti < lstr) and (string[starti] >> in(spaces)) starti += 1;
+
+	stopi := lstr;
+	while (stopi > 0) and (string[stopi-1] >> in(spaces)) stopi -= 1;
+
+	string[starti:stopi]
+}

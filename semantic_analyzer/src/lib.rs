@@ -7,6 +7,7 @@ use variable_resolution::find_upvalues;
 
 mod closure_naming;
 mod local_enumerator;
+mod pretty_printer;
 mod variable_resolution;
 mod visitor;
 
@@ -27,6 +28,11 @@ pub fn analyze_ast<'a>(stmts: &'a Stmts) -> AttributedAst<'a> {
     attr_ast.merge_singles(count_locals(stmts));
 
     attr_ast
+}
+
+/// Formats a string of the parsed code
+pub fn format_parsed(stmts: &Stmts) -> String {
+    pretty_printer::format(stmts)
 }
 
 type RefId = usize;

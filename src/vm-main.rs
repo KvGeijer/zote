@@ -10,13 +10,21 @@ use std::{
 struct Args {
     /// The script to run
     file: Option<String>,
+
+    /// Format the parsed code instead of running it when set
+    #[clap(short, long, requires = "file")]
+    format: bool,
 }
 
 fn main() {
     let args = Args::parse();
 
     if let Some(ref file) = args.file {
-        exit(run_file(file));
+        if !args.format {
+            exit(run_file(file));
+        } else {
+            format_file(file);
+        }
     } else {
         run_repl();
     }
@@ -29,6 +37,17 @@ fn run_file(file: &str) -> i32 {
     let res = run_str(file, &script);
     restore_dir(saved);
     res
+}
+
+/// Parses the code in a file, outputting a formatted version of the code
+fn format_file(file: &str) {
+    let script = fs::read_to_string(file).expect("Could not open file.");
+    change_dir(file);
+    if let Some(stmts) = parser::parse(file, &script) {
+        println!("{}", semantic_analyzer::format_parsed(&stmts));
+    } else {
+        exit(65)
+    }
 }
 
 /// Change the working dir to the files dir, and then return the previous dir

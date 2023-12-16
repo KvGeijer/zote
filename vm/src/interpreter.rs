@@ -15,9 +15,9 @@ use crate::{
 
 use self::call_frame::CallFrame;
 
-const STACK_SIZE: usize = 4096;
 const GLOBALS_SIZE: usize = 256;
-const FRAMES_SIZE: usize = 256;
+const STACK_SIZE: usize = 4096 * 8;
+const FRAMES_SIZE: usize = 256 * 32;
 
 pub(crate) struct VM {
     // TODO: Try to have some of these in vecs instead

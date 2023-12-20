@@ -3,34 +3,36 @@
 Zote is an imperative, dynamically typed scripting language with inspiration from functional programming. A target of mine is to solve [Advent of Code 2023](https://adventofcode.com/) with zote's virtual machine implementation, and the whole language is designed to be pleasant to use for that type of small problems. For example, it should be easy and fast to write scripts of up to a couple of hundred lines, but easy maintenance is not a priority.
 
 At the moment, Zote has two working interpreters, split as two binaries.
-- The `ast-zote` binary is a simple interpreter that directly traverses the syntax tree during runtime. In [aoc-2022/ast-solutions](./aoc-2022/ast-solutions) there are working solutions for all AoC problems from 2022 for this one, proving it is in a usable state. However, this type of an interpreter is slow, and rarely ever used in production languages.
-- The `zote` binary is the more advanced virtual machine (vm) interpreter. It compiles the syntax tree to a custom bytecode format (see [vm/src/compiler/bytecode.rs](vm/src/compiler/bytecode.rs)), and then interprets this bytecode with a virtual machine. This is very similar to how languages like Python work, and is way faster than the simple interpreter as things will be stored much more compactly in memory. At the moment, this is not completely finished, but some solutions to AoC 2022 can be found in [aoc-2022/vm-solutions](./aoc-2022/vm-solutions). This is also what I will use for my [2023 solutions](https://github.com/KvGeijer/advent-of-zote-2023).
+- The `zote` binary is the more advanced virtual machine (vm) interpreter. It compiles the syntax tree to a custom bytecode format (see [vm/src/compiler/bytecode.rs](vm/src/compiler/bytecode.rs)), and then interprets this bytecode with a virtual machine. This is very similar to how languages like Python work, and is faster than the simple interpreter as things will be stored more compactly in memory. This is also what I use for my [2023 solutions](https://github.com/KvGeijer/advent-of-zote-2023) of [Advent of Code](https://adventofcode.com/), where I even managed to reach top 100 globally on [day 17](https://adventofcode.com/2023/day/17).
+- The `ast-zote` binary is a simpler interpreter that directly traverses the syntax tree during runtime. In [aoc-2022/ast-solutions](./aoc-2022/ast-solutions) there are working solutions for all advent of code problems from 2022 for this one, proving it is in a usable state. However, this type of an interpreter is slow, and rarely ever used in production languages.
 
-One of Zote's core values is that you should be able to logically build your programs in the same direction you write. Take this Python code:
+One of Zote's core values is that you should write your programs in the same direction as you think. Take this Python code:
 ``` python
-x = max(map(int, input.split("\n")))
+max(map(int, input.split("\n")))
 ```
-This splits the input string, maps each line to an int, takes the max of all the lines, and assigns that to x. This can be seen as a series of transformations of the input, but the order you write the code does not correspond to the order of those transformations. In Zote you can instead write
+This splits the input string, maps each line to an int, and finally takes the max of all the lines. This can be seen as a series of transformations of the input, but to write it you have to start writing the final transformation step (unless you jump back and forth in the code). In Zote you can instead write
 
 ``` python
-input >> split("\n") >> map(int) >> maximum :>> x;
+input >> split("\n") >> map(int) >> maximum
 ```
 
-Here the data is piped through a series of transformations, from left to right. This makes it easy to write each line as you go, starting with the input, and adding transformations as you think of the next step. Languages like Rust and Java also achieve this by using methods, but I wanted a more mathematical notation of functions, so settled on this.
+Here the data is piped through a series of functions, from left to right. This makes it easy to write each transformation chain as you go, starting with the input, and adding transforms as you go. Languages like Rust and Java also achieve this by using methods, but I wanted a more mathematical notation of functions. The Julia language has pipes, but they felt a bit clunky to me, only working as I wanted for functions with one parameter. The notation for Zote works on any number of argument, and are usually constructed in a way that the first parameter is the _data_ which can be piped.
 
-However, that code desugarizes to:
+There is no difference in performance between pipes and normal function calls, and the above Zote code desugarizes to
 ```python
-x := maximum(map(split(input, "\n"), int));
+maximum(map(split(input, "\n"), int))
 ```
-which is also valid Zote. These two styles can be mixed depending on what mindset you are writing in. For example, if you are writing very functional code, the pipes might be more clear, but in some cases, you might want to think in a more imperative style, and use normal functions to signify the difference (I usually don't use pipes for functions with side effects).
+which is also valid Zote. These two styles can be mixed depending on what mindset you are writing in. For example, if you are writing very functional code, the pipes might be more clear. But, in some cases you don't have a clear data to pipe, or you do some mutation, and then it can be nice to just use normal function call syntax.
 
 ## Examples
 
-Here are two examples from [aoc-2022/ast-interpreter](./aoc-2022/ast-interpreter) to give a brief introduction to how the language works and looks. See the next heading for some descriptions about the parts of the language.
+Here are two examples from Advent of Code to give a brief overview to how the language works and looks. See the next heading for some descriptions about the parts of the language.
 
-This is day 2 of AoC 2022, and shows a few different features, some of which are a bit unique. For example, the functions are only singleton expressions and no blocks, and that we extentively use pipes `>>` where e.g. `input >> split("\n")` is the same as `split(input, "\n")`. Additionally, you can see that the map uses `\>>` which is a shorthand for `\x -> x >>` commonly useful in those situations where you just want a lambda that starts a pipe with the input.
+This is day 2 of AoC 2022, and shows a few fun features. For example, functions bodies don't have to be blocks, and can instead be singleton expressions. Furthermore, the code extensively uses pipes `>>` where e.g. `input >> split("\n")` is the same as `split(input, "\n")`. Additionally, you can see that the map uses `\>>` which is a shorthand for `\x -> x >>`, commonly useful in situations where you just want a lambda that starts a pipe chain with the input. It also shows that expressions such as `match` returns the values from the computed brach (similarly with `if`).
 
 ``` rust
+include!("stdlib");
+
 fn to_int(char) ->
 	match char {
 		'A' -> 0,
@@ -45,83 +47,90 @@ fn score1((opp, you)) -> you + 1 + ((you - opp + 1) % 3) * 3;
 
 fn score2((opp, res)) -> res*3 + (opp + res - 1) % 3 + 1;
 
-[score1, score2] >> map(\score ->
-	read("aoc-2022/inputs/02.txt")
+for score in [score1, score2]
+	read("../inputs/02.txt")
 		>> split("\n")
 		>> map(\>> split(" ") >> map(to_int) >> score)
 		>> sum
 		>> print
-	);
 ```
 
-Following, we have a bit of a longer example of day 14 of AoC 2022 where we simulate sand falling by using a dfs. Here we can see that we use a set for the positions of rocks in the map, which really is just a dict.
+Following, we have a bit of a longer example of [AoC 2023 Day 17](https://adventofcode.com/2023/day/17) part 2. Here I implemented Dijkstras pahtfinding algorithm, with a bit strange rule to find neighbors in the implicit graph (the movement rules were wierd). It is partly included here as it is a more real example. But mainly as it is the first solution with which I came top 100 on the global leaderboards.
 
 ``` rust
-rocks := set();
+include!("stdlib");
+include!("aoc.zote");
 
-// Parse all lines of rocks in the input
-for line in read("aoc-2022/inputs/14.txt") >> split("\n") {
-	pairs := split(line, " -> ") >> map(\>> split(",") >> map(int));
-	for ((x1, y1), (x2, y2)) in zip(pairs, pairs[1:]) {
-		if y1 == y2 for x in [min(x1, x2):max(x1,x2)+1] {
-			[x, y1] >> insert(rocks);
-		}
-		else for y in [min(y1, y2):max(y1, y2)+1] {
-			[x1, y] >> insert(rocks);
-		}
-	}
-}
+karta := read("input")
+	>> trim
+	>> split("\n")
+	>> map(\>> map(int));
 
-maxy := rocks >> map(\((_, y),_) -> y) >> max;
+rows := len(karta);
+cols := len(karta[0]);
 
-origin := [500, 0];
+dirs := [[0,1], [0,-1], [1, 0], [-1,0]];
+
+prioq := priority_queue();
+[[0, 0], [-1, 0]] >> push_pq(0, prioq);
 visited := set();
 
-part1 := false;
+while true {
+	(loss, pos_dir) := prioq >> pop;
 
-fn dfs((x, y)) -> {
-	// Cache results, so as to not visit places already occupied by sand (or rock)
-	if ([x, y] >> in(visited)) or ([x, y] >> in(rocks)) or y >= maxy + 2 return;
+	if pos_dir >> in(visited) continue;
+	pos_dir >> insert(visited);
+	(pos, ldir) := pos_dir;
 
-	if y >= maxy and !part1 {
-		print(len(visited));
-		part1 = true;
-		return
+	if pos == [rows-1, cols - 1] {
+		// Found the optimal path to the end
+		print(-loss);
+		break;
 	}
 
-	dfs([x, y+1]);
-	dfs([x-1, y+1]);
-	dfs([x+1, y+1]);
+	pdirs := dirs >> filter(\>> neq(ldir));
 
-	[x, y] >> insert(visited);
+	for dir in pdirs if dir[1] != -ldir[1] {
+		npos := pos;
+		nloss := loss;
+		for step in [1:11] {
+			npos = npos >> vadd(dir);
+
+			// out of bounds?
+			if npos[0] >= rows or npos[0] < 0 or npos[1] >= cols or npos[1] < 0 break;
+
+			nloss -= karta[npos[0]][npos[1]];
+
+			if step >= 4
+				[npos >> clone, dir] >> push_pq(nloss, prioq);
+		}
+	}
 }
-
-dfs(origin);
-print(len(visited));
 ```
 
 ## Features
 
-Zote is in development, and there is no real documentation, except reading all the code. Here is a short list of features in the language, to get you writing some simple code in no time.
+Zote is in active development, and there is no great documentation (except reading all the code). Here is a short list of features in the language (vm version), to get you writing some simple code in no time. There is also a [standard library](vm/stdlib.zote) which has quite a lot of simple functions with some documentation.
 
-* **Types**, there currently are Iterables (List, Dict, String), Numericals (Float, Int, Bool), Nil, and Closures. They can be created in a similar way to Python, with the difference that dicts must be created with the `dict` functions, and that there are no list comprehensions. Notably, there is no set, but its functionality is achieved with dicts and set-like functions.
+* **Types**, there are currently Collections (List, Dict, String, PriorityQueue), Numericals (Float, Int, Bool), Nil, and Closures. They can be constructed in a similar way to Python, with the difference that dicts must be created with the `dict` function, and that there are no list comprehensions. Notably, there is no set, but its functionality is achieved with dicts and set-like functions on dicts (see `insert` in stdlib).
 * **Variables**
   * Declare x with the value y as `x := y` or `y :>> x`,
   * Assign x to y as `x = y` or `y =>> x`.
 * **Functions**
   * Call f as `f(x, y, z)`, or the equivalent `x >> f(y, z)`,
-  * Declare f as `fn f(x, y, z) -> _expr_` or as equivalently as a lambda `\x, y, z -> _expr_`.
+  * Declare f as `fn f(x, y, z) -> _expr_` or as equivalently as a lambda `f := \x, y, z -> _expr_`.
     * There is also a shorthand to create a lambda with one unnamed argument. Instead of e.g. `\line -> line >> split(" ") >> map(int) >> sum`, you can write `\>> split(" ") >> map(int) >> sum`, as it is a common pattern in map calls in pipes.
+  * Both `fn f(...` and `f := \...` parse to the same syntax node, and can both be called recursively (and are real closures).
 * **Pattern matching**
-  * In all declarations/assignments, the code expects a variable, a constant (e.g. `1` or `"const"`), or an iterator of further l-values such as `(x, y, (z1, z2)) := [1, [], "yo"];`,
+  * In all declarations/assignments, the code expects either a variable, a constant, or an iterator of further l-values such as `(x, y, (z1, z2)) := [1, [], "yo"];`,
   * The **match** expression uses this matching on the form `match x { arm1 -> _res_ ...}`.
 * **Expressions**
-  * **Math** works as in most modern languages, maybe with the exception that exponentiation is `^` and that there are no bit-operations, and that `!` is used for negation while `and`/`or` are used instead of `&&`/`||`.
-  * **Blocks** `{...}` contains a sequence of statements, and returns Nil or the value of the last statement if it is not terminated with a `;`.
-  * Everything except declarations are expressions and return values (such as if-expressions), but loops currently only return Nil.
-  * **Loops**, while loops are as you expect, and for loops are for-each loops, in the form `for x in [1, 2, 3] {...}` (same as `for x in [1:4] {...}`).
-  * **Slicing**, you can slice lists much as in Python with `xs[start:exclusive_stop:step]`.
-  * One neat thing is that everything such as loops/if-expressions/functions expects expressions as their bodies, which does not have to be blocks. So you can e.g. write loops as `for line in lines for char in line if char != "#" {...}` or similar.
+  * **Math** works as in most modern languages, maybe with the exception that exponentiation is `^`, that there are no special operators for bitwise functions, and that `!` is used for negation while `and`/`or` are used instead of `&&`/`||`.
+  * **Blocks** `{...}` contains a sequence of statements, and returns `nil` or the value of the last statement if it is not terminated with a `;`.
+  * Everything except declarations are expressions and return values. However, loops currently only return `nil`, as it is uncler what they should output.
+  * **Loops**, while loops are as you expect, and for loops are for-each loops, in the form `for x in [1, 2, 3] ...` (same as `for x in [1:4] ...`).
+  * **Slicing**, you can slice lists similarly as in Python with `xs[start:exclusive_stop:step]`. The fields are optional, and you can for example write `xs[::-1]` to reverse a list.
+  * One neat thing is that everything such as loops/if-expressions/functions expect expressions as their bodies, which does not have to be blocks. So you can e.g. write loops as `for line in lines for char in line if char != "#" {...}` or similar.
 * **Standard library**, there is a standard library in [stdlib.zote](vm/stdlib.zote) which can be included with a `include!("stdlib")` macro. This macro can also be used to include any other local file such as `include!("aoc.zote")`. Otherwise there are also native functions such as `print`, `push` and more in [vm-natives](vm/src/value/builtins/natives.rs) and [ast-builtins](ast_interpreter/src/functions/builtins.rs).
 
 
@@ -129,10 +138,10 @@ Zote is in development, and there is no real documentation, except reading all t
 
 I read the excellent book [Crafting Interpreters](craftinginterpreters.com) for inspiration and advice in what order to implement things. Zote does not have any big innovations but instead combines ideas from [Rust](https://www.rust-lang.org/), [Julia](https://julialang.org/), [Python](https://www.python.org/) and [Noulith](https://github.com/betaveros/noulith), in no particular order (and of course from other languages as well).
 
-At the time of writing (the beginning of December 2023) the virtual machine interpreter is working and the default `zote` binary. The simpler `ast-zote` is also working, but simpler and usually slower.
+At the time of writing (the beginning of December 2023) the virtual machine interpreter is working and the default `zote` binary. The simpler `ast-zote` is also working, but usually slower.
 
-So what is next? It would be very nice to add some more features, such as efficient iterators, tinker a bit with the syntax of pattern matching, and improve the standard library (indluding documentations). Then, as I have started using it for Advent of Code, it would be lovely to get some syntax highlightig (and a LSP, but that is probably too much work).
+So what is next? It would be very nice to add some more features, such as efficient iterators, tinker a bit with the syntax of pattern matching, and improve the standard library (indluding documentations). Then, as I have started using it for Advent of Code, it would be lovely to get some syntax highlightig (I have started work on a tree-sitter parser).
 
 ## Benchmarks
 
-There are some performance benchmarks [here](./benches), and using GitHub actions, you can track their approximate performance over time [here](https://kvgeijer.github.io/zote/dev/bench/). These are temporarily disabled, but will soon be re-enabled when I have time to set them up for the vm.
+There were some performance benchmarks [here](./benches) maintained using GitHub actions [here](https://kvgeijer.github.io/zote/dev/bench/). These are temporarily disabled, but will soon be re-enabled when I have time to set them up for the vm.

@@ -14,11 +14,10 @@ fn score1((opp, you)) -> you + 1 + ((you - opp + 1) % 3) * 3;
 
 fn score2((opp, res)) -> res*3 + (opp + res - 1) % 3 + 1;
 
-[score1, score2] >> map(\score -> 
+for score in [score1, score2]  
 	read("../inputs/02.txt") 
 		>> split("\n") 
-		>> map(\>> split(" ") >> map(to_int) >> score) // Good test: score is both an upvalue and an argument
+		>> map(\>> split(" ") >> map(to_int) >> score)
 		>> sum 
 		>> print
-	);
 	

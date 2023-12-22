@@ -1,11 +1,9 @@
 include!("stdlib");
 
-read("../inputs/15.txt") 
+sensors := read("../inputs/15.txt") 
 	>> split("\n") 
 	>> map(\>> split(": ") >> map(\>> split(", ") >> map(\>> split("=") >> [-1] >> int)))
-	>> map(\((x, y), (xb, yb)) -> [x, y, abs(x-xb) + abs(y-yb)])
-	:>> sensors;
-
+	>> map(\((x, y), (xb, yb)) -> [x, y, abs(x-xb) + abs(y-yb)]);
 
 // Part 1, we assume the only open location is not here, so the difference should be enough.
 y := 2000000;

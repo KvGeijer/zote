@@ -1,10 +1,9 @@
 include!("stdlib");
 
-read("../inputs/18.txt") 
+rock := read("../inputs/18.txt") 
 	>> split("\n")
 	>> map(\>> split(",") >> map(int))
-	>> set
-	:>> rock;
+	>> set;
 
 exposed := 0;
 for ind in keys(rock) {

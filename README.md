@@ -114,8 +114,8 @@ Zote is in active development, and there is no great documentation (except readi
 
 * **Types**, there are currently Collections (List, Dict, String, PriorityQueue), Numericals (Float, Int, Bool), Nil, and Closures. They can be constructed in a similar way to Python, with the difference that dicts must be created with the `dict` function, and that there are no list comprehensions. Notably, there is no set, but its functionality is achieved with dicts and set-like functions on dicts (see `insert` in stdlib).
 * **Variables**
-  * Declare x with the value y as `x := y` or `y :>> x`,
-  * Assign x to y as `x = y` or `y =>> x`.
+  * Declare x with the value y as `x := y`,
+  * Assign x to y as `x = y`.
 * **Functions**
   * Call f as `f(x, y, z)`, or the equivalent `x >> f(y, z)`,
   * Declare f as `fn f(x, y, z) -> _expr_` or as equivalently as a lambda `f := \x, y, z -> _expr_`.

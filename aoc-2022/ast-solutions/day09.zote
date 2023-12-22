@@ -1,8 +1,7 @@
-read("aoc-2022/inputs/09.txt")
+instrs := read("aoc-2022/inputs/09.txt")
 	>> split("\n")
-	>> map(\>> split(" "))
-	:>> instrs;
-
+	>> map(\>> split(" "));
+	
 // Add to some stdlib
 sgn := \x -> 
 	if x > 0 {1} 

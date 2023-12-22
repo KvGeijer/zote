@@ -1,9 +1,8 @@
-read("aoc-2022/inputs/21.txt")
+instructions := read("aoc-2022/inputs/21.txt")
 	>> split("\n")
 	>> map(\>> split(": "))
 	>> map(\(name, rest) -> [name, rest >> split(" ")])
-	>> dict
-	:>> instructions;
+	>> dict;
 
 monkeys := dict();
 
@@ -34,7 +33,6 @@ fn find_value(name) -> {
 
 monkeys = dict();
 monkeys["humn"] = "X";
-// instructions["root"] >> \(l, op, r) -> [l, "=", r] =>> instructions["root"];
 
 fn balance(expression, answer) -> 
 	if expression == "X" 

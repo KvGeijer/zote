@@ -1,11 +1,10 @@
 include!("stdlib");
 
-read("../inputs/20.txt")
+arena := read("../inputs/20.txt")
 	>> split('\n')
 	>> map(int)
-	>> map(\x -> [x, nil, nil])
-	:>> arena;
-
+	>> map(\x -> [x, nil, nil]);
+	
 // Print and you die
 for (i, pair) in arena >> enumerate {
 	pair[1] = arena[(i-1) % len(arena)];

@@ -1,12 +1,11 @@
 include!("stdlib");
 
-read("../inputs/01.txt")
+elfs := read("../inputs/01.txt")
 	>> split("\n\n")  
 	// >> map(print)
 	>> map(\>> split("\n") >> map(int) >> sum)
 	>> sort
-	>> rev
-	:>> elfs;
+	>> rev;
 
 elfs[0] >> print;
 elfs >> [:3] >> sum >> print;

@@ -1,8 +1,7 @@
-read("aoc-2022/inputs/07.txt")
+instrs := read("aoc-2022/inputs/07.txt")
 	>> split("\n")
-	>> map(\>> split(" "))
-	:>> instrs;
-
+	>> map(\>> split(" "));
+	
 tree := dict();
 path := [];
 for instr in instrs {

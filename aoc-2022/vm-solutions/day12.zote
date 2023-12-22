@@ -1,8 +1,7 @@
 include!("stdlib");
 
-read("../inputs/12.txt")
-	>> split("\n")
-	:>> problem_map;
+problem_map := read("../inputs/12.txt")
+	>> split("\n");
 
 (start, end) := [nil, nil];
 for row in [0:len(problem_map)] for col in [0:len(problem_map[0])] {
@@ -19,9 +18,8 @@ for row in [0:len(problem_map)] for col in [0:len(problem_map[0])] {
 	}
 }
 
-problem_map
-	>> map(\>> map(to_ascii))
-	:>> height_map;
+height_map := problem_map
+	>> map(\>> map(to_ascii));
 
 next_round := [start];
 discovered := set();

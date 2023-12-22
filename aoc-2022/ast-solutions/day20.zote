@@ -1,9 +1,8 @@
-read("aoc-2022/inputs/20.txt")
+arena := read("aoc-2022/inputs/20.txt")
 	>> split('\n')
 	>> map(int)
-	>> map(\x -> [x, Nil, Nil])
-	:>> arena;
-
+	>> map(\x -> [x, Nil, Nil]);
+	
 // Print and you die
 for (i, pair) in arena >> enumerate {
 	pair[1] = arena[(i-1) % len(arena)];

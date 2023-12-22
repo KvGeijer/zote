@@ -1,10 +1,8 @@
 include!("stdlib");
 
-read("../inputs/08.txt")
+trees := read("../inputs/08.txt")
 	>> split("\n")
-	>> map(\>> map(int))
-	:>> trees; 
-
+	>> map(\>> map(int));
 
 visible := 0;
 scenic := 0;

@@ -1,10 +1,8 @@
 include!("stdlib");
 
-read("../inputs/10.txt")
+instrs := read("../inputs/10.txt")
 	>> split("\n")
-	>> map(\>> split(" "))
-	:>> instrs;
-
+	>> map(\>> split(" "));
 
 cycle_pos := [];
 current := 1;

@@ -8,7 +8,7 @@ pair_ranges := read("../inputs/04.txt")
 			>> map(\>> split("-") >> collect_points));
 
 fn covers((s1, s2)) -> {
-	s1 >> union(s2)  :>> union;
+	union := s1 >> union(s2);
 	union == s1 or union == s2
 }
 

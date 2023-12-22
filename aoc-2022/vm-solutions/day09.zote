@@ -1,9 +1,8 @@
 include!("stdlib");
 
-read("../inputs/09.txt")
+instrs := read("../inputs/09.txt")
 	>> split("\n")
-	>> map(\>> split(" "))
-	:>> instrs;
+	>> map(\>> split(" "));
 
 // Add to some stdlib
 sgn := \x -> 

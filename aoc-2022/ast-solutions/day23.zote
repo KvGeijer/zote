@@ -16,15 +16,14 @@ fn ground_covered(karta) -> {
 	empty
 }
 
-read("aoc-2022/inputs/23.txt")
+karta := read("aoc-2022/inputs/23.txt")
 	>> split("\n")
 	>> map(\>> enumerate >> filter(\(_, c) -> c == "#") >> map(head))
 	>> enumerate
 	>> map(\(row, cols) -> cols >> map(\col -> [row, col]))
 	>> flatten
-	>> set
-	:>> karta;
-
+	>> set;
+	
 move_plans := [
 	[[-1, -1], [-1, 0], [-1, 1]],
 	[[1, -1], [1, 0], [1, 1]],

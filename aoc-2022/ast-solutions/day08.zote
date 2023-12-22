@@ -1,8 +1,6 @@
-read("aoc-2022/inputs/08.txt")
+trees := read("aoc-2022/inputs/08.txt")
 	>> split("\n")
-	>> map(\>> map(int))
-	:>> trees; 
-
+	>> map(\>> map(int));
 
 visible := 0;
 scenic := 0;

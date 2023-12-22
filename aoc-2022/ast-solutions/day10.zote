@@ -1,7 +1,6 @@
-read("aoc-2022/inputs/10.txt")
+instrs := read("aoc-2022/inputs/10.txt")
 	>> split("\n")
-	>> map(\>> split(" "))
-	:>> instrs;
+	>> map(\>> split(" "));
 
 cycle_pos := [];
 current := 1;

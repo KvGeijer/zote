@@ -1,10 +1,9 @@
 vadd := \x, y -> zip(x, y) >> map(sum);
 add := \x, y -> x + y;
 
-read("aoc-2022/inputs/24.txt")
-	>> split('\n')
-	:>> lines;
-
+lines := read("aoc-2022/inputs/24.txt")
+	>> split('\n');
+	
 goal := [len(lines) - 1, len(lines[0]) - 2];
 start := [0, 1];
 

@@ -79,8 +79,8 @@ pub enum Token {
     Geq,
     Nil,
     Pipe,
-    ColonPipe,
-    EqPipe,
+    // ColonPipe,
+    // EqPipe,
     DoublePlus,
 }
 
@@ -151,8 +151,8 @@ lazy_static! {
         (r">=", |_| Token::Geq),
         (r"nil", |_| Token::Nil),
         (r">>", |_| Token::Pipe),
-        (r":>>", |_| Token::ColonPipe),
-        (r"=>>", |_| Token::EqPipe),
+        // (r":>>", |_| Token::ColonPipe),
+        // (r"=>>", |_| Token::EqPipe),
         (r"\+\+", |_| Token::DoublePlus),
     ];
 }

@@ -1,10 +1,9 @@
-read("aoc-2022/inputs/01.txt")
+elfs := read("aoc-2022/inputs/01.txt")
 	>> split("\n") 
 	>> split("") 
 	>> map(\>> map(int) >> sum)
 	>> sort
-	>> rev
-	:>> elfs;
+	>> rev;
 
 elfs[0] >> print;
 elfs >> take(3) >> sum >> print;

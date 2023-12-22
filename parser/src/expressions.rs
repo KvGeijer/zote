@@ -188,7 +188,7 @@ impl<'a> Parser<'a> {
     }
 
     fn pipe(&mut self) -> Option<ExprNode> {
-        // pipe       → lambda ( ">>" lambda | "=>>" lvalue | ">>" index )* ;
+        // pipe       → lambda ( ">>" lambda | ">>" index )* ;
         let expr = self.lambda()?;
         self.pipe_extension(expr)
     }
@@ -199,8 +199,8 @@ impl<'a> Parser<'a> {
             // Do we want to add :>> here as well?
             if self.match_token(Token::Pipe) {
                 expr = self.pipe_transform_stage(expr)?;
-            } else if self.match_token(Token::EqPipe) {
-                expr = self.add_pipe_assign(expr)?;
+            // } else if self.match_token(Token::EqPipe) { // removed =>>
+            //     expr = self.add_pipe_assign(expr)?;
             } else {
                 return Some(expr);
             }
@@ -215,13 +215,14 @@ impl<'a> Parser<'a> {
         }
     }
 
-    fn add_pipe_assign(&mut self, expr: ExprNode) -> Option<ExprNode> {
-        let start = expr.start_loc;
-        let lambda = self.lambda()?;
-        let end = lambda.end_loc;
-        let lvalue = self.expr_to_lvalue(lambda, false)?;
-        Some(ExprNode::new(Expr::Assign(lvalue, expr), start, end))
-    }
+    // Removed from language
+    // fn add_pipe_assign(&mut self, expr: ExprNode) -> Option<ExprNode> {
+    //     let start = expr.start_loc;
+    //     let lambda = self.lambda()?;
+    //     let end = lambda.end_loc;
+    //     let lvalue = self.expr_to_lvalue(lambda, false)?;
+    //     Some(ExprNode::new(Expr::Assign(lvalue, expr), start, end))
+    // }
 
     fn add_pipe_call(&mut self, expr: ExprNode) -> Option<ExprNode> {
         let start = expr.start_loc;

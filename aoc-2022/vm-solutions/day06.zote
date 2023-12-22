@@ -1,6 +1,6 @@
 include!("stdlib");
 
-read("../inputs/06.txt")  :>> signal;
+signal := read("../inputs/06.txt");
 
 for size in [4, 14]
 	for end in [size:len(signal)] {

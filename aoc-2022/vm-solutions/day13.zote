@@ -23,10 +23,9 @@ fn cmp(x, y) -> {
 	}
 }
 
-read("../inputs/13.txt")
+pairs := read("../inputs/13.txt")
 	>> split("\n\n")
-	>> map(\>> split("\n") >> map(eval)) // The slowest and most un-safe possible solution, using eval to parse lists xD
-	:>> pairs;
+	>> map(\>> split("\n") >> map(eval)); // The slowest and most un-safe possible solution, using eval to parse lists xD
 
 // pairs >> enumerate >> [0] >> print;
 

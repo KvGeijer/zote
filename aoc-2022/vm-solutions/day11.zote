@@ -23,7 +23,7 @@ get_val := \rule, old -> if rule == "old" old else int(rule);
 
 
 for (temper, rounds) in zip(tempers, [20, 10000]) {
-	read("../inputs/11.txt")
+	monkeys := read("../inputs/11.txt")
 		>> split("\n\n")
 		>> map(\>> split("\n"))
 		>> map(\monkey -> [
@@ -32,8 +32,7 @@ for (temper, rounds) in zip(tempers, [20, 10000]) {
 			monkey[3] >> split(" ") >> at(-1) >> int,
 			monkey[4] >> split(" ") >> at(-1) >> int,
 			monkey[5] >> split(" ") >> at(-1) >> int
-		])
-		:>> monkeys;
+		]);
 
 	activity := monkeys >> map(\>> const(0));
 

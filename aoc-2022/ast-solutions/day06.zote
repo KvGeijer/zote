@@ -1,4 +1,4 @@
-read("aoc-2022/inputs/06.txt") >> list  :>> signal;
+signal := read("aoc-2022/inputs/06.txt") >> list;
 
 for size in [4, 14]
 	for end in [size:len(signal)] {

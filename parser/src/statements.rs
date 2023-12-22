@@ -169,15 +169,15 @@ impl<'a> Parser<'a> {
                 start,
                 end,
             )]))
-        } else if self.match_token(Token::ColonPipe) {
-            let lvalue = self.lvalue(true)?;
-            let end = *self.peek_end_loc();
-            self.accept(Token::Semicolon, "Expect ';' after pipe decl statement")?;
-            Some(Either::Left(vec![StmtNode::new(
-                Stmt::Decl(lvalue, Some(expr)),
-                start,
-                end,
-            )]))
+        // } else if self.match_token(Token::ColonPipe) { // Removed from language
+        //     let lvalue = self.lvalue(true)?;
+        //     let end = *self.peek_end_loc();
+        //     self.accept(Token::Semicolon, "Expect ';' after pipe decl statement")?;
+        //     Some(Either::Left(vec![StmtNode::new(
+        //         Stmt::Decl(lvalue, Some(expr)),
+        //         start,
+        //         end,
+        //     )]))
         } else if self.match_token(Token::Semicolon) {
             let end = *self.peek_last_end_loc().unwrap();
             Some(Either::Left(vec![StmtNode::new(

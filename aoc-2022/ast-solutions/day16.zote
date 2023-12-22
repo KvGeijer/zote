@@ -1,11 +1,10 @@
-read("aoc-2022/inputs/16.txt")
+lines := read("aoc-2022/inputs/16.txt")
 	>> split("\n")
 	>> map(\line -> {
 		words := line >> split(" ");
 		[words[1], int(words[4][5:-1]), words[9:] >> map(\word -> word[:2])]
-	})
-	:>> lines;
-
+	});
+	
 valve_to_int := dict();
 for (i, (valve, _, _)) in enumerate(lines) {
 	valve_to_int[valve] = i;

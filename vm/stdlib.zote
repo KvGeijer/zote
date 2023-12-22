@@ -166,6 +166,8 @@ geq := \x, y -> x >= y;
 lt :=  \x, y -> x < y;
 leq := \x, y -> x <= y;
 
+append := \x, y -> x ++ y;
+
 
 /// Trims leading and ending \n \r and ' ' from a string
 fn trim(string) -> {

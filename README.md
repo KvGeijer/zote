@@ -1,10 +1,6 @@
-# The Zote programming language
+# The Zote Programming Language
 
-Zote is an imperative, dynamically typed scripting language with inspiration from functional programming. A target of mine is to solve [Advent of Code 2023](https://adventofcode.com/) with zote's virtual machine implementation, and the whole language is designed to be pleasant to use for that type of small problems. For example, it should be easy and fast to write scripts of up to a couple of hundred lines, but easy maintenance is not a priority.
-
-At the moment, Zote has two working interpreters, split as two binaries.
-- The `zote` binary is the more advanced virtual machine (vm) interpreter. It compiles the syntax tree to a custom bytecode format (see [vm/src/compiler/bytecode.rs](vm/src/compiler/bytecode.rs)), and then interprets this bytecode with a virtual machine. This is very similar to how languages like Python work, and is faster than the simple interpreter as things will be stored more compactly in memory. This is also what I use for my [2023 solutions](https://github.com/KvGeijer/advent-of-zote-2023) of [Advent of Code](https://adventofcode.com/), where I even managed to reach top 100 globally on [day 17](https://adventofcode.com/2023/day/17).
-- The `ast-zote` binary is a simpler interpreter that directly traverses the syntax tree during runtime. In [aoc-2022/ast-solutions](./aoc-2022/ast-solutions) there are working solutions for all advent of code problems from 2022 for this one, proving it is in a usable state. However, this type of an interpreter is slow, and rarely ever used in production languages.
+Zote is an imperative, dynamically typed scripting language with inspiration from functional programming. A target of mine is to solve [Advent of Code 2023](https://adventofcode.com/) with zote's virtual machine implementation, and the whole language is designed to be pleasant to use for that type of small problems. -It should be easy and pleasant to write files of up to a couple hudred lines of code, but it is not at all designed for larger projects.
 
 One of Zote's core values is that you should write your programs in the same direction as you think. Take this Python code:
 ``` python
@@ -16,13 +12,29 @@ This splits the input string, maps each line to an int, and finally takes the ma
 input >> split("\n") >> map(int) >> maximum
 ```
 
-Here the data is piped through a series of functions, from left to right. This makes it easy to write each transformation chain as you go, starting with the input, and adding transforms as you go. Languages like Rust and Java also achieve this by using methods, but I wanted a more mathematical notation of functions. The Julia language has pipes, but they felt a bit clunky to me, only working as I wanted for functions with one parameter. The notation for Zote works on any number of argument, and are usually constructed in a way that the first parameter is the _data_ which can be piped.
+Here the data is piped through a series of functions, from left to right, where you start with the input data, and apply a series of tranformations as you write. Languages like Rust and Java also achieve this by using methods, but I wanted a more mathematical notation of functions. The Julia language has pipes, but they felt a bit clunky to me, only working as I wanted for functions with one parameter. The notation for Zote works on any number of argument, and are usually constructed in a way that the first parameter is the _data_ which can be piped.
 
 There is no difference in performance between pipes and normal function calls, and the above Zote code desugarizes to
 ```python
 maximum(map(split(input, "\n"), int))
 ```
 which is also valid Zote. These two styles can be mixed depending on what mindset you are writing in. For example, if you are writing very functional code, the pipes might be more clear. But, in some cases you don't have a clear data to pipe, or you do some mutation, and then it can be nice to just use normal function call syntax.
+
+## Installation
+
+At the moment, Zote has two working interpreters, split as two binaries.
+- The `zote` binary is the recommended virtual machine (vm) interpreter. It compiles the syntax tree to a custom bytecode format (see [vm/src/compiler/bytecode.rs](vm/src/compiler/bytecode.rs)), and then interprets this bytecode with a virtual machine. This is very similar to how languages like Python work, and is often used as code will be stored compactly in memory. This is also what I use for my [2023 solutions](https://github.com/KvGeijer/advent-of-zote-2023) of [Advent of Code](https://adventofcode.com/). However, this does not have a fully working repl (each line is treated as a stand-alone program).
+- The `ast-zote` binary is a simpler interpreter that directly traverses the syntax tree during runtime. It works well, but this type of interpreter is rather slow, and rarely ever used in production languages. However, it has a better repl, and might be used for that purpose.
+
+There is a precompiled binary for x86 Linux and the latest relase at GitHub. However, the recommended way is to install from source, which can be done as below.
+
+``` bash
+git clone git@github.com:KvGeijer/zote.git
+cd zote
+cargo install --path .
+```
+
+This will install the standard virtual machine interpreter. You can also install the ast-interpreter, which primarily is recommended if you want to use the repl. Then you add ```--bin ast-zote``` to the installation command, and use the installed ```ast-zote``` command.
 
 ## Examples
 

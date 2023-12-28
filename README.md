@@ -26,7 +26,7 @@ At the moment, Zote has two working interpreters, split as two binaries.
 - The `zote` binary is the recommended virtual machine (vm) interpreter. It compiles the syntax tree to a custom bytecode format (see [vm/src/compiler/bytecode.rs](vm/src/compiler/bytecode.rs)), and then interprets this bytecode with a virtual machine. This is very similar to how languages like Python work, and is often used as code will be stored compactly in memory. This is also what I use for my [2023 solutions](https://github.com/KvGeijer/advent-of-zote-2023) of [Advent of Code](https://adventofcode.com/). However, this does not have a fully working repl (each line is treated as a stand-alone program).
 - The `ast-zote` binary is a simpler interpreter that directly traverses the syntax tree during runtime. It works well, but this type of interpreter is rather slow, and rarely ever used in production languages. However, it has a better repl, and might be used for that purpose.
 
-There is a precompiled binary for x86 Linux and the latest relase at GitHub. However, the recommended way is to install from source, which can be done as below.
+There is a precompiled binary for x86 Linux and the latest relase at GitHub. However, the recommended way is to install from source. First [install Rust](https://www.rust-lang.org/tools/install) and set it up so that you can use `cargo`. Then install as below.
 
 ``` bash
 git clone git@github.com:KvGeijer/zote.git
@@ -34,7 +34,7 @@ cd zote
 cargo install --path .
 ```
 
-This will install the standard virtual machine interpreter. You can also install the ast-interpreter, which primarily is recommended if you want to use the repl. Then you add ```--bin ast-zote``` to the installation command, and use the installed ```ast-zote``` command.
+This will install the standard virtual machine interpreter, which you can use to run code with as `zote <code.zote>`. You can also install the ast-interpreter, which primarily is recommended if you want to use the repl. Then you add ```--bin ast-zote``` to the installation command, and use the installed ```ast-zote``` command.
 
 ## Examples
 

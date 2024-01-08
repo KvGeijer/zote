@@ -22,9 +22,9 @@ which is also valid Zote. These two styles can be mixed depending on what mindse
 
 ## Installation
 
-At the moment, Zote has two working interpreters, split as two binaries.
-- The `zote` binary is the recommended virtual machine (vm) interpreter. It compiles the syntax tree to a custom bytecode format (see [vm/src/compiler/bytecode.rs](vm/src/compiler/bytecode.rs)), and then interprets this bytecode with a virtual machine. This is very similar to how languages like Python work, and is often used as code will be stored compactly in memory. This is also what I use for my [2023 solutions](https://github.com/KvGeijer/advent-of-zote-2023) of [Advent of Code](https://adventofcode.com/). However, this does not have a fully working repl (each line is treated as a stand-alone program).
-- The `ast-zote` binary is a simpler interpreter that directly traverses the syntax tree during runtime. It works well, but this type of interpreter is rather slow, and rarely ever used in production languages. However, it has a better repl, and might be used for that purpose.
+At the moment, Zote has two working interpreters.
+- The `zote` binary is the recommended virtual machine (vm) interpreter. It compiles the syntax tree to a custom bytecode format (see [vm/src/compiler/bytecode.rs](vm/src/compiler/bytecode.rs)), and then interprets this bytecode with a virtual machine. This is similar to what languages such as Python do, and is also what I used for my [2023 solutions](https://github.com/KvGeijer/advent-of-zote-2023) of [Advent of Code](https://adventofcode.com/). However, this does *not* have a fully working repl (each line is treated as a stand-alone program).
+- The `ast-zote` binary is a simpler interpreter that directly traverses the syntax tree during runtime. It works well, but this type of interpreter is rather slow and rarely ever used in production languages. However, it has a better repl which might be useful for playing with zote.
 
 There is a precompiled binary for x86 Linux and the latest relase at GitHub. However, the recommended way is to install from source. First [install Rust](https://www.rust-lang.org/tools/install) and set it up so that you can use `cargo`. Then install as below.
 
@@ -36,6 +36,11 @@ cargo install --path .
 
 This will install the standard virtual machine interpreter, which you can use to run code with as `zote <code.zote>`. You can also install the ast-interpreter, which primarily is recommended if you want to use the repl. Then you add ```--bin ast-zote``` to the installation command, and use the installed ```ast-zote``` command.
 
+### Syntax Highlighting
+
+There is a tree-sitter for Zote available at [https://github.com/KvGeijer/tree-sitter-zote](https://github.com/KvGeijer/tree-sitter-zote)! It includes a guide for how to get it running in Helix, but it should be similar for other editors.
+
+Sadly it cannot be used in pages as this, as it is not merged into the repo Github uses for highlighting and language detection.
 ## Examples
 
 Here are two examples from Advent of Code to give a brief overview to how the language works and looks. See the next heading for some descriptions about the parts of the language.
@@ -150,9 +155,7 @@ Zote is in active development, and there is no great documentation (except readi
 
 I read the excellent book [Crafting Interpreters](craftinginterpreters.com) for inspiration and advice in what order to implement things. Zote does not have any big innovations but instead combines ideas from [Rust](https://www.rust-lang.org/), [Julia](https://julialang.org/), [Python](https://www.python.org/) and [Noulith](https://github.com/betaveros/noulith), in no particular order (and of course from other languages as well).
 
-At the time of writing (the beginning of December 2023) the virtual machine interpreter is working and the default `zote` binary. The simpler `ast-zote` is also working, but usually slower.
-
-So what is next? It would be very nice to add some more features, such as efficient iterators, tinker a bit with the syntax of pattern matching, and improve the standard library (indluding documentations). Then, as I have started using it for Advent of Code, it would be lovely to get some syntax highlightig (I have started work on a tree-sitter parser).
+So what is next? It would be very nice to add some more features, such as efficient iterators, tinker a bit with the syntax of pattern matching, and improve the standard library (indluding documentation).
 
 ## Benchmarks
 

@@ -233,7 +233,7 @@ impl Into<List> for &ValueString {
     fn into(self) -> List {
         self.to_string()
             .chars()
-            .map(|char| Value::Int(char as usize as i64))
+            .map(|char| ValueString::from(char as u8).into())
             .collect::<Vec<Value>>()
             .into()
     }

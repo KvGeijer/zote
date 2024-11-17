@@ -137,7 +137,7 @@ fn abs(nbr) -> {
 }
 
 /// The constant function always returns the second argument
-fn const(x, y) -> y;
+fn const(_, val) -> val;
 
 /// returns true if all values fulfill the predicate
 fn all(coll, pred) -> {
@@ -166,7 +166,7 @@ geq := \x, y -> x >= y;
 lt :=  \x, y -> x < y;
 leq := \x, y -> x <= y;
 
-append := \x, y -> x ++ y;
+append := \l, r -> l ++ r;
 
 
 /// Trims leading and ending \n \r and ' ' from a string

@@ -5,6 +5,7 @@ use std::{
     path::{Path, PathBuf},
     process::exit,
 };
+use vm::value::get_natives;
 
 #[derive(Parser)]
 struct Args {
@@ -12,18 +13,24 @@ struct Args {
     file: Option<String>,
 
     /// Format the parsed code instead of running it when set
-    #[clap(short, long, requires = "file")]
+    #[clap(short, long, requires = "file", conflicts_with = "doc_functions")]
     format: bool,
+
+    /// Output all the globally declared functions in the file
+    #[clap(short, long, conflicts_with = "format")]
+    doc_functions: bool,
 }
 
 fn main() {
     let args = Args::parse();
 
-    if let Some(ref file) = args.file {
-        if !args.format {
-            exit(run_file(file));
-        } else {
+    if args.doc_functions {
+        document_functions(args.file);
+    } else if let Some(ref file) = args.file {
+        if args.format {
             format_file(file);
+        } else {
+            exit(run_file(file));
         }
     } else {
         run_repl();
@@ -48,6 +55,27 @@ fn format_file(file: &str) {
     } else {
         exit(65)
     }
+}
+
+fn document_functions(file_path: Option<String>) {
+    // First the builtin functions
+    let mut docs = String::new();
+    for native_str in get_natives().iter().map(|native| native.debug_print()) {
+        docs.push_str(&format!("fn {native_str};\n"));
+    }
+
+    // Then the ones from the potential file
+    if let Some(ref file) = file_path {
+        let script = fs::read_to_string(file).expect("Could not open file.");
+        change_dir(file);
+        if let Some(stmts) = parser::parse(file, &script) {
+            docs.push_str(&parser::gen_functions_doc(&stmts))
+        } else {
+            exit(65)
+        }
+    }
+
+    println!("{docs}");
 }
 
 /// Change the working dir to the files dir, and then return the previous dir

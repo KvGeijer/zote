@@ -11,19 +11,23 @@ pub fn get_builtins() -> Vec<Rc<dyn Builtin>> {
     let mut builtins: Vec<Rc<dyn Builtin>> =
         vec![Rc::new(DictNative), Rc::new(SortNative), Rc::new(SetNative)];
 
-    builtins.new_0arg("priority_queue", || Ok(PriorityQueue::new().into()));
+    builtins.new_0arg("priority_queue", "priority_queue()", || {
+        Ok(PriorityQueue::new().into())
+    });
 
-    builtins.new_1arg("id", Ok);
+    builtins.new_1arg("id", "id()", Ok);
 
-    builtins.new_1arg("str", |value| {
+    builtins.new_1arg("str", "str(value)", |value| {
         Ok(ValueString::from(value.to_string()).into())
     });
 
-    builtins.new_1arg("list", |value| value.conv_to_list().map(Value::List));
+    builtins.new_1arg("list", "list(values)", |value| {
+        value.conv_to_list().map(Value::List)
+    });
 
-    builtins.new_1arg("pop", |collection| collection.pop());
+    builtins.new_1arg("pop", "pop(collection)", |collection| collection.pop());
 
-    builtins.new_1arg("shuffle", |value| {
+    builtins.new_1arg("shuffle", "shuffle(list)", |value| {
         Ok(value
             .to_list()
             .ok_or(RuntimeError::bare_error(format!(
@@ -33,7 +37,7 @@ pub fn get_builtins() -> Vec<Rc<dyn Builtin>> {
             .into())
     });
 
-    builtins.new_1arg("read", |path| {
+    builtins.new_1arg("read", "read(str)", |path| {
         let kind = path.type_of();
         let str_path = path
             .to_valuestring()
@@ -48,11 +52,11 @@ pub fn get_builtins() -> Vec<Rc<dyn Builtin>> {
         }
     });
 
-    builtins.new_1arg("len", |value| {
+    builtins.new_1arg("len", "len(iter)", |value| {
         value.len().map(|usize| Value::Int(usize as i64))
     });
 
-    builtins.new_1arg("int", |value| {
+    builtins.new_1arg("int", "int(num/str)", |value| {
         fn parse(value: Value) -> RunRes<Value> {
             let kind = value.type_of();
             match value {
@@ -74,7 +78,7 @@ pub fn get_builtins() -> Vec<Rc<dyn Builtin>> {
         parse(value)
     });
 
-    builtins.new_1arg("float", |value| {
+    builtins.new_1arg("float", "float(num/str)", |value| {
         fn parse(value: Value) -> RunRes<Value> {
             let kind = value.type_of();
             match value {
@@ -98,8 +102,11 @@ pub fn get_builtins() -> Vec<Rc<dyn Builtin>> {
         parse(value)
     });
 
-    builtins.new_1arg("to_ascii", |value| Ok(Value::Int(value.to_char()? as i64)));
-    builtins.new_1arg("from_ascii", |value| {
+    builtins.new_1arg("to_ascii", "to_ascii(char)", |value| {
+        Ok(Value::Int(value.to_char()? as i64))
+    });
+
+    builtins.new_1arg("from_ascii", "from_ascii(int)", |value| {
         Ok(ValueString::from({
             let int = value.to_int()?;
             if int >= 0 && int <= 127 {
@@ -111,7 +118,7 @@ pub fn get_builtins() -> Vec<Rc<dyn Builtin>> {
         .into())
     });
 
-    builtins.new_1arg("values", |value| {
+    builtins.new_1arg("values", "values(dict)", |value| {
         let kind = value.type_of();
         let dict = value.to_dict().ok_or(RuntimeError::bare_error(format!(
             "Can only call 'values' on a dictionary, but got {kind}."
@@ -120,18 +127,18 @@ pub fn get_builtins() -> Vec<Rc<dyn Builtin>> {
         Ok(List::from(dict.values()).into())
     });
 
-    builtins.new_1arg("clone", |value| Ok(value.shallowclone()));
+    builtins.new_1arg("clone", "clone(val)", |value| Ok(value.shallowclone()));
 
-    builtins.new_1arg("deepclone", |value| Ok(value.deepclone()));
+    builtins.new_1arg("deepclone", "deepclone(val)", |value| Ok(value.deepclone()));
 
     // Do we actually want this? Do we want types as an actual value type?
-    builtins.new_1arg("type_of", |value| {
+    builtins.new_1arg("type_of", "type_of(val)", |value| {
         Ok(ValueString::from(value.type_of().to_string()).into())
     });
 
     // this is so horrible, we must have it! However, it will be encapsulated and not able
     // to read or write to variables. Also, of course, very inefficient.
-    builtins.new_1arg("eval", |value| {
+    builtins.new_1arg("eval", "eval(str)", |value| {
         let kind = value.type_of();
         let Some(string) = value.to_valuestring() else {
             return RunRes::new_err(format!("Can only 'eval' strings, but got {kind}"));
@@ -154,36 +161,48 @@ pub fn get_builtins() -> Vec<Rc<dyn Builtin>> {
         }
     });
 
-    builtins.new_1arg("bit_not", |value| Ok(Value::Int(!value.to_int()?)));
-    builtins.new_2arg("bit_or", |x, y| Ok(Value::Int(x.to_int()? | y.to_int()?)));
-    builtins.new_2arg("bit_xor", |x, y| Ok(Value::Int(x.to_int()? ^ y.to_int()?)));
-    builtins.new_2arg("bit_and", |x, y| Ok(Value::Int(x.to_int()? & y.to_int()?)));
-    builtins.new_2arg("bit_lshift", |x, shift| {
+    builtins.new_1arg("bit_not", "bit_not(num)", |value| {
+        Ok(Value::Int(!value.to_int()?))
+    });
+    builtins.new_2arg("bit_or", "bit_or(num1, num2)", |x, y| {
+        Ok(Value::Int(x.to_int()? | y.to_int()?))
+    });
+    builtins.new_2arg("bit_xor", "bit_xor(num1, num2)", |x, y| {
+        Ok(Value::Int(x.to_int()? ^ y.to_int()?))
+    });
+    builtins.new_2arg("bit_and", "bit_and(num1, num2)", |x, y| {
+        Ok(Value::Int(x.to_int()? & y.to_int()?))
+    });
+    builtins.new_2arg("bit_lshift", "bit_lshift(num, shift)", |x, shift| {
         Ok(Value::Int(x.to_int()? << shift.to_int()?))
     });
-    builtins.new_2arg("bit_rshift", |x, shift| {
+    builtins.new_2arg("bit_rshift", "bit_rshift(num, shift)", |x, shift| {
         Ok(Value::Int(x.to_int()? >> shift.to_int()?))
     });
 
-    builtins.new_2arg("split", |value, delimiter| match value {
-        Value::String(valuestring) => Ok(List::from(
-            valuestring
-                .split(delimiter)?
-                .into_iter()
-                .map(|str| Value::from(str))
-                .collect::<Vec<Value>>(),
-        )
-        .into()),
-        Value::List(list) => Ok(list.split(delimiter).into()),
-        otherwise => RunRes::new_err(format!("Cannot split {}", otherwise.type_of())),
-    });
+    builtins.new_2arg(
+        "split",
+        "split(value, delimiter)",
+        |value, delimiter| match value {
+            Value::String(valuestring) => Ok(List::from(
+                valuestring
+                    .split(delimiter)?
+                    .into_iter()
+                    .map(|str| Value::from(str))
+                    .collect::<Vec<Value>>(),
+            )
+            .into()),
+            Value::List(list) => Ok(list.split(delimiter).into()),
+            otherwise => RunRes::new_err(format!("Cannot split {}", otherwise.type_of())),
+        },
+    );
 
-    builtins.new_2arg("push", |value, collection| {
+    builtins.new_2arg("push", "push(value, collection)", |value, collection| {
         collection.push(value.clone())?;
         Ok(value)
     });
 
-    builtins.new_2arg("intersect", |dict1, dict2| {
+    builtins.new_2arg("intersect", "intersect(dict1, dict2)", |dict1, dict2| {
         let (t1, t2) = (dict1.type_of(), dict2.type_of());
         let (Some(d1), Some(d2)) = (dict1.to_dict(), dict2.to_dict()) else {
             return RunRes::new_err(format!(
@@ -194,7 +213,7 @@ pub fn get_builtins() -> Vec<Rc<dyn Builtin>> {
         Ok(d1.intersect(d2.as_ref()).into())
     });
 
-    builtins.new_2arg("union", |dict1, dict2| {
+    builtins.new_2arg("union", "union(dict1, dict2)", |dict1, dict2| {
         let (t1, t2) = (dict1.type_of(), dict2.type_of());
         let (Some(d1), Some(d2)) = (dict1.to_dict(), dict2.to_dict()) else {
             return RunRes::new_err(format!(
@@ -205,33 +224,43 @@ pub fn get_builtins() -> Vec<Rc<dyn Builtin>> {
         Ok(d1.union(d2.as_ref()).into())
     });
 
-    builtins.new_2arg("in", |value, collection| match collection {
-        Value::List(list) => Ok(list.contains(&value).into()),
-        Value::String(string) => string.contains_subsequence(value).map(|b| b.into()),
-        Value::Dictionary(dict) => Ok(dict.contains_key(value).into()),
-        otherwise => RunRes::new_err(format!(
-            "Cannot use 'in' on value of type {}",
-            otherwise.type_of()
-        )),
-    });
+    builtins.new_2arg(
+        "in",
+        "in(value, collection)",
+        |value, collection| match collection {
+            Value::List(list) => Ok(list.contains(&value).into()),
+            Value::String(string) => string.contains_subsequence(value).map(|b| b.into()),
+            Value::Dictionary(dict) => Ok(dict.contains_key(value).into()),
+            otherwise => RunRes::new_err(format!(
+                "Cannot use 'in' on value of type {}",
+                otherwise.type_of()
+            )),
+        },
+    );
 
-    builtins.new_3arg("push_pq", |value, prio, coll| {
-        let typ = coll.type_of();
-        if let Value::PriorityQueue(prioq) = coll {
-            prioq.push(value.clone(), prio);
-            Ok(value)
-        } else {
-            RunRes::new_err(format!(
-                "Third arg to push_pq must be a priority queue, but got {typ}"
-            ))
-        }
-    });
+    builtins.new_3arg(
+        "push_pq",
+        "push_pq(value, prio, collection)",
+        |value, prio, coll| {
+            let typ = coll.type_of();
+            if let Value::PriorityQueue(prioq) = coll {
+                prioq.push(value.clone(), prio);
+                Ok(value)
+            } else {
+                RunRes::new_err(format!(
+                    "Third arg to push_pq must be a priority queue, but got {typ}"
+                ))
+            }
+        },
+    );
 
-    builtins.new_3arg("get_or", |key, coll, or| {
-        Ok(coll.safe_read_at_index(key)?.unwrap_or(or))
-    });
+    builtins.new_3arg(
+        "get_or",
+        "get_or(key, collection, default)",
+        |key, coll, or| Ok(coll.safe_read_at_index(key)?.unwrap_or(or)),
+    );
 
-    builtins.new_any_arg("print", |args| {
+    builtins.new_any_arg("print", "print(values...)", |args| {
         for arg in args.iter() {
             print!("{}", arg);
         }
@@ -239,7 +268,7 @@ pub fn get_builtins() -> Vec<Rc<dyn Builtin>> {
         Ok(args.get(0).cloned().unwrap_or(Value::Nil))
     });
 
-    builtins.new_any_arg("zip", |args| {
+    builtins.new_any_arg("zip", "zip(colls...)", |args| {
         let colls = args
             .into_iter()
             .map(|value| {
@@ -296,6 +325,10 @@ impl Builtin for DictNative {
     fn arity(&self) -> &str {
         "[0, 1]"
     }
+
+    fn debug_print(&self) -> &str {
+        "dict(items?)"
+    }
 }
 
 struct SetNative;
@@ -324,6 +357,10 @@ impl Builtin for SetNative {
 
     fn arity(&self) -> &str {
         "[0, 1]"
+    }
+
+    fn debug_print(&self) -> &str {
+        "set(items?)"
     }
 }
 
@@ -362,5 +399,9 @@ impl Builtin for SortNative {
 
     fn arity(&self) -> &str {
         "[1, 2]"
+    }
+
+    fn debug_print(&self) -> &str {
+        "sort(list, cmp?)"
     }
 }

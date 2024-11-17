@@ -7,6 +7,7 @@ use scanner::TokenInfo;
 mod code_loc;
 mod errors;
 mod expressions;
+mod fn_doc_gen;
 mod generics;
 mod macros;
 mod scanner;
@@ -15,6 +16,7 @@ mod statements;
 pub use expressions::{
     BinOper, Expr, ExprNode, Index, LValue, ListContent, LogicalOper, Slice, UnOper,
 };
+pub use fn_doc_gen::gen_functions_doc;
 pub use statements::{Stmt, StmtNode, Stmts};
 
 // Each node in the AST is some branch/leaf wrapped in this extra info

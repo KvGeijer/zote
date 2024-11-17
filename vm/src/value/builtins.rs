@@ -38,6 +38,10 @@ impl Native {
     pub fn arity(&self) -> &str {
         self.builtin.arity()
     }
+
+    pub fn debug_print(&self) -> &str {
+        self.builtin.debug_print()
+    }
 }
 
 impl Debug for Native {
@@ -51,6 +55,7 @@ pub trait Builtin {
     fn accept_arity(&self, arity: usize) -> bool;
     fn name(&self) -> &str;
     fn arity(&self) -> &str;
+    fn debug_print(&self) -> &str;
 }
 
 pub fn get_natives() -> Vec<Native> {

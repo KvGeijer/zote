@@ -7,38 +7,63 @@ use super::Builtin;
 
 /// Trait for more easily adding builtins with a certain number of args
 pub trait BuiltinTemplate {
-    fn new_0arg(&mut self, name: &'static str, func: impl Fn() -> RunRes<Value> + 'static);
-    fn new_1arg(&mut self, name: &'static str, func: impl Fn(Value) -> RunRes<Value> + 'static);
+    fn new_0arg(
+        &mut self,
+        name: &'static str,
+        debug_print: &'static str,
+        func: impl Fn() -> RunRes<Value> + 'static,
+    );
+    fn new_1arg(
+        &mut self,
+        name: &'static str,
+        debug_print: &'static str,
+        func: impl Fn(Value) -> RunRes<Value> + 'static,
+    );
     fn new_2arg(
         &mut self,
         name: &'static str,
+        debug_print: &'static str,
         func: impl Fn(Value, Value) -> RunRes<Value> + 'static,
     );
     fn new_3arg(
         &mut self,
         name: &'static str,
+        debug_print: &'static str,
         func: impl Fn(Value, Value, Value) -> RunRes<Value> + 'static,
     );
     fn new_any_arg(
         &mut self,
         name: &'static str,
+        debug_print: &'static str,
         func: impl Fn(Vec<Value>) -> RunRes<Value> + 'static,
     );
 }
 
 impl BuiltinTemplate for Vec<Rc<dyn Builtin>> {
-    fn new_0arg(&mut self, name: &'static str, func: impl Fn() -> RunRes<Value> + 'static) {
+    fn new_0arg(
+        &mut self,
+        name: &'static str,
+        debug_print: &'static str,
+        func: impl Fn() -> RunRes<Value> + 'static,
+    ) {
         let builtin = Rc::new(ZeroArgBuiltin {
             name,
             func: Box::new(func),
+            debug_print,
         });
         self.push(builtin);
     }
 
-    fn new_1arg(&mut self, name: &'static str, func: impl Fn(Value) -> RunRes<Value> + 'static) {
+    fn new_1arg(
+        &mut self,
+        name: &'static str,
+        debug_print: &'static str,
+        func: impl Fn(Value) -> RunRes<Value> + 'static,
+    ) {
         let builtin = Rc::new(OneArgBuiltin {
             name,
             func: Box::new(func),
+            debug_print,
         });
         self.push(builtin);
     }
@@ -46,11 +71,13 @@ impl BuiltinTemplate for Vec<Rc<dyn Builtin>> {
     fn new_2arg(
         &mut self,
         name: &'static str,
+        debug_print: &'static str,
         func: impl Fn(Value, Value) -> RunRes<Value> + 'static,
     ) {
         let builtin = Rc::new(TwoArgBuiltin {
             name,
             func: Box::new(func),
+            debug_print,
         });
         self.push(builtin);
     }
@@ -58,11 +85,13 @@ impl BuiltinTemplate for Vec<Rc<dyn Builtin>> {
     fn new_3arg(
         &mut self,
         name: &'static str,
+        debug_print: &'static str,
         func: impl Fn(Value, Value, Value) -> RunRes<Value> + 'static,
     ) {
         let builtin = Rc::new(ThreeArgBuiltin {
             name,
             func: Box::new(func),
+            debug_print,
         });
         self.push(builtin);
     }
@@ -70,11 +99,13 @@ impl BuiltinTemplate for Vec<Rc<dyn Builtin>> {
     fn new_any_arg(
         &mut self,
         name: &'static str,
+        debug_print: &'static str,
         func: impl Fn(Vec<Value>) -> RunRes<Value> + 'static,
     ) {
         let builtin = Rc::new(AnyArgBuiltin {
             name,
             func: Box::new(func),
+            debug_print,
         });
         self.push(builtin);
     }
@@ -83,6 +114,7 @@ impl BuiltinTemplate for Vec<Rc<dyn Builtin>> {
 struct ZeroArgBuiltin {
     name: &'static str,
     func: Box<dyn Fn() -> RunRes<Value>>,
+    debug_print: &'static str,
 }
 
 impl Builtin for ZeroArgBuiltin {
@@ -101,11 +133,16 @@ impl Builtin for ZeroArgBuiltin {
     fn arity(&self) -> &str {
         "0"
     }
+
+    fn debug_print(&self) -> &str {
+        self.debug_print
+    }
 }
 
 struct OneArgBuiltin {
     name: &'static str,
     func: Box<dyn Fn(Value) -> RunRes<Value>>,
+    debug_print: &'static str,
 }
 
 impl Builtin for OneArgBuiltin {
@@ -125,11 +162,16 @@ impl Builtin for OneArgBuiltin {
     fn arity(&self) -> &str {
         "1"
     }
+
+    fn debug_print(&self) -> &str {
+        self.debug_print
+    }
 }
 
 struct TwoArgBuiltin {
     name: &'static str,
     func: Box<dyn Fn(Value, Value) -> RunRes<Value>>,
+    debug_print: &'static str,
 }
 
 impl Builtin for TwoArgBuiltin {
@@ -153,11 +195,16 @@ impl Builtin for TwoArgBuiltin {
     fn arity(&self) -> &str {
         "2"
     }
+
+    fn debug_print(&self) -> &str {
+        self.debug_print
+    }
 }
 
 struct ThreeArgBuiltin {
     name: &'static str,
     func: Box<dyn Fn(Value, Value, Value) -> RunRes<Value>>,
+    debug_print: &'static str,
 }
 
 impl Builtin for ThreeArgBuiltin {
@@ -181,11 +228,16 @@ impl Builtin for ThreeArgBuiltin {
     fn arity(&self) -> &str {
         "3"
     }
+
+    fn debug_print(&self) -> &str {
+        self.debug_print
+    }
 }
 
 struct AnyArgBuiltin {
     name: &'static str,
     func: Box<dyn Fn(Vec<Value>) -> RunRes<Value>>,
+    debug_print: &'static str,
 }
 
 impl Builtin for AnyArgBuiltin {
@@ -203,5 +255,9 @@ impl Builtin for AnyArgBuiltin {
 
     fn arity(&self) -> &str {
         "any"
+    }
+
+    fn debug_print(&self) -> &str {
+        self.debug_print
     }
 }

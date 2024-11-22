@@ -114,7 +114,7 @@ impl ValueString {
         let other = str_delim.string.borrow();
 
         let mut start_ind = 0;
-        while start_ind <= string.len() - other.len() {
+        while start_ind + other.len() <= string.len() {
             if string[start_ind..(start_ind + other.len())] == other[..] {
                 if last_start_ind != start_ind {
                     splits.push(string[last_start_ind..start_ind].to_vec().into())
@@ -140,7 +140,10 @@ impl ValueString {
 
         let kind = value.type_of();
         let Some(other_str) = value.to_valuestring() else {
-            return RunRes::new_err(format!("Can only check if a char, or a string is contained within another string. Got {}.", kind));
+            return RunRes::new_err(format!(
+                "Can only check if a char, or a string is contained within another string. Got {}.",
+                kind
+            ));
         };
 
         Ok(self.to_string().contains(&other_str.to_string()))

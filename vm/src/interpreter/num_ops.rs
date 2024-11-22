@@ -2,7 +2,7 @@
 
 use super::NIL;
 use crate::{
-    error::{RunRes, RunResTrait},
+    error::{RunRes, RunResTrait, RuntimeError},
     value::Value,
 };
 
@@ -61,16 +61,24 @@ pub fn mult(x: Value, y: Value) -> RunRes<Value> {
 
 pub fn div(x: Value, y: Value) -> RunRes<Value> {
     match promote(x, y)? {
-        (Value::Float(x), Value::Float(y)) => Ok(Value::Float(x / y)),
-        (Value::Int(x), Value::Int(y)) => Ok(Value::Int(x / y)),
+        (Value::Float(x), Value::Float(y)) => (y != 0.0)
+            .then_some(Value::Float(x / y))
+            .ok_or_else(|| RuntimeError::bare_error("Division by zero.".to_string())),
+        (Value::Int(x), Value::Int(y)) => (y != 0)
+            .then_some(Value::Int(x / y))
+            .ok_or_else(|| RuntimeError::bare_error("Division by zero.".to_string())),
         (_, _) => panic!("Internal error with promote arms"),
     }
 }
 
 pub fn modulo(x: Value, y: Value) -> RunRes<Value> {
     match promote(x, y)? {
-        (Value::Float(x), Value::Float(y)) => Ok(Value::Float(x.rem_euclid(y))),
-        (Value::Int(x), Value::Int(y)) => Ok(Value::Int(x.rem_euclid(y))),
+        (Value::Float(x), Value::Float(y)) => (y != 0.0)
+            .then_some(Value::Float(x.rem_euclid(y)))
+            .ok_or_else(|| RuntimeError::bare_error("Modulo by zero.".to_string())),
+        (Value::Int(x), Value::Int(y)) => (y != 0)
+            .then_some(Value::Int(x.rem_euclid(y)))
+            .ok_or_else(|| RuntimeError::bare_error("Modulo by zero.".to_string())),
         (_, _) => panic!("Internal error with promote arms"),
     }
 }

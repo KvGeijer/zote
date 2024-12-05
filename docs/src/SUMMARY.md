@@ -1,0 +1,22 @@
+# The Zote Programming Language
+
+[Zote at a Glance](README.md)
+[Book Organization](organization.md)
+
+- [Getting Started](getting_started.md)
+  - [Installation](getting_started/installation.md)
+  - [Hello World!](getting_started/hello_world.md)
+- [Types](types.md)
+  - [Primitive Types](types/primitive_types.md)
+  - [Composite Types](types/composite_types.md)
+- [Grammar](grammar.md)
+  - [Statements](grammar/statements.md)
+  - [Expressions](grammar/expressions.md)
+  - [Variable bindings](grammar/variable_bindings.md)
+- [Operators](operators.md)
+  - [Pipes](operators/pipes.md)
+  - [Arithmetic](operators/arithmetic.md)
+  - [Relational](operators/relational.md)
+  - [Logical](operators/logical.md)
+- [Built in Functions](builtins.md)
+- [The Standard Library](stdlib.md)

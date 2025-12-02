@@ -265,6 +265,31 @@ impl Value {
         }
     }
 
+    // Rounds the number up or down
+    pub fn round(self, up: bool) -> RunRes<Value> {
+        match self {
+            Value::Bool(bool) => {
+                if bool {
+                    Ok(1.into())
+                } else {
+                    Ok(0.into())
+                }
+            }
+            Value::Int(int) => Ok(int.into()),
+            Value::Float(float) => {
+                if up {
+                    Ok((float.ceil() as i64).into())
+                } else {
+                    Ok((float.floor() as i64).into())
+                }
+            }
+            otherwise => RunRes::new_err(format!(
+                "Cannot round {} to an integer",
+                otherwise.type_of()
+            )),
+        }
+    }
+
     /// Converts the value to an int if possible. NIL is mapped to specified value.
     pub fn to_int_or_nil_none(self) -> RunRes<Option<i64>> {
         match self {

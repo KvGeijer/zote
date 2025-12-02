@@ -102,6 +102,9 @@ pub fn get_builtins() -> Vec<Rc<dyn Builtin>> {
         parse(value)
     });
 
+    builtins.new_1arg("ceil", "ceil(num)", |value| Ok(value.round(true)?));
+    builtins.new_1arg("floor", "ceil(num)", |value| Ok(value.round(false)?));
+
     builtins.new_1arg("to_ascii", "to_ascii(char)", |value| {
         Ok(Value::Int(value.to_char()? as i64))
     });

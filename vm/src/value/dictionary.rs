@@ -154,12 +154,12 @@ impl Dictionary {
     }
 
     /// Borrows the map
-    fn borrow(&self) -> Ref<HashMap<KeyValue, Value>> {
+    fn borrow(&self) -> Ref<'_, HashMap<KeyValue, Value>> {
         self.map.borrow()
     }
 
     /// Borrows the map mutably
-    fn borrow_mut(&self) -> RefMut<HashMap<KeyValue, Value>> {
+    fn borrow_mut(&self) -> RefMut<'_, HashMap<KeyValue, Value>> {
         self.map.borrow_mut()
     }
 

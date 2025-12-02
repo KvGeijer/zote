@@ -1,4 +1,4 @@
-#![feature(box_patterns, iterator_try_reduce, let_chains)]
+#![feature(box_patterns, iterator_try_reduce)]
 
 pub use code_loc::{CodeLoc, CodeRange};
 use errors::ErrorReporter;

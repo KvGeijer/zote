@@ -139,7 +139,7 @@ impl List {
 
     /// Borrows a reference to the slice
     /// This is a very dangerous function, as we can hand out several references
-    pub fn borrow_slice(&self) -> Ref<Vec<Value>> {
+    pub fn borrow_slice(&self) -> Ref<'_, Vec<Value>> {
         self.vec.borrow()
     }
 
@@ -201,13 +201,17 @@ impl List {
         let dict = Dictionary::new();
         for value in self.vec.borrow().iter() {
             let Value::List(list) = value else {
-                return RuntimeError::error(format!("When initializing a dict from a list, the list must be a list of key-value pair lists."));
+                return RuntimeError::error(format!(
+                    "When initializing a dict from a list, the list must be a list of key-value pair lists."
+                ));
             };
 
             if let Some((key, val)) = list.vec.borrow().iter().cloned().collect_tuple() {
                 dict.insert(key, val)?;
             } else {
-                return RuntimeError::error(format!("When initializing a dict from a list, the list must be a list of key-value pair lists."));
+                return RuntimeError::error(format!(
+                    "When initializing a dict from a list, the list must be a list of key-value pair lists."
+                ));
             }
         }
 

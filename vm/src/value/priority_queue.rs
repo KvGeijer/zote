@@ -68,12 +68,12 @@ impl PriorityQueue {
     }
 
     /// Borrows the heap
-    fn borrow(&self) -> Ref<BinaryHeap<HeapItem>> {
+    fn borrow(&self) -> Ref<'_, BinaryHeap<HeapItem>> {
         self.queue.borrow()
     }
 
     /// Borrows the heap mutably
-    fn borrow_mut(&self) -> RefMut<BinaryHeap<HeapItem>> {
+    fn borrow_mut(&self) -> RefMut<'_, BinaryHeap<HeapItem>> {
         self.queue.borrow_mut()
     }
 }

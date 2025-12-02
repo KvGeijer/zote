@@ -452,11 +452,11 @@ impl PartialEq for Value {
             (Value::Bool(a), Value::Bool(b)) => a == b, // Could allow eq between bool/int
             (Value::Int(a), Value::Int(b)) => a == b,
             (Value::Float(a), Value::Float(b)) => a.total_cmp(b).is_eq(),
-            (Value::Function(ref a), Value::Function(ref b)) => {
+            (Value::Function(a), Value::Function(b)) => {
                 // Compare the pointers, to see if they are the exact same function
                 Rc::ptr_eq(a, b)
             }
-            (Value::Closure(ref a), Value::Closure(ref b)) => {
+            (Value::Closure(a), Value::Closure(b)) => {
                 // Compare the pointers, to see if they are the exact same function
                 Rc::ptr_eq(a, b)
             }

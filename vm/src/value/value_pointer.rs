@@ -28,7 +28,7 @@ impl ValuePointer {
     }
 
     /// Borrows a reference to the underlying value
-    pub fn borrow_value(&self) -> Ref<Value> {
+    pub fn borrow_value(&self) -> Ref<'_, Value> {
         self.pointer.borrow()
     }
 }

@@ -164,6 +164,13 @@ pub fn get_builtins() -> Vec<Rc<dyn Builtin>> {
         }
     });
 
+    builtins.new_1arg("parse_json", "parse_json(string)", |string| {
+        let parsed: serde_json::Value = serde_json::from_str(&string.to_string())
+            .map_err(|err| RuntimeError::bare_error(format!("Could not parse json: {err}")))?;
+
+        parse_json(&parsed)
+    });
+
     builtins.new_1arg("bit_not", "bit_not(num)", |value| {
         Ok(Value::Int(!value.to_int()?))
     });
@@ -309,6 +316,43 @@ pub fn get_builtins() -> Vec<Rc<dyn Builtin>> {
     });
 
     builtins
+}
+
+fn parse_json(value: &serde_json::Value) -> RunRes<Value> {
+    match value {
+        serde_json::Value::Null => Ok(Value::Nil),
+        serde_json::Value::Bool(b) => Ok(Value::Bool(*b)),
+        serde_json::Value::Number(number) => {
+            if number.is_f64() {
+                Ok(Value::Float(number.as_f64().unwrap()))
+            } else if number.is_i64() {
+                Ok(Value::Int(number.as_i64().unwrap()))
+            } else {
+                Ok(Value::Int(number.as_i64().ok_or_else(|| {
+                    RuntimeError::bare_error(format!(
+                        "Could not parse too large json integer as i64: {number}"
+                    ))
+                })?))
+            }
+        }
+        serde_json::Value::String(string) => Ok(Value::from(ValueString::from(string.as_str()))),
+        serde_json::Value::Array(values) => Ok(Value::from(List::from(
+            values
+                .iter()
+                .map(parse_json)
+                .collect::<RunRes<Vec<Value>>>()?,
+        ))),
+        serde_json::Value::Object(values) => Ok(Value::from({
+            let dict = Dictionary::new();
+            for (key, json_val) in values {
+                dict.insert(
+                    Value::from(ValueString::from(key.as_str())),
+                    parse_json(json_val)?,
+                )?;
+            }
+            dict
+        })),
+    }
 }
 
 struct DictNative;

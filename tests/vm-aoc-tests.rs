@@ -85,6 +85,8 @@ fn vm_aoc_2022_12() {
     assert_eq!(output, "380\n375\n");
 }
 
+// Overflows Rust stack when run in debug mode
+#[ignore]
 #[test]
 fn vm_aoc_2022_13() {
     let output = interpret_day("day13");

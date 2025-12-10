@@ -11,3 +11,4 @@ itertools = "0.11.0"
 parser = { path = "../parser" }
 rand = "0.8.5"
 semantic_analyzer = { path = "../semantic_analyzer" }
+serde_json = "1.0.145"

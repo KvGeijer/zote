@@ -3,8 +3,8 @@ use crate::error::{RunRes, RunResTrait, RuntimeError};
 use crate::value::string::ValueString;
 use crate::value::{Dictionary, List, PriorityQueue, Value};
 
-use super::templates::BuiltinTemplate;
 use super::Builtin;
+use super::templates::BuiltinTemplate;
 use std::rc::Rc;
 
 pub fn get_builtins() -> Vec<Rc<dyn Builtin>> {
@@ -181,6 +181,13 @@ pub fn get_builtins() -> Vec<Rc<dyn Builtin>> {
     });
     builtins.new_2arg("bit_rshift", "bit_rshift(num, shift)", |x, shift| {
         Ok(Value::Int(x.to_int()? >> shift.to_int()?))
+    });
+
+    builtins.new_2arg("log", "log(num, base)", |num, base| match (num, base) {
+        (Value::Int(x), base) => Ok(Value::Int(x.ilog(base.to_int()?) as i64)),
+        (Value::Float(x), Value::Float(base)) => Ok(x.log(base).into()),
+        (Value::Float(x), base) => Ok(x.log(base.to_int()? as f64).into()),
+        (num, base) => Ok(Value::Int(num.to_int()?.ilog(base.to_int()?) as i64)),
     });
 
     builtins.new_2arg(
